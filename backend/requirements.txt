@@ -1,0 +1,21 @@
+# BioResearch Assistant — Backend Dependencies
+# Python 3.11+
+
+# Web
+fastapi>=0.109.0,<1.0
+uvicorn[standard]>=0.27.0,<1.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.25,<3.0
+asyncpg>=0.29.0,<1.0
+pgvector>=0.2.4,<1.0
+
+# Config & validation
+pydantic>=2.5.0,<3.0
+pydantic-settings>=2.1.0,<3.0
+
+# Migrations
+alembic>=1.13.0,<2.0
+
+# Utilities
+httpx>=0.26.0,<1.0

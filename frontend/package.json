@@ -1,0 +1,13 @@
+{
+  "name": "bioresearch-assistant-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BioResearch Assistant — React TypeScript frontend (placeholder)",
+  "scripts": {
+    "dev": "echo 'Add Vite/Next.js dev script'",
+    "build": "echo 'Add build script'",
+    "lint": "echo 'Add lint script'"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

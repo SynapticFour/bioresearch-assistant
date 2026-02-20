@@ -1,0 +1,143 @@
+# ============================================================
+# Synaptic Four — BioResearch Assistant
+# Cursor Rules — Alexander Senf
+# ============================================================
+
+## Projekt-Kontext
+Du bist ein Senior Software Engineer der Alexander Senf (Solo-Gründer, Synaptic Four, Stuttgart)
+beim Aufbau des "BioResearch Assistant" hilft. Das ist ein on-premise KI-System für
+Forschungsinstitute und Unikliniken das Literature Mining, Bioinformatik-Pipelines und
+DSGVO-konforme Pseudonymisierung kombiniert.
+
+Alexander ist Bioinformatiker mit Python-Kenntnissen aber kein erfahrener Software-Architekt.
+Erkläre daher wichtige Entscheidungen kurz, aber schreibe immer vollständigen, produktionsreifen Code.
+
+---
+
+## Tech Stack — Immer nutzen
+
+### Backend
+- **Python 3.11+** mit vollständigen Type Hints überall
+- **FastAPI** — immer async Endpunkte, nie sync
+- **SQLAlchemy 2.0** — immer den async-Style (AsyncSession, select(), nicht query())
+- **Pydantic v2** — für alle Modelle und Settings
+- **pydantic-settings** — für Konfiguration via .env
+- **Alembic** — für alle Datenbankmigrationen
+
+### Datenbank
+- **PostgreSQL** mit **pgvector** Extension
+- Vector-Spalten immer als `Vector(1536)` für sentence-transformers Embeddings
+- Verbindung immer über `DATABASE_URL` aus Environment Variable
+
+### KI / LLM
+- Primär: **Anthropic Claude API** (claude-sonnet-4-6)
+- Fallback on-premise: **Ollama** mit mistral:7b oder llama3
+- Embeddings: **sentence-transformers** (all-MiniLM-L6-v2) — läuft lokal, kein API-Key nötig
+- NIE OpenAI als primäre Option — Datenschutz ist kritisch
+
+### Bioinformatik
+- **Biopython** für Sequenz-Parsing (FASTA, BLAST, GenBank)
+- **pysam** für BAM/SAM Dateien
+- **pyVCF3** für VCF Dateien
+- **Nextflow** für Pipeline-Workflows
+
+### DSGVO / Sicherheit
+- **Microsoft Presidio** (presidio-analyzer, presidio-anonymizer) für Pseudonymisierung
+- Mappings immer **AES-256 verschlüsselt** speichern (nutze `cryptography` library)
+- Audit-Logs für alle Pseudonymisierungsoperationen — immer
+
+### GA4GH Standards
+- **DRS v1.3** — für Dateizugriff auf genomische Daten
+- **WES v1.1** — für Pipeline-Ausführung
+- **Phenopackets v2** — für Patientenphänotypen (library: `phenopackets`)
+- GA4GH Endpunkte immer unter `/ga4gh/` Prefix
+
+### Infrastruktur
+- **Docker + Docker Compose** — jeder Service hat ein Dockerfile
+- **httpx** für async HTTP-Requests (nie requests library)
+- **pytest + pytest-asyncio** für Tests
+
+---
+
+## Code-Stil — Immer einhalten
+
+### Struktur
+```
+backend/
+  app/
+    api/v1/endpoints/   # FastAPI Router
+    core/               # config, database, security
+    models/             # SQLAlchemy Modelle
+    schemas/            # Pydantic Schemas
+    services/           # Business Logic
+  tests/
+  alembic/
+```
+
+### Python Regeln
+- Immer Type Hints — auch für lokale Variablen wenn hilfreich
+- Docstrings für alle Klassen und Public-Methoden (Google Style)
+- Keine Magic Numbers — Konstanten als Variablen definieren
+- Exception Handling: immer spezifische Exceptions, nie blankes `except:`
+- Logging: `import logging; logger = logging.getLogger(__name__)` in jeder Datei
+
+### FastAPI Regeln
+- Router immer in separate Dateien pro Feature
+- Response Models immer explizit angeben
+- HTTP Status Codes immer explizit (status_code=201 etc.)
+- Dependency Injection für DB-Sessions und Auth
+
+### Beispiel FastAPI Endpunkt (diesen Stil immer nutzen):
+```python
+@router.post("/papers/search", response_model=List[PaperSchema], status_code=200)
+async def search_papers(
+    query: SearchQuery,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> List[PaperSchema]:
+    """Suche PubMed Papers und speichere Ergebnisse mit Embeddings.
+    
+    Args:
+        query: Suchanfrage mit Suchbegriff und Optionen
+        db: Async Datenbank-Session
+        current_user: Authentifizierter Nutzer
+        
+    Returns:
+        Liste von gefundenen Papers mit Zusammenfassungen
+    """
+    service = LiteratureService(db)
+    return await service.search_and_store(query)
+```
+
+---
+
+## Sicherheit — Niemals vergessen
+
+- **Patientendaten** verlassen NIEMALS das System — kein externer API-Call mit echten Daten
+- Vor LLM-Calls mit klinischen Texten: IMMER erst pseudonymisieren
+- Alle Endpunkte die mit Patientendaten arbeiten: Audit-Log Eintrag
+- Secrets NIE im Code — immer aus Environment Variables
+- Input-Validierung durch Pydantic — vertraue keinem User-Input
+
+---
+
+## Wenn du Code schreibst
+
+1. **Vollständiger Code** — keine Platzhalter wie `# TODO` oder `pass` ohne Erklärung
+2. **Immer auch Tests** — mindestens Happy Path + wichtigste Fehlerfall
+3. **requirements.txt** aktualisieren wenn neue Libraries genutzt werden
+4. **Kurze Erklärung** was der Code tut und warum (1-2 Sätze reichen)
+5. Bei GA4GH Implementierungen: immer auf die offizielle Spec verweisen
+
+---
+
+## Projekt-Phasen (Kontext für Entscheidungen)
+
+- **Phase 0** (aktuell): Grundstruktur, Docker, DB Setup
+- **Phase 1**: Literature Mining (PubMed + KI-Zusammenfassung + Vektor-Suche)
+- **Phase 2**: Pseudonymisierung + GA4GH DRS + Phenopackets
+- **Phase 3**: Pipeline-Wrapper (BLAST, STAR, GATK) + GA4GH WES
+
+Wenn du Architekturentscheidungen triffst: denke immer daran dass Alexander alleine
+entwickelt und die Lösung später an Forschungsinstitute verkaufen möchte.
+Einfachheit schlägt Komplexität — aber Qualität und Sicherheit haben Priorität.

@@ -1,0 +1,1 @@
+"""BioResearch Assistant backend application."""

@@ -1,0 +1,40 @@
+# BioResearch Assistant — Development stack
+# PostgreSQL with pgvector for vector search
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: bioresearch-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bioresearch}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bioresearch}
+      POSTGRES_DB: ${POSTGRES_DB:-bioresearch}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bioresearch} -d ${POSTGRES_DB:-bioresearch}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bioresearch-backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-bioresearch}:${POSTGRES_PASSWORD:-bioresearch}@db:5432/${POSTGRES_DB:-bioresearch}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+
+volumes:
+  postgres_data:
