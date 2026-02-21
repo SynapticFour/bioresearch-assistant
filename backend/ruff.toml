@@ -1,0 +1,11 @@
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E", "F", "I", "UP", "B", "ANN"]
+ignore = ["ANN101", "ANN102", "B008", "UP042"]
+
+exclude = ["alembic/"]
+
+[lint.isort]
+known-first-party = ["app"]

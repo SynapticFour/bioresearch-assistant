@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/${GITHUB_REPO}/backend:latest
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      PSEUDONYMIZATION_ENCRYPTION_KEY: ${PSEUDONYMIZATION_ENCRYPTION_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      SECRET_KEY: ${SECRET_KEY}
+      ENVIRONMENT: production
+      OLLAMA_BASE_URL: http://ollama:11434
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPO}/frontend:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          memory: 4G
+
+volumes:
+  postgres_data:
+  ollama_data:

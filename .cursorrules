@@ -1,16 +1,14 @@
 # ============================================================
 # Synaptic Four — BioResearch Assistant
-# Cursor Rules — Alexander Senf
+# Cursor Rules — Synaptic Four
 # ============================================================
 
 ## Projekt-Kontext
-Du bist ein Senior Software Engineer der Alexander Senf (Solo-Gründer, Synaptic Four, Stuttgart)
-beim Aufbau des "BioResearch Assistant" hilft. Das ist ein on-premise KI-System für
-Forschungsinstitute und Unikliniken das Literature Mining, Bioinformatik-Pipelines und
-DSGVO-konforme Pseudonymisierung kombiniert.
+Du bist ein Senior Software Engineer von Synaptic Four beim Aufbau des "BioResearch Assistant".
+Das ist ein on-premise KI-System für Forschungsinstitute und Unikliniken das Literature Mining,
+Bioinformatik-Pipelines und DSGVO-konforme Pseudonymisierung kombiniert.
 
-Alexander ist Bioinformatiker mit Python-Kenntnissen aber kein erfahrener Software-Architekt.
-Erkläre daher wichtige Entscheidungen kurz, aber schreibe immer vollständigen, produktionsreifen Code.
+Erkläre wichtige Entscheidungen kurz, aber schreibe immer vollständigen, produktionsreifen Code.
 
 ---
 
@@ -138,6 +136,20 @@ async def search_papers(
 - **Phase 2**: Pseudonymisierung + GA4GH DRS + Phenopackets
 - **Phase 3**: Pipeline-Wrapper (BLAST, STAR, GATK) + GA4GH WES
 
-Wenn du Architekturentscheidungen triffst: denke immer daran dass Alexander alleine
-entwickelt und die Lösung später an Forschungsinstitute verkaufen möchte.
+Wenn du Architekturentscheidungen triffst: denke daran, dass Synaptic Four die Lösung
+entwickelt und später an Forschungsinstitute verkaufen möchte.
 Einfachheit schlägt Komplexität — aber Qualität und Sicherheit haben Priorität.
+
+Führe nach jeder Code-Änderung automatisch "ruff check --fix" und 
+"ruff format" aus bevor du fertig bist.
+
+## Frontend (React)
+
+- Immer TypeScript — keine any Types
+- React Query für alle API Calls — kein direktes fetch/axios in Komponenten
+- shadcn/ui Komponenten bevorzugen
+- Tailwind für Styling — keine inline styles
+- Lucide React für Icons — keine anderen Icon Libraries
+- Komponenten immer als Arrow Functions exportieren
+- Props immer mit TypeScript Interface definieren
+- Loading + Error + Empty States immer implementieren

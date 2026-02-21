@@ -1,0 +1,65 @@
+name: Deploy to Azure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Ziel-Umgebung"
+        required: false
+        default: production
+        type: choice
+        options:
+          - production
+          - staging
+  workflow_call:
+    inputs:
+      environment:
+        description: "Ziel-Umgebung"
+        required: false
+        default: production
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to ACR
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/backend:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          push: true
+          tags: |
+            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+
+      - name: Update Container Instance
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az container restart \
+              --name bioresearch-backend \
+              --resource-group bioresearch-rg
+        continue-on-error: true
