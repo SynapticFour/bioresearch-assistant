@@ -32,7 +32,12 @@ export const authService = {
   },
 
   login(): void {
-    window.location.href = `${API_URL}/api/v1/auth/login`;
+    this.loginWithProvider("oidc");
+  },
+
+  loginWithProvider(provider: "oidc" | "google" | "microsoft"): void {
+    const params = new URLSearchParams({ provider });
+    window.location.href = `${API_URL}/api/v1/auth/login?${params.toString()}`;
   },
 
   logout(): void {

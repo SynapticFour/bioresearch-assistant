@@ -113,6 +113,10 @@ class Settings(BaseSettings):
     )
     jwt_secret: str = Field(default="", description="JWT secret for session (optional)")
     jwt_algorithm: str = Field(default="RS256", description="JWT algorithm")
+    microsoft_tenant_id: str = Field(
+        default="common",
+        description="Microsoft Entra ID / Azure AD tenant ID (e.g. for institution-specific login)",
+    )
 
     @property
     def auth_enabled(self) -> bool:

@@ -21,6 +21,13 @@ GAIA-X ist die europäische Initiative für souveräne, vertrauenswürdige Daten
 
 "GAIA-X Ready by Design" ist **keine offizielle Zertifizierung** der GAIA-X Association. Es beschreibt, dass die Architektur des BioResearch Assistant von Grund auf nach GAIA-X Prinzipien gestaltet wurde: Datensouveränität durch On-premise, DSGVO durch technische und organisatorische Maßnahmen, offene Standards und Transparenz durch Self-Description und Open Source.
 
+## Authentifizierung & Identität
+
+| Aspekt | Implementierung |
+|--------|------------------|
+| **Föderierte Identität via OIDC** | Anbindung an GAIA-X Identity & Trust — Unterstützung für Keycloak, DFN-AAI, ELIXIR AAI, Azure AD, Google |
+| **GA4GH Passports** | Datensouveränität auf Nutzerebene — Visa-Typen ResearcherStatus, AffiliationAndRole, ControlledAccessGrants |
+
 ## Roadmap zur offiziellen Zertifizierung
 
 - [ ] GAIA-X Self-Description erstellen

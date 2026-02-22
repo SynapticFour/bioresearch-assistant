@@ -4,7 +4,7 @@
 [![Latest Release](https://img.shields.io/github/v/release/SynapticFour/bioresearch-assistant)](https://github.com/SynapticFour/bioresearch-assistant/releases)
 ![Coverage](docs/coverage-badge.svg)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/)
-[![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets-green)](https://www.ga4gh.org/)
+[![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets%20%7C%20Passports-green)](https://www.ga4gh.org/)
 [![DSGVO](https://img.shields.io/badge/DSGVO-konform-blue)](https://dsgvo-gesetz.de/)
 ![GAIA-X Ready](https://img.shields.io/badge/GAIA--X-Ready%20by%20Design-0066CC?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNWwtNS01IDEuNDEtMS40MUwxMCAxNC4xN2w3LjU5LTcuNTlMMTkgOGwtOSA5eiIvPjwvc3ZnPg==)
 [![Deploy DFN](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-dfn.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-dfn.yml)
@@ -32,7 +32,7 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 |-------------|--------------|
 | **Backend** | Python 3.11, FastAPI, SQLAlchemy 2.0 (async), Pydantic v2, pgvector, Alembic |
 | **Frontend**| React 18, TypeScript, Vite, TanStack Query, Tailwind CSS |
-| **GA4GH**   | WES v1.1, DRS v1.3, Phenopackets v2 |
+| **GA4GH**   | WES v1.1, DRS v1.3, Phenopackets v2, Passports v1.2 |
 | **Sicherheit** | Presidio, AES-256 für Mappings, Audit-Log (kein Rohtext) |
 
 ## Schnellstart (5 Minuten)
@@ -81,6 +81,8 @@ Ausführliche Schritte und Voraussetzungen: **[INSTALLATION.md](INSTALLATION.md)
 | WES            | 1.1    | ✅ Implementiert |
 | DRS            | 1.3    | ✅ Implementiert |
 | Phenopackets   | v2     | ✅ Implementiert |
+| GA4GH Passports | v1.2  | ✅ Implementiert |
+| OpenID Connect | —      | ✅ Föderierte Identität |
 
 ## ☁️ Cloud Deployment
 

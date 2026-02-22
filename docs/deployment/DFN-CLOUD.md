@@ -101,6 +101,23 @@ sudo certbot certonly --standalone -d deine-domain.dfn.de
 | Storage 50GB | ~5 €/Monat   |
 | **Gesamt** | **~115 €/Monat** |
 
+## Authentifizierung mit DFN-AAI
+
+Das Deutsche Forschungsnetz betreibt **DFN-AAI** — den föderativen Identitätsdienst für deutsche Hochschulen und Forschungseinrichtungen.
+
+BioResearch Assistant integriert sich nativ:
+
+```
+OIDC_ISSUER=https://www.aai.dfn.de/oidc
+OIDC_CLIENT_ID=dein-client-id
+OIDC_CLIENT_SECRET=dein-secret
+OIDC_REDIRECT_URI=https://deine-app.dfn.de/api/v1/auth/callback
+```
+
+**Registrierung:** https://www.dfn.de/dienste/dfn-aai/
+
+Alle deutschen Universitäten sind bereits Mitglied.
+
 ## GitHub Actions Deployment
 
 Siehe [Deploy to DFN-Cloud](../../.github/workflows/deploy-dfn.yml). Secret `DFN_SSH_PRIVATE_KEY` (privater SSH-Key für den Server) in den Repository Secrets hinterlegen.

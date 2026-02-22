@@ -18,23 +18,41 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 @router.get("/login")
 async def login(
+    provider: str = "oidc",
     auth_service: AuthService = Depends(get_auth_service),
 ) -> RedirectResponse:
-    """Redirect zu OIDC Provider Login."""
+    """Login mit verschiedenen Providern. provider: oidc | google | microsoft."""
     settings = get_settings()
     if not settings.auth_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Auth is not configured (development mode)",
         )
-    config = await auth_service.get_oidc_config()
+    provider_issuers = {
+        "google": "https://accounts.google.com",
+        "microsoft": f"https://login.microsoftonline.com/{settings.microsoft_tenant_id}/v2.0",
+        "oidc": settings.oidc_issuer,
+    }
+    issuer = provider_issuers.get(provider) or settings.oidc_issuer
+    if not issuer:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unknown provider: {provider}",
+        )
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            f"{issuer.rstrip('/')}/.well-known/openid-configuration"
+        )
+        resp.raise_for_status()
+        oidc_config = resp.json()
     params = {
         "response_type": "code",
         "client_id": settings.oidc_client_id,
         "redirect_uri": settings.oidc_redirect_uri,
         "scope": "openid email profile ga4gh_passport_v1",
+        "state": provider,
     }
-    auth_url = config["authorization_endpoint"]
+    auth_url = oidc_config["authorization_endpoint"]
     query = urlencode(params)
     return RedirectResponse(url=f"{auth_url}?{query}")
 
@@ -94,6 +112,7 @@ async def auth_status() -> dict:
             "Keycloak",
             "ELIXIR AAI",
             "Google",
+            "Microsoft",
             "GitHub",
         ],
     }

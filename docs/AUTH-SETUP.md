@@ -63,3 +63,67 @@ Das System versteht folgende Visa-Typen:
 - ResearcherStatus — Forscher-Verifikation
 - AffiliationAndRole — Institutionszugehörigkeit
 - ControlledAccessGrants — Zugang zu kontrollierten Daten
+
+---
+
+## Beispiel: Universitätsklinikum Heidelberg
+
+Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azure Active Directory (Azure AD)** als Identity Provider — wie die meisten deutschen Universitätskliniken.
+
+### Integration mit Azure AD / Microsoft Entra ID
+
+1. **Im Azure Portal:**  
+   portal.azure.com → Azure Active Directory → App-Registrierungen → Neue Registrierung  
+
+   - **Name:** BioResearch Assistant  
+   - **Unterstützte Kontotypen:** „Nur Konten in diesem Organisationsverzeichnis“  
+   - **Umleitungs-URI:** `https://bioresearch.ukhd.de/api/v1/auth/callback`  
+
+2. **Nach der Registrierung:**  
+   - Application (client) ID kopieren → `OIDC_CLIENT_ID`  
+   - Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel → Wert kopieren → `OIDC_CLIENT_SECRET`  
+
+3. **OIDC Issuer für UKHD:**  
+   `OIDC_ISSUER=https://login.microsoftonline.com/{UKHD-TENANT-ID}/v2.0`  
+   Tenant ID: Azure AD → Übersicht → Mandanten-ID  
+
+4. **In .env eintragen:**  
+   ```
+   OIDC_ISSUER=https://login.microsoftonline.com/TENANT-ID/v2.0
+   OIDC_CLIENT_ID=APPLICATION-ID
+   OIDC_CLIENT_SECRET=CLIENT-SECRET
+   OIDC_REDIRECT_URI=https://bioresearch.ukhd.de/api/v1/auth/callback
+   MICROSOFT_TENANT_ID=TENANT-ID
+   ```
+
+5. **API-Berechtigungen:**  
+   Azure AD → App-Registrierungen → BioResearch Assistant → API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph → openid, email, profile  
+
+### Andere häufige Systeme an deutschen Unikliniken
+
+| Institution | Typischer Provider | Konfiguration |
+|-------------|--------------------|---------------|
+| Uniklinik Heidelberg | Azure AD | Wie oben |
+| Uniklinik München (LMU) | Shibboleth / DFN-AAI | [DFN-AAI Anleitung](deployment/DFN-CLOUD.md#authentifizierung-mit-dfn-aai) |
+| Charité Berlin | Azure AD | Wie oben |
+| Uniklinik Hamburg | Shibboleth | Keycloak + Shibboleth Bridge |
+| Deutsches Krebsforschungszentrum | ELIXIR AAI | [ELIXIR Anleitung](#2-elixir-aai-für-forschungsinstitute) |
+
+### Shibboleth (ältere Institutionen)
+
+Manche Institutionen nutzen noch Shibboleth. Lösung: **Keycloak als OIDC-Brücke** vor Shibboleth:
+
+```
+[Browser] → [BioResearch] → [Keycloak] → [Shibboleth] → [LDAP]
+```
+
+Keycloak kann als SAML-zu-OIDC Bridge fungieren.  
+Anleitung: docs/AUTH-SHIBBOLETH-BRIDGE.md (TODO)
+
+### GA4GH Passports an Unikliniken
+
+Für Zugang zu kontrollierten Datensätzen (z.B. DKFZ-Daten, EGA-Daten) prüft das System automatisch **GA4GH Passport Visas**:
+
+- **ResearcherStatus** → verifizierter Forscher  
+- **AffiliationAndRole** → UKHD-Mitarbeiter  
+- **ControlledAccessGrants** → Zugang zu spezifischen Daten  
