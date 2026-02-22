@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +12,7 @@ from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.limiter import limiter
 from app.models.audit_log import AuditLog
 from app.models.pseudonymization_mapping import PseudonymizationMapping
 from app.schemas.pseudonymize import (
@@ -64,7 +65,9 @@ def require_restore_permission(
 
 
 @router.post("", response_model=PseudonymizationResult, status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
 async def pseudonymize(
+    request: Request,
     body: PseudonymizeRequest,
     db: AsyncSession = Depends(get_db),
     user_id: str | None = Depends(get_optional_user_id),

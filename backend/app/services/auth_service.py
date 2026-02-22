@@ -36,7 +36,7 @@ class AuthService:
 
     async def get_oidc_config(self) -> dict[str, Any]:
         """Hole OIDC Discovery Document."""
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 f"{self.settings.oidc_issuer.rstrip('/')}/.well-known/openid-configuration"
             )
@@ -50,7 +50,7 @@ class AuthService:
             jwks_uri = config.get("jwks_uri")
             if not jwks_uri:
                 raise ValueError("OIDC config has no jwks_uri")
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.get(jwks_uri)
                 response.raise_for_status()
                 self._jwks = response.json()

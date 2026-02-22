@@ -21,6 +21,7 @@ alembic>=1.13.0,<2.0
 
 # Utilities
 httpx>=0.26.0,<1.0
+slowapi>=0.1.9,<1.0
 
 # OAuth2 / OIDC (GA4GH Passport)
 python-jose[cryptography]>=3.3.0

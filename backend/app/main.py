@@ -7,11 +7,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.endpoints import drs as drs_ep
 from app.api.v1.endpoints import wes as wes_ep
 from app.api.v1.router import api_router
 from app.core.config import get_settings
+from app.core.limiter import limiter
 
 # Configure logging before other imports that may log
 logging.basicConfig(
@@ -49,6 +52,8 @@ def create_application() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
     )
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     cors_origins = list(settings.cors_origins)
     for origin in (
@@ -64,8 +69,21 @@ def create_application() -> FastAPI:
         allow_origins=cors_origins,
         allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=[
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "OPTIONS",
+            "PATCH",
+        ],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "Origin",
+            "X-Requested-With",
+        ],
     )
 
     app.include_router(api_router)

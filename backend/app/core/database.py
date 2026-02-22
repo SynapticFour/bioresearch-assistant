@@ -66,8 +66,9 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
-        except Exception:
+        except Exception as e:
             await session.rollback()
+            logger.error("Database error: %s: %s", type(e).__name__, e)
             raise
         finally:
             await session.close()
@@ -84,8 +85,9 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
         try:
             yield session
             await session.commit()
-        except Exception:
+        except Exception as e:
             await session.rollback()
+            logger.error("Database error: %s: %s", type(e).__name__, e)
             raise
         finally:
             await session.close()

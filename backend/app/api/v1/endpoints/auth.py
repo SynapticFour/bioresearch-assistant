@@ -4,12 +4,13 @@ import logging
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 
 from app.core.auth import get_auth_service, get_current_user
 from app.core.config import get_settings
 from app.core.isolation import _extract_team_id, get_scope_filter
+from app.core.limiter import limiter
 from app.services.auth_service import AuthService
 
 logger = logging.getLogger(__name__)
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
 @router.get("/login")
+@limiter.limit("10/minute")
 async def login(
+    request: Request,
     provider: str = "oidc",
     auth_service: AuthService = Depends(get_auth_service),
 ) -> RedirectResponse:
@@ -40,7 +43,7 @@ async def login(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Unknown provider: {provider}",
         )
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.get(f"{issuer.rstrip('/')}/.well-known/openid-configuration")
         resp.raise_for_status()
         oidc_config = resp.json()
@@ -69,7 +72,7 @@ async def callback(
             detail="Auth is not configured",
         )
     config = await auth_service.get_oidc_config()
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         response = await client.post(
             config["token_endpoint"],
             data={
