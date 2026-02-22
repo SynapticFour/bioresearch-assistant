@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Dna,
   Plus,
@@ -22,7 +22,7 @@ import {
 
 function extractGenes(pp: PhenopacketItem): string[] {
   try {
-    const interps = (pp as { interpretations?: Array<{ diagnosis?: { genomic_interpretations?: Array<{ gene?: { symbol?: string } }> } } }).interpretations ?? [];
+    const interps = (pp as { interpretations?: { diagnosis?: { genomic_interpretations?: { gene?: { symbol?: string } }[] } }[] }).interpretations ?? [];
     const genes: string[] = [];
     for (const i of interps) {
       const gi = i.diagnosis?.genomic_interpretations ?? [];
