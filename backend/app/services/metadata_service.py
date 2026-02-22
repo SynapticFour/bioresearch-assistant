@@ -108,7 +108,15 @@ class MetadataService:
         organism_match = re.search(r"\[([^\]]+)\]", description)
         organism = organism_match.group(1) if organism_match else ""
 
-        sequence = "".join(line for line in lines[1:] if not line.startswith(">"))
+        # Only first sequence (until next ">" header); strip whitespace
+        sequence_lines: list[str] = []
+        for line in lines[1:]:
+            if line.startswith(">"):
+                break
+            if line.strip():
+                sequence_lines.append(line.strip())
+        sequence = "".join(sequence_lines)
+
         return {
             "name": accession,
             "description": description,

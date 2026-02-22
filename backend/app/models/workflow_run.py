@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import JSON, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -47,18 +47,30 @@ class WorkflowRun(Base):
     )
     state: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     workflow_url: Mapped[str] = mapped_column(Text, nullable=False)
-    workflow_params: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    workflow_params: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
     workflow_type: Mapped[str] = mapped_column(String(32), nullable=False)
     workflow_type_version: Mapped[str] = mapped_column(String(32), nullable=False)
     workflow_engine: Mapped[str | None] = mapped_column(String(64), nullable=True)
     workflow_engine_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    tags: Mapped[dict[str, str] | None] = mapped_column(JSONB, nullable=True)
+    tags: Mapped[dict[str, str] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
     start_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     end_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    outputs: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    run_log: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    task_logs: Mapped[list[dict[str, Any]] | None] = mapped_column(JSONB, nullable=True)
-    request: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    outputs: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
+    run_log: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
+    task_logs: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
+    request: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB().with_variant(JSON(), "sqlite"), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
