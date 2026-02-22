@@ -103,6 +103,22 @@ class Settings(BaseSettings):
         description="Base URL for DRS (self_uri and access_url; no trailing slash)",
     )
 
+    # OAuth2 / OIDC
+    oidc_issuer: str = Field(default="", description="OIDC issuer URL (e.g. Keycloak realm)")
+    oidc_client_id: str = Field(default="", description="OIDC client ID")
+    oidc_client_secret: str = Field(default="", description="OIDC client secret")
+    oidc_redirect_uri: str = Field(
+        default="http://localhost:8000/auth/callback",
+        description="OIDC redirect URI after login",
+    )
+    jwt_secret: str = Field(default="", description="JWT secret for session (optional)")
+    jwt_algorithm: str = Field(default="RS256", description="JWT algorithm")
+
+    @property
+    def auth_enabled(self) -> bool:
+        """True if OIDC is configured (production auth)."""
+        return bool(self.oidc_issuer and self.oidc_client_id)
+
     @field_validator("pseudonymization_encryption_key")
     @classmethod
     def validate_encryption_key_hex(cls, v: str) -> str:

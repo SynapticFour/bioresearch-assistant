@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.models.paper import Paper
 from app.schemas.pubmed import (
@@ -46,6 +47,7 @@ def _article_to_response(article: PubMedArticle) -> PubMedSearchResponse:
 async def search_literature(
     request: PubMedSearchRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> list[PubMedSearchResponse]:
     """Suche PubMed Papers und speichere mit KI-Zusammenfassung."""
     async with PubMedService() as service:
@@ -70,6 +72,7 @@ async def search_literature(
 )
 async def get_literature_stats(
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> LiteratureStatsResponse:
     """Dashboard: total papers count and last stored papers (from DB)."""
     count_result = await db.execute(select(func.count()).select_from(Paper))
@@ -101,6 +104,7 @@ async def get_literature_stats(
 async def save_paper(
     body: PubMedArticle,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> PubMedSearchResponse:
     """Speichere ein Paper (z. B. aus Suchergebnissen) in der DB inkl. Embedding."""
     service = EmbeddingService()
@@ -133,6 +137,7 @@ async def save_paper(
 async def get_paper(
     pmid: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> PubMedSearchResponse:
     """Hole ein spezifisches Paper per PMID."""
     async with PubMedService() as service:

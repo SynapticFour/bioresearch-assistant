@@ -7,7 +7,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { DRSPage } from "@/pages/DRSPage";
 import { LibraryPage } from "@/pages/LibraryPage";
 import { LiteraturePage } from "@/pages/LiteraturePage";
-import { LoginPage } from "@/pages/LoginPage";
+import { LoginPage } from "@/components/auth/LoginPage";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PseudonymizePage } from "@/pages/PseudonymizePage";
 import { WorkflowsPage } from "@/pages/WorkflowsPage";

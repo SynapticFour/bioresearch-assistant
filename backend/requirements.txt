@@ -22,6 +22,10 @@ alembic>=1.13.0,<2.0
 # Utilities
 httpx>=0.26.0,<1.0
 
+# OAuth2 / OIDC (GA4GH Passport)
+python-jose[cryptography]>=3.3.0
+authlib>=1.2.0,<2.0
+
 # Pseudonymization (DSGVO)
 # Pin spacy so thinc gets pre-built wheels (no C compiler required)
 spacy==3.7.4

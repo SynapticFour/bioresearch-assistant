@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models.audit_log import AuditLog
@@ -66,6 +67,7 @@ async def pseudonymize(
     body: PseudonymizeRequest,
     db: AsyncSession = Depends(get_db),
     user_id: str | None = Depends(get_optional_user_id),
+    current_user: dict = Depends(get_current_user),
 ) -> PseudonymizationResult:
     """Pseudonymize clinical text; returns pseudonymized text and mapping_id for restore.
 

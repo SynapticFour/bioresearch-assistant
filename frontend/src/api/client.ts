@@ -17,7 +17,8 @@ export const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
+  const token =
+    localStorage.getItem("access_token") ?? localStorage.getItem(TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -29,6 +30,7 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem("access_token");
       const path = window.location.pathname;
       if (path !== "/login" && path !== "/") {
         window.location.href = "/login";
