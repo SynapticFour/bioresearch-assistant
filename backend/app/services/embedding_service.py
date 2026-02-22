@@ -110,7 +110,10 @@ class EmbeddingService:
             existing.year = str(paper.year) if paper.year is not None else None
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
-            existing.embedding = embedding
+            if embedding is not None:
+                existing.embedding = embedding
+            else:
+                existing.embedding = None  # NULL when embeddings unavailable
             if user_id is not None:
                 existing.user_id = user_id
             if team_id is not None:
@@ -127,7 +130,7 @@ class EmbeddingService:
             year=str(paper.year) if paper.year is not None else None,
             journal=paper.journal or "",
             doi=paper.doi,
-            embedding=embedding,
+            embedding=embedding if embedding is not None else None,  # NULL when unavailable
             user_id=user_id,
             team_id=team_id,
         )

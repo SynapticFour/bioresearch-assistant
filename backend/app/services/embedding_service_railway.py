@@ -4,7 +4,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.paper import EMBEDDING_DIM, Paper
+from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle
 
 
@@ -21,13 +21,13 @@ class EmbeddingService:
         self._model_name = model_name
         self._model: Any = None
 
-    def embed_text(self, text: str) -> list[float]:
-        """Return zero vector (embeddings disabled on Railway)."""
-        return [0.0] * EMBEDDING_DIM
+    def embed_text(self, text: str) -> list[float] | None:
+        """No embedding on Railway; return None."""
+        return None
 
-    async def embed_text_async(self, text: str) -> list[float]:
-        """Return zero vector (embeddings disabled on Railway)."""
-        return [0.0] * EMBEDDING_DIM
+    async def embed_text_async(self, text: str) -> list[float] | None:
+        """No embedding on Railway; return None (store NULL in DB)."""
+        return None
 
     async def store_paper(
         self,
@@ -37,11 +37,12 @@ class EmbeddingService:
         user_id: str | None = None,
         team_id: str | None = None,
     ) -> Paper:
-        """Store paper with zero embedding (no ML on Railway)."""
+        """Store paper without embedding on Railway (embedding = NULL in DB)."""
         from sqlalchemy import select
 
         authors_list = list(paper.authors) if paper.authors else []
-        zero_embedding = [0.0] * EMBEDDING_DIM
+        text_to_embed = (paper.abstract or paper.title or "").strip() or " "
+        embedding = await self.embed_text_async(text_to_embed)  # None on Railway
         stmt = select(Paper).where(Paper.pmid == paper.pmid)
         result = await db.execute(stmt)
         existing = result.scalars().first()
@@ -52,7 +53,7 @@ class EmbeddingService:
             existing.year = str(paper.year) if paper.year is not None else None
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
-            existing.embedding = zero_embedding
+            existing.embedding = embedding  # None → NULL in DB
             if user_id is not None:
                 existing.user_id = user_id
             if team_id is not None:
@@ -68,7 +69,7 @@ class EmbeddingService:
             year=str(paper.year) if paper.year is not None else None,
             journal=paper.journal or "",
             doi=paper.doi,
-            embedding=zero_embedding,
+            embedding=embedding,  # None → NULL in DB
             user_id=user_id,
             team_id=team_id,
         )
