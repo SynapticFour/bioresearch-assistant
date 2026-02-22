@@ -29,7 +29,14 @@ class EmbeddingService:
         """Return zero vector (embeddings disabled on Railway)."""
         return [0.0] * EMBEDDING_DIM
 
-    async def store_paper(self, db: AsyncSession, paper: PubMedArticle) -> Paper:
+    async def store_paper(
+        self,
+        db: AsyncSession,
+        paper: PubMedArticle,
+        *,
+        user_id: str | None = None,
+        team_id: str | None = None,
+    ) -> Paper:
         """Store paper with zero embedding (no ML on Railway)."""
         from sqlalchemy import select
 
@@ -46,6 +53,10 @@ class EmbeddingService:
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
             existing.embedding = zero_embedding
+            if user_id is not None:
+                existing.user_id = user_id
+            if team_id is not None:
+                existing.team_id = team_id
             await db.flush()
             await db.refresh(existing)
             return existing
@@ -58,6 +69,8 @@ class EmbeddingService:
             journal=paper.journal or "",
             doi=paper.doi,
             embedding=zero_embedding,
+            user_id=user_id,
+            team_id=team_id,
         )
         db.add(new_paper)
         await db.flush()
