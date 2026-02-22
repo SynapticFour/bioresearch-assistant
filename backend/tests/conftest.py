@@ -13,12 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 # Set env before any app import (so get_settings() and Paper model use test config)
 os.environ["TESTING"] = "1"
@@ -34,7 +29,7 @@ os.environ.setdefault("ISOLATION_MODE", "open")
 os.environ.setdefault("DEPLOYMENT", "test")
 
 from app.core.auth import get_current_user
-from app.core.database import Base, get_db
+from app.core.database import Base, get_db, get_engine
 from app.main import app
 
 
@@ -53,15 +48,10 @@ def event_loop() -> asyncio.AbstractEventLoop:
 @pytest.fixture(scope="session")
 def engine():
     """
-    SQLite In-Memory Engine für Tests.
+    SQLite In-Memory Engine für Tests (app.core.database.get_engine).
     Kein PostgreSQL nötig — läuft überall.
     """
-    return create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False,
-    )
+    return get_engine("sqlite+aiosqlite:///:memory:")
 
 
 @pytest_asyncio.fixture(scope="session")
