@@ -135,6 +135,39 @@ export const library = {
     );
     return data;
   },
+  async extractMetadata(params: {
+    doi?: string | null;
+    pmid?: string | null;
+    text?: string | null;
+  }): Promise<{
+    title?: string;
+    authors?: string[];
+    year?: number | null;
+    journal?: string;
+    doi?: string | null;
+    abstract?: string;
+    pmid?: string;
+    source?: string;
+  }> {
+    const { data } = await apiClient.post<Record<string, unknown>>(
+      `${API_V1}/library/extract-metadata`,
+      {
+        doi: params.doi ?? undefined,
+        pmid: params.pmid ?? undefined,
+        text: params.text ?? undefined,
+      }
+    );
+    return data as {
+      title?: string;
+      authors?: string[];
+      year?: number | null;
+      journal?: string;
+      doi?: string | null;
+      abstract?: string;
+      pmid?: string;
+      source?: string;
+    };
+  },
 };
 
 // ----- Pseudonymize -----
@@ -164,6 +197,22 @@ export const pseudonymize = {
     const { data } = await apiClient.get<AuditLogEntry[]>(
       `${API_V1}/pseudonymize/audit-log`
     );
+    return data;
+  },
+  async reverse(mappingId: string): Promise<{
+    mapping_id: string;
+    original_text: string;
+    pseudonymized_text: string;
+    accessed_by: string;
+    access_time: string;
+  }> {
+    const { data } = await apiClient.post<{
+      mapping_id: string;
+      original_text: string;
+      pseudonymized_text: string;
+      accessed_by: string;
+      access_time: string;
+    }>(`${API_V1}/pseudonymize/reverse`, { mapping_id: mappingId });
     return data;
   },
 };
@@ -411,6 +460,20 @@ export const phenopackets = {
       `${API_V1}/phenopackets/${encodeURIComponent(id)}/export`
     );
     return data;
+  },
+  async hpoSearch(q: string): Promise<{ id: string; name: string; definition?: string; synonyms?: string[] }[]> {
+    const { data } = await apiClient.get<{ id: string; name: string; definition?: string; synonyms?: string[] }[]>(
+      `${API_V1}/phenopackets/hpo/search`,
+      { params: { q } }
+    );
+    return Array.isArray(data) ? data : [];
+  },
+  async extractFromText(text: string): Promise<{ terms: Array<{ hpo_id: string; name: string; confidence?: number }>; genes: string[] }> {
+    const { data } = await apiClient.post<{ terms: Array<{ hpo_id: string; name: string; confidence?: number }>; genes: string[] }>(
+      `${API_V1}/phenopackets/extract`,
+      { text }
+    );
+    return data ?? { terms: [], genes: [] };
   },
 };
 

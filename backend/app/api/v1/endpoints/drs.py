@@ -5,9 +5,10 @@ Reference: https://ga4gh.github.io/data-repository-service-schemas/
 
 import logging
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
+from app.core.auth import get_current_user
 from app.schemas.drs import (
     AccessURL,
     DrsObject,
@@ -30,6 +31,7 @@ from app.services.drs_service import (
 from app.services.drs_service import (
     register_object_from_path as service_register_from_path,
 )
+from app.services.metadata_service import MetadataService
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +144,29 @@ async def stream_drs_object(object_id: str) -> FileResponse:
             detail="The requested DRS object was not found.",
         )
     return FileResponse(path, filename=path.name, media_type="application/octet-stream")
+
+
+@router.post("/objects/extract-metadata", status_code=status.HTTP_200_OK)
+async def extract_file_metadata(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Extract metadata from file content (FASTA, VCF)."""
+    content = await file.read()
+    try:
+        content_str = content.decode("utf-8", errors="ignore")
+    except Exception:
+        content_str = ""
+    service = MetadataService()
+    filename = file.filename or ""
+    if filename.endswith((".fasta", ".fa", ".fna")):
+        metadata = await service.extract_from_fasta(content_str)
+    elif filename.endswith(".vcf"):
+        metadata = await service.extract_from_vcf_header(content_str)
+    else:
+        metadata = {
+            "name": filename,
+            "size": len(content),
+            "format": "unknown",
+        }
+    return metadata

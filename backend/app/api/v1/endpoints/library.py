@@ -15,6 +15,7 @@ from app.core.isolation import get_scope_filter, get_scope_values
 from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle, PubMedSearchResponse
 from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
+from app.services.metadata_service import MetadataService
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,14 @@ class SemanticSearchRequest(BaseModel):
 
     query: str = Field(default="", description="Search query text")
     limit: int = Field(default=10, ge=1, le=100, description="Max number of results")
+
+
+class MetadataExtractionRequest(BaseModel):
+    """Request body for POST /library/extract-metadata."""
+
+    doi: str | None = Field(default=None, description="DOI (e.g. 10.1038/...)")
+    pmid: str | None = Field(default=None, description="PubMed ID")
+    text: str | None = Field(default=None, description="Freitext mit Paper-Info (optional)")
 
 
 def _paper_to_response(p: Paper) -> PubMedSearchResponse:
@@ -46,6 +55,29 @@ def _paper_to_response(p: Paper) -> PubMedSearchResponse:
         doi=p.doi,
         summary=None,
     )
+
+
+@router.post("/extract-metadata", status_code=status.HTTP_200_OK)
+async def extract_metadata(
+    request: MetadataExtractionRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Extrahiere Metadaten automatisch (DOI oder PMID).
+
+    Gibt vorausgefüllte Felder zurück — User kann prüfen und bestätigen.
+    """
+    service = MetadataService()
+    metadata = None
+    if request.doi and request.doi.strip():
+        metadata = await service.extract_from_doi(request.doi.strip())
+    elif request.pmid and request.pmid.strip():
+        metadata = await service.extract_from_pmid(request.pmid.strip())
+    if not metadata:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Keine Metadaten gefunden",
+        )
+    return metadata
 
 
 @router.get(

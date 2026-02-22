@@ -11,6 +11,13 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 const ENTITY_TYPE_COLORS: Record<string, string> = {
@@ -344,7 +351,17 @@ function InfoPanel({ entities, mappingId }: InfoPanelProps) {
 
 // --- Audit log table ---
 
-function AuditLogTable({ entries }: { entries: AuditLogEntry[] }) {
+interface AuditLogTableProps {
+  entries: AuditLogEntry[];
+  onReverseClick?: (mappingId: string) => void;
+  isReversing?: boolean;
+}
+
+function AuditLogTable({
+  entries,
+  onReverseClick,
+  isReversing,
+}: AuditLogTableProps) {
   const displayList = entries.slice(0, 50);
 
   function formatTime(iso: string): string {
@@ -365,13 +382,19 @@ function AuditLogTable({ entries }: { entries: AuditLogEntry[] }) {
           <tr className="border-b border-slate-200 text-slate-600">
             <th className="pb-2 pr-4 font-medium">Zeitstempel</th>
             <th className="pb-2 pr-4 font-medium">Entities</th>
-            <th className="pb-2 font-medium">Typ</th>
+            <th className="pb-2 pr-4 font-medium">Typ</th>
+            {onReverseClick && (
+              <th className="pb-2 font-medium">Aktion</th>
+            )}
           </tr>
         </thead>
         <tbody>
           {displayList.length === 0 ? (
             <tr>
-              <td colSpan={3} className="py-4 text-center text-slate-500">
+              <td
+                colSpan={onReverseClick ? 4 : 3}
+                className="py-4 text-center text-slate-500"
+              >
                 Noch keine Einträge
               </td>
             </tr>
@@ -382,7 +405,23 @@ function AuditLogTable({ entries }: { entries: AuditLogEntry[] }) {
                   {formatTime(e.timestamp)}
                 </td>
                 <td className="py-2 pr-4">{e.entities_count}</td>
-                <td className="py-2">{e.operation_type}</td>
+                <td className="py-2 pr-4">{e.operation_type}</td>
+                {onReverseClick && (
+                  <td className="py-2">
+                    {e.mapping_id ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isReversing}
+                        onClick={() => onReverseClick(e.mapping_id!)}
+                      >
+                        De-pseudonymisieren
+                      </Button>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                )}
               </tr>
             ))
           )}
@@ -413,15 +452,57 @@ function exportPseudonymizedPdf(text: string): void {
 
 // --- Main page ---
 
+type TabId = "main" | "audit" | "depseudo";
+
 export function PseudonymizePage() {
   const features = useFeatureFlags();
   const [text, setText] = useState("");
+  const [activeTab, setActiveTab] = useState<TabId>("main");
+  const [confirmReverseMappingId, setConfirmReverseMappingId] = useState<
+    string | null
+  >(null);
+  const [reverseResult, setReverseResult] = useState<{
+    mapping_id: string;
+    original_text: string;
+    pseudonymized_text: string;
+    accessed_by: string;
+    access_time: string;
+  } | null>(null);
   const { t, language, changeLanguage } = useTranslation();
   const [result, setResult] = useState<PseudonymizeResult | null>(null);
   const [analyzeOnlyEntities, setAnalyzeOnlyEntities] = useState<
     EntityFound[]
   >([]);
   const [analyzeOnlyMode, setAnalyzeOnlyMode] = useState(false);
+
+  const auditQuery = useQuery({
+    queryKey: ["audit-log"],
+    queryFn: () => pseudonymizeApi.getAuditLog(),
+  });
+  const auditEntries = auditQuery.data ?? [];
+  const reversibleEntries = auditEntries.filter(
+    (e) => e.mapping_id != null && e.mapping_id !== ""
+  );
+
+  const [reverseError, setReverseError] = useState<string | null>(null);
+  const reverseMutation = useMutation({
+    mutationFn: (mappingId: string) => pseudonymizeApi.reverse(mappingId),
+    onSuccess: (data) => {
+      setConfirmReverseMappingId(null);
+      setReverseResult(data);
+      setReverseError(null);
+      auditQuery.refetch();
+    },
+    onError: (err: Error & { response?: { status?: number } }) => {
+      setConfirmReverseMappingId(null);
+      const status = err?.response?.status;
+      const message =
+        status === 403
+          ? "Sie haben keine Berechtigung zur De-Pseudonymisierung dieses Eintrags."
+          : err?.message ?? "Fehler bei der De-Pseudonymisierung.";
+      setReverseError(message);
+    },
+  });
 
   const analyzeMutation = useMutation({
     mutationFn: ({ t, lang }: { t: string; lang: string }) =>
@@ -441,11 +522,6 @@ export function PseudonymizePage() {
       setAnalyzeOnlyMode(false);
       setAnalyzeOnlyEntities([]);
     },
-  });
-
-  const auditQuery = useQuery({
-    queryKey: ["audit-log"],
-    queryFn: () => pseudonymizeApi.getAuditLog(),
   });
 
   const handleAnalyze = useCallback(() => {
@@ -475,68 +551,237 @@ export function PseudonymizePage() {
   const entities = result?.entities_found ?? analyzeOnlyEntities;
   const mappingId = result?.mapping_id ?? null;
 
+  const handleReverseClick = useCallback((mappingIdToReverse: string) => {
+    setConfirmReverseMappingId(mappingIdToReverse);
+  }, []);
+
+  const handleConfirmReverse = useCallback(() => {
+    if (confirmReverseMappingId) reverseMutation.mutate(confirmReverseMappingId);
+  }, [confirmReverseMappingId, reverseMutation]);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Shield className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-semibold text-slate-800">
-          {t("pseudonymize", "title")}
-        </h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Shield className="h-7 w-7 text-primary" />
+          <h1 className="text-2xl font-semibold text-slate-800">
+            {t("pseudonymize", "title")}
+          </h1>
+        </div>
+        <div className="flex rounded-lg border border-slate-200 p-0.5">
+          <button
+            type="button"
+            onClick={() => setActiveTab("main")}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              activeTab === "main"
+                ? "bg-primary text-primary-foreground"
+                : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            Pseudonymisieren
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("audit")}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              activeTab === "audit"
+                ? "bg-primary text-primary-foreground"
+                : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            Audit Log
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("depseudo")}
+            className={cn(
+              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
+              activeTab === "depseudo"
+                ? "bg-primary text-primary-foreground"
+                : "text-slate-600 hover:bg-slate-100"
+            )}
+          >
+            De-Pseudonymisierung
+          </button>
+        </div>
       </div>
-      {features.spacy_ner ? (
-        <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
-          ✓ NLP-Erkennung aktiv (Namen, Orte, etc.)
-        </div>
-      ) : (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          ℹ️ Basis-Erkennung (Datum, Email, Telefon). Für vollständige
-          NLP-Erkennung: lokale Installation mit spaCy.
-        </div>
+      {activeTab === "main" && (
+        <>
+          {features.spacy_ner ? (
+            <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+              ✓ NLP-Erkennung aktiv (Namen, Orte, etc.)
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              ℹ️ Basis-Erkennung (Datum, Email, Telefon). Für vollständige
+              NLP-Erkennung: lokale Installation mit spaCy.
+            </div>
+          )}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            <div className="lg:col-span-2">
+              <InputPanel
+                text={text}
+                setText={setText}
+                language={language}
+                setLanguage={changeLanguage}
+                onAnalyze={handleAnalyze}
+                onPseudonymize={handlePseudonymize}
+                isAnalyzing={analyzeMutation.isPending}
+                isPseudonymizing={pseudonymizeMutation.isPending}
+                analyzeLabel={t("pseudonymize", "analyze")}
+                languageLabel={t("pseudonymize", "language")}
+              />
+            </div>
+            <div className="lg:col-span-2">
+              <OutputPanel
+                result={result}
+                analyzeOnly={analyzeOnlyMode}
+                inputText={text}
+                entitiesFromAnalyze={analyzeOnlyEntities}
+                onCopy={handleCopy}
+                onExportPdf={handleExportPdf}
+              />
+            </div>
+            <div className="lg:col-span-1">
+              <InfoPanel entities={entities} mappingId={mappingId} />
+            </div>
+          </div>
+        </>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <div className="lg:col-span-2">
-          <InputPanel
-            text={text}
-            setText={setText}
-            language={language}
-            setLanguage={changeLanguage}
-            onAnalyze={handleAnalyze}
-            onPseudonymize={handlePseudonymize}
-            isAnalyzing={analyzeMutation.isPending}
-            isPseudonymizing={pseudonymizeMutation.isPending}
-            analyzeLabel={t("pseudonymize", "analyze")}
-            languageLabel={t("pseudonymize", "language")}
-          />
-        </div>
-        <div className="lg:col-span-2">
-          <OutputPanel
-            result={result}
-            analyzeOnly={analyzeOnlyMode}
-            inputText={text}
-            entitiesFromAnalyze={analyzeOnlyEntities}
-            onCopy={handleCopy}
-            onExportPdf={handleExportPdf}
-          />
-        </div>
-        <div className="lg:col-span-1">
-          <InfoPanel entities={entities} mappingId={mappingId} />
-        </div>
-      </div>
+      {activeTab === "audit" && (
+        <section className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-lg font-semibold text-slate-800">
+            Audit Log
+          </h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Letzte Pseudonymisierungen (nur Metadaten, kein Originaltext)
+          </p>
+          {auditQuery.isLoading ? (
+            <div className="h-24 animate-pulse rounded bg-slate-100" />
+          ) : (
+            <AuditLogTable
+              entries={auditEntries}
+              onReverseClick={handleReverseClick}
+              isReversing={reverseMutation.isPending}
+            />
+          )}
+        </section>
+      )}
 
-      <section className="rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-lg font-semibold text-slate-800">
-          Audit Log
-        </h2>
-        <p className="mb-3 text-sm text-slate-500">
-          Letzte Pseudonymisierungen (nur Metadaten, kein Originaltext)
-        </p>
-        {auditQuery.isLoading ? (
-          <div className="h-24 animate-pulse rounded bg-slate-100" />
-        ) : (
-          <AuditLogTable entries={auditQuery.data ?? []} />
-        )}
-      </section>
+      {activeTab === "depseudo" && (
+        <section className="rounded-lg border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-lg font-semibold text-slate-800">
+            De-Pseudonymisierung
+          </h2>
+          <p className="mb-3 text-sm text-slate-500">
+            Einträge mit Mapping-ID, die Sie de-pseudonymisieren dürfen.
+          </p>
+          {auditQuery.isLoading ? (
+            <div className="h-24 animate-pulse rounded bg-slate-100" />
+          ) : reversibleEntries.length === 0 ? (
+            <p className="py-4 text-slate-500">
+              Keine Einträge mit Mapping-ID vorhanden.
+            </p>
+          ) : (
+            <AuditLogTable
+              entries={reversibleEntries}
+              onReverseClick={handleReverseClick}
+              isReversing={reverseMutation.isPending}
+            />
+          )}
+        </section>
+      )}
+
+      {/* Confirm De-Pseudonymization */}
+      <Dialog
+        open={confirmReverseMappingId != null}
+        onOpenChange={(open) => !open && setConfirmReverseMappingId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>⚠️ De-Pseudonymisierung</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-700">
+            Sie sind dabei, die Pseudonymisierung aufzuheben. Dieser Vorgang
+            wird im Audit Log protokolliert. Sind Sie sicher?
+          </p>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setConfirmReverseMappingId(null)}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleConfirmReverse}
+              disabled={reverseMutation.isPending}
+            >
+              De-pseudonymisieren
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Result / Error after De-Pseudonymization */}
+      <Dialog
+        open={reverseResult != null || reverseError != null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReverseResult(null);
+            setReverseError(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>
+            {reverseError ? "Fehler" : "De-Pseudonymisierung — Ergebnis"}
+          </DialogTitle>
+        </DialogHeader>
+        {reverseError ? (
+          <p className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+            {reverseError}
+          </p>
+        ) : reverseResult ? (
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="mb-1 font-medium text-slate-800">Original Text</h4>
+              <pre className="max-h-40 overflow-auto rounded border border-slate-200 bg-slate-50 p-3 whitespace-pre-wrap">
+                {reverseResult.original_text}
+              </pre>
+            </div>
+            <div>
+              <h4 className="mb-1 font-medium text-slate-800">
+                Pseudonymisierter Text
+              </h4>
+              <pre className="max-h-40 overflow-auto rounded border border-slate-200 bg-slate-50 p-3 whitespace-pre-wrap">
+                {reverseResult.pseudonymized_text}
+              </pre>
+            </div>
+            <p className="text-slate-500">
+              Zugriff: {reverseResult.accessed_by} —{" "}
+              {new Date(reverseResult.access_time).toLocaleString("de-DE")}
+            </p>
+            <p className="rounded border border-amber-200 bg-amber-50 p-2 text-amber-900">
+              Dieser Zugriff wurde protokolliert.
+            </p>
+          </div>
+        ) : null}
+        <DialogFooter>
+          <Button
+            onClick={() => {
+              setReverseResult(null);
+              setReverseError(null);
+            }}
+          >
+            Schließen
+          </Button>
+        </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

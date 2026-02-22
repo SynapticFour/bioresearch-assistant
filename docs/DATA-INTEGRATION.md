@@ -123,6 +123,54 @@ Immer erst pseudonymisieren:
 2. Pseudonym ID aus mapping_id verwenden
 3. Phenopacket mit Pseudonym ID erstellen
 
+### Phenopackets aus klinischem Text
+1. Phenopackets → "Neues Phenopacket"
+2. Klinischen Text eingeben (nur pseudonymisiert!)
+3. "Automatisch analysieren" → System extrahiert HPO-Terme und Gene
+4. Terme prüfen und bestätigen
+5. Pseudonym-ID vergeben und speichern
+
+---
+
+## De-Pseudonymisierung
+
+### Wer darf de-pseudonymisieren?
+Konfigurierbar über **DEPSEUDO_ACCESS** in .env:
+
+- `DEPSEUDO_ACCESS=owner` (Standard) — nur der User, der pseudonymisiert hat
+- `DEPSEUDO_ACCESS=team` — alle Mitglieder desselben Teams
+- `DEPSEUDO_ACCESS=admin` — nur Admins
+
+### Audit Trail
+Jede De-Pseudonymisierung wird automatisch im Audit Log protokolliert:
+- Wer hat de-pseudonymisiert
+- Wann
+- Welche mapping_id
+
+### UI
+Pseudonymisierung → Tab "Audit Log" oder "De-Pseudonymisierung" →
+"De-pseudonymisieren" Button pro Eintrag (wenn mapping_id vorhanden).
+
+---
+
+## Automatische Metadaten-Extraktion
+
+### Papers via DOI
+1. Bibliothek → "Paper hinzufügen"
+2. DOI eingeben → "Automatisch ausfüllen"
+3. Metadaten werden über die CrossRef-API geladen
+4. Felder prüfen und bestätigen
+
+### Papers via PubMed-ID
+Gleicher Ablauf mit PubMed-ID statt DOI.
+
+### Genomische Dateien
+Beim Datei-Upload (DRS) können Metadaten automatisch aus dem Dateiinhalt extrahiert werden:
+- **FASTA:** Accession, Organism, Sequenzlänge
+- **VCF:** Referenzgenom, Sample-Namen, Contigs
+
+Endpoint: `POST /ga4gh/drs/v1/objects/extract-metadata` (multipart file upload).
+
 ---
 
 ## 4. Bulk Import (für IT-Abteilungen)

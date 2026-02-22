@@ -183,6 +183,44 @@ export function LibraryPage() {
       showError(err?.message ?? "Fehler beim Speichern"),
   });
 
+  const [autoFillMessage, setAutoFillMessage] = useState<string | null>(null);
+  const extractMetadataMutation = useMutation({
+    mutationFn: (params: { doi?: string; pmid?: string }) =>
+      libraryApi.extractMetadata({
+        doi: params.doi || undefined,
+        pmid: params.pmid || undefined,
+      }),
+    onSuccess: (data) => {
+      setPaperForm((f) => ({
+        ...f,
+        title: data.title ?? f.title,
+        authors: Array.isArray(data.authors)
+          ? data.authors.join(", ")
+          : f.authors,
+        year: data.year != null ? String(data.year) : f.year,
+        journal: data.journal ?? f.journal,
+        doi: data.doi ?? f.doi,
+        pmid: data.pmid ?? f.pmid,
+        abstract: data.abstract ?? f.abstract,
+      }));
+      setAutoFillMessage("Metadaten gefunden — bitte prüfen.");
+    },
+    onError: (err: Error) => {
+      showError(err?.message ?? "Keine Metadaten gefunden.");
+    },
+  });
+
+  const handleAutoFill = useCallback(() => {
+    const doi = paperForm.doi?.trim();
+    const pmid = paperForm.pmid?.trim();
+    if (!doi && !pmid) {
+      showError("Bitte DOI oder PubMed ID eingeben.");
+      return;
+    }
+    setAutoFillMessage(null);
+    extractMetadataMutation.mutate({ doi: doi || undefined, pmid: pmid || undefined });
+  }, [paperForm.doi, paperForm.pmid, showError, extractMetadataMutation]);
+
   const handleSemanticSearch = useCallback(() => {
     const q = semanticQuery.trim();
     if (!q) {
@@ -414,12 +452,56 @@ export function LibraryPage() {
       )}
 
       {/* Add paper modal */}
-      <Dialog open={addPaperOpen} onOpenChange={setAddPaperOpen}>
+      <Dialog
+        open={addPaperOpen}
+        onOpenChange={(open) => {
+          setAddPaperOpen(open);
+          if (!open) setAutoFillMessage(null);
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Paper manuell hinzufügen</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <h4 className="mb-2 text-sm font-medium text-slate-800">
+                Automatisch ausfüllen
+              </h4>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="DOI (z.B. 10.1038/...)"
+                  value={paperForm.doi}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, doi: e.target.value }))
+                  }
+                  className="flex-1 min-w-[140px] rounded border border-slate-300 px-3 py-2 text-sm"
+                />
+                <span className="text-slate-500 text-sm">oder</span>
+                <input
+                  type="text"
+                  placeholder="PubMed ID"
+                  value={paperForm.pmid}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, pmid: e.target.value }))
+                  }
+                  className="flex-1 min-w-[120px] rounded border border-slate-300 px-3 py-2 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleAutoFill}
+                  disabled={extractMetadataMutation.isPending}
+                >
+                  {extractMetadataMutation.isPending ? "…" : "🔍 Automatisch ausfüllen"}
+                </Button>
+              </div>
+              {autoFillMessage && (
+                <p className="mt-2 text-sm text-green-700">{autoFillMessage}</p>
+              )}
+            </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
                 Titel *

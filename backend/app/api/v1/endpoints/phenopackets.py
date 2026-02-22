@@ -1,10 +1,11 @@
 """GA4GH Phenopackets v2 API endpoints.
 
-All patient identifiers are pseudonym IDs only (no real PII).
+All patient identifiers are pseudonym ID only (no real PII).
 Reference: https://phenopacket-schema.readthedocs.io/
 """
 
 import logging
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -24,6 +25,7 @@ from app.schemas.phenopackets import (
     PatientData,
     ValidationResult,
 )
+from app.services.hpo_service import HPOService
 from app.services.phenopacket_service import (
     create_phenopacket,
     export_phenopacket,
@@ -78,6 +80,37 @@ def _normalize_to_patient_data(body: PatientDataCreate) -> PatientData:
         diseases=diseases,
         genes_of_interest=genes,
     )
+
+
+class ExtractPhenotypesRequest(BaseModel):
+    """Request body for POST /phenopackets/extract."""
+
+    text: str = Field(..., min_length=1, description="Clinical free text to analyze")
+
+
+@router.get("/hpo/search", status_code=status.HTTP_200_OK)
+async def hpo_search(
+    q: str = "",
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """Search HPO terms (e.g. ?q=seizure)."""
+    service = HPOService()
+    return await service.search_terms(q)
+
+
+@router.post("/extract", status_code=status.HTTP_200_OK)
+async def extract_phenotypes(
+    body: ExtractPhenotypesRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Extract HPO terms and genes from clinical text."""
+    service = HPOService()
+    terms = await service.extract_from_text(body.text)
+    # Simple gene extraction: look for common genes in text
+    gene_pattern = re.compile(rb"\b(BRCA1|BRCA2|TP53|EGFR|KRAS|BRAF)\b", re.I)
+    text_bytes = body.text.encode("utf-8", errors="ignore")
+    genes = list({m.decode("utf-8").upper() for m in gene_pattern.findall(text_bytes)})
+    return {"terms": terms, "genes": genes}
 
 
 @router.get("", response_model=list[dict[str, Any]])

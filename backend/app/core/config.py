@@ -80,6 +80,11 @@ class Settings(BaseSettings):
         default=None,
         description="Optional API key for restore (X-Restore-API-Key). If unset, restore disabled.",
     )
+    depseudo_access: str = Field(
+        default="owner",
+        description="Who may de-pseudonymize: owner (only pseudonymizing user), team, admin",
+        env="DEPSEUDO_ACCESS",
+    )
 
     # GA4GH WES (Phase 3)
     wes_work_dir: str = Field(
