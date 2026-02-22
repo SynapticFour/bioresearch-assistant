@@ -3,45 +3,70 @@ version: "3.9"
 services:
   postgres:
     image: pgvector/pgvector:pg16
+    platform: linux/arm64
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-bioresearch}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-bioresearch}
+      POSTGRES_DB: ${DB_NAME:-bioresearch}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bioresearch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
-    image: ghcr.io/${GITHUB_REPO}/backend:latest
+    image: ghcr.io/${GITHUB_REPO:-synapticfour/bioresearch-assistant}/backend:latest
+    platform: linux/arm64
     environment:
-      DATABASE_URL: postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-bioresearch}:${DB_PASSWORD:-bioresearch}@postgres:5432/${DB_NAME:-bioresearch}
       PSEUDONYMIZATION_ENCRYPTION_KEY: ${PSEUDONYMIZATION_ENCRYPTION_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       SECRET_KEY: ${SECRET_KEY}
       ENVIRONMENT: production
       OLLAMA_BASE_URL: http://ollama:11434
+      PUBMED_EMAIL: ${PUBMED_EMAIL}
     depends_on:
-      - postgres
-    restart: unless-stopped
-
-  frontend:
-    image: ghcr.io/${GITHUB_REPO}/frontend:latest
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - backend
-    restart: unless-stopped
-
-  ollama:
-    image: ollama/ollama:latest
-    volumes:
-      - ollama_data:/root/.ollama
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     deploy:
       resources:
-        reservations:
-          memory: 4G
+        limits:
+          memory: 4G        # Von 24GB — lässt Platz für Ollama
+          cpus: '2'
+    ports:
+      - "8000:8000"
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPO:-synapticfour/bioresearch-assistant}/frontend:latest
+    platform: linux/arm64
+    depends_on:
+      - backend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+
+  ollama:
+    image: ollama/ollama:latest
+    platform: linux/arm64
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        limits:
+          memory: 16G       # Großzügig — ARM hat 24GB total
+          cpus: '1.5'
 
 volumes:
   postgres_data:

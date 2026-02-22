@@ -6,6 +6,7 @@ Create Date: 2025-02-20
 
 """
 
+import os
 from collections.abc import Sequence
 
 import sqlalchemy as sa
@@ -22,7 +23,12 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    try:
+        op.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    except Exception:
+        pass  # pgvector nicht verfügbar — Text-Fallback wird genutzt
+
+    # Rest der Migration bleibt unverändert...
     op.create_table(
         "papers",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -33,7 +39,6 @@ def upgrade() -> None:
         sa.Column("year", sa.String(16), nullable=True),
         sa.Column("journal", sa.Text(), nullable=False),
         sa.Column("doi", sa.String(256), nullable=True),
-        sa.Column("embedding", Vector(EMBEDDING_DIM), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -49,6 +54,17 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(op.f("ix_papers_pmid"), "papers", ["pmid"], unique=True)
+
+    if os.getenv("DEPLOYMENT") != "railway":
+        op.add_column(
+            "papers",
+            sa.Column("embedding", Vector(EMBEDDING_DIM), nullable=True),
+        )
+    else:
+        op.add_column(
+            "papers",
+            sa.Column("embedding", sa.Text(), nullable=True),
+        )
 
 
 def downgrade() -> None:

@@ -1,4 +1,4 @@
-"""Literature Mining API: PubMed search and fetch by PMID."""
+"""Literature Mining API: PubMed search, fetch by PMID, and save paper."""
 
 import logging
 
@@ -14,6 +14,7 @@ from app.schemas.pubmed import (
     PubMedSearchRequest,
     PubMedSearchResponse,
 )
+from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
 from app.services.pubmed_service import PubMedService, PubMedServiceError
 
 logger = logging.getLogger(__name__)
@@ -90,6 +91,38 @@ async def get_literature_stats(
         for p in papers
     ]
     return LiteratureStatsResponse(total_papers=total, recent_papers=recent)
+
+
+@router.post(
+    "/papers",
+    response_model=PubMedSearchResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def save_paper(
+    body: PubMedArticle,
+    db: AsyncSession = Depends(get_db),
+) -> PubMedSearchResponse:
+    """Speichere ein Paper (z. B. aus Suchergebnissen) in der DB inkl. Embedding."""
+    service = EmbeddingService()
+    try:
+        paper = await service.store_paper(db, body)
+        await db.commit()
+    except EmbeddingServiceError as e:
+        logger.warning("Save paper failed: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        ) from e
+    return PubMedSearchResponse(
+        pmid=paper.pmid,
+        title=paper.title or "",
+        abstract=paper.abstract or None,
+        authors=list(paper.authors) if paper.authors else [],
+        year=int(paper.year) if paper.year and str(paper.year).strip().isdigit() else None,
+        journal=paper.journal or None,
+        doi=paper.doi,
+        summary=None,
+    )
 
 
 @router.get(

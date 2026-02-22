@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { literature } from "@/api/endpoints";
 import type { Paper } from "@/types";
+import { useToast } from "@/contexts/ToastContext";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useLanguage } from "@/components/ui/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +67,7 @@ interface SearchFormProps {
   isSearching: boolean;
   history: string[];
   onHistoryClick: (q: string) => void;
+  searchLabel: string;
 }
 
 function SearchForm({
@@ -78,6 +81,7 @@ function SearchForm({
   isSearching,
   history,
   onHistoryClick,
+  searchLabel,
 }: SearchFormProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -153,12 +157,12 @@ function SearchForm({
         {isSearching ? (
           <>
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-            Suchen…
+            {searchLabel}…
           </>
         ) : (
           <>
             <Search className="h-5 w-5" />
-            Suchen
+            {searchLabel}
           </>
         )}
       </Button>
@@ -265,9 +269,18 @@ function exportPapersCsv(papers: Paper[], query: string): void {
 interface PaperCardProps {
   paper: Paper;
   onTitleClick: () => void;
+  onSave?: (paper: Paper) => void;
+  isSaving?: boolean;
+  saveLabel?: string;
 }
 
-function PaperCard({ paper, onTitleClick }: PaperCardProps) {
+function PaperCard({
+  paper,
+  onTitleClick,
+  onSave,
+  isSaving,
+  saveLabel = "Speichern",
+}: PaperCardProps) {
   const [abstractExpanded, setAbstractExpanded] = useState(false);
   const abstract = paper.abstract ?? "";
   const lineClamp = abstractExpanded ? undefined : 3;
@@ -344,9 +357,17 @@ function PaperCard({ paper, onTitleClick }: PaperCardProps) {
           PubMed öffnen
           <ExternalLink className="h-4 w-4" />
         </a>
-        <Button variant="ghost" size="sm" className="ml-auto">
-          Speichern
-        </Button>
+        {onSave && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => onSave(paper)}
+            disabled={isSaving}
+          >
+            {saveLabel}
+          </Button>
+        )}
       </footer>
     </article>
   );
@@ -359,6 +380,9 @@ interface PaperDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSimilarSearch: (query: string) => void;
+  onSave?: (paper: Paper) => void;
+  isSaving?: boolean;
+  saveLabel?: string;
 }
 
 function PaperDetailModal({
@@ -366,6 +390,9 @@ function PaperDetailModal({
   open,
   onOpenChange,
   onSimilarSearch,
+  onSave,
+  isSaving,
+  saveLabel = "Speichern",
 }: PaperDetailModalProps) {
   if (!paper) return null;
 
@@ -419,6 +446,15 @@ function PaperDetailModal({
           )}
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
+          {onSave && (
+            <Button
+              variant="ghost"
+              onClick={() => onSave(paper)}
+              disabled={isSaving}
+            >
+              {saveLabel}
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => onSimilarSearch(paper.title || paper.pmid)}
@@ -444,9 +480,11 @@ export function LiteraturePage() {
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(20);
   const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
   const [history, setHistory] = useState<string[]>(loadSearchHistory);
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const { showSuccess, showError } = useToast();
 
   const mutation = useMutation({
     mutationFn: async ({
@@ -458,6 +496,13 @@ export function LiteraturePage() {
       max: number;
       lang?: string;
     }) => literature.search(q, max, lang ?? "de"),
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: (paper: Paper) => literature.savePaper(paper),
+    onSuccess: () => showSuccess("Paper gespeichert"),
+    onError: (err: Error) =>
+      showError(err?.message ?? "Fehler beim Speichern"),
   });
 
   const papers = mutation.data?.papers ?? [];
@@ -501,7 +546,7 @@ export function LiteraturePage() {
       {/* Left panel: 400px fixed */}
       <aside className="flex w-[400px] shrink-0 flex-col border-r border-slate-200 bg-white p-6">
         <h1 className="mb-6 text-xl font-semibold text-slate-800">
-          Literature Mining
+          {t("literature", "title")}
         </h1>
         <SearchForm
           query={query}
@@ -514,6 +559,7 @@ export function LiteraturePage() {
           isSearching={isLoading}
           history={history}
           onHistoryClick={handleHistoryClick}
+          searchLabel={t("literature", "search")}
         />
       </aside>
 
@@ -551,6 +597,9 @@ export function LiteraturePage() {
                       setSelectedPaper(paper);
                       setModalOpen(true);
                     }}
+                    onSave={(p) => saveMutation.mutate(p)}
+                    isSaving={saveMutation.isPending}
+                    saveLabel={t("literature", "save")}
                   />
                 ))}
               </div>
@@ -559,7 +608,7 @@ export function LiteraturePage() {
           {hasSearched && !isLoading && papers.length === 0 && !error && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <BookOpen className="mb-4 h-16 w-16 text-slate-300" />
-              <p className="text-slate-600">Keine Paper gefunden.</p>
+              <p className="text-slate-600">{t("literature", "noResults")}</p>
             </div>
           )}
         </div>
@@ -570,6 +619,9 @@ export function LiteraturePage() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         onSimilarSearch={handleSimilarSearch}
+        onSave={(p) => saveMutation.mutate(p)}
+        isSaving={saveMutation.isPending}
+        saveLabel={t("literature", "save")}
       />
     </div>
   );

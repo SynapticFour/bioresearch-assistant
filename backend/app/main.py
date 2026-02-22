@@ -50,9 +50,19 @@ def create_application() -> FastAPI:
         redoc_url="/redoc",
     )
 
+    cors_origins = list(settings.cors_origins)
+    for origin in (
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://bioresearch-assistant.vercel.app",
+        "https://*.vercel.app",
+    ):
+        if origin not in cors_origins:
+            cors_origins.append(origin)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=cors_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

@@ -111,4 +111,8 @@ export interface AuditLogEntry {
   operation_type: string;
   user_id?: string | null;
   input_hash?: string;
+  /** Language used for pseudonymization, when available from backend. */
+  language?: string | null;
+  /** Mapping ID for re-identification, when available from backend. */
+  mapping_id?: string | null;
 }

@@ -94,6 +94,8 @@ async def pseudonymize(
         entities_count=len(entities_found),
         input_hash=input_hash,
         operation_type=OPERATION_TYPE_PSEUDONYMIZE,
+        language=body.language,
+        mapping_id=mapping_id,
     )
     db.add(audit_row)
     await db.flush()
@@ -137,6 +139,8 @@ async def restore(
         entities_count=0,
         input_hash=input_hash_for_audit(body.pseudonymized_text),
         operation_type=OPERATION_TYPE_RESTORE,
+        language=None,
+        mapping_id=body.mapping_id,
     )
     db.add(audit_row)
     await db.flush()
@@ -164,6 +168,8 @@ async def get_audit_log(
             entities_count=row.entities_count,
             input_hash=row.input_hash,
             operation_type=row.operation_type,
+            language=getattr(row, "language", None),
+            mapping_id=getattr(row, "mapping_id", None),
         )
         for row in rows
     ]

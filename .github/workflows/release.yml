@@ -1,0 +1,109 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Wichtig: alle Commits für Changelog
+
+      - name: Generate Changelog
+        id: changelog
+        run: |
+          # Letzten Tag vor diesem finden
+          PREVIOUS_TAG=$(git tag --sort=-version:refname | sed -n '2p')
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+
+          echo "## Was ist neu in $CURRENT_TAG" > changelog.md
+          echo "" >> changelog.md
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "🎉 Erster Release!" >> changelog.md
+            git log --pretty=format:"- %s (%h)" >> changelog.md
+          else
+            echo "### Änderungen seit $PREVIOUS_TAG" >> changelog.md
+            echo "" >> changelog.md
+
+            # Features
+            FEATURES=$(git log $PREVIOUS_TAG..$CURRENT_TAG \
+              --pretty=format:"- %s (%h)" \
+              --grep="^feat" || true)
+            if [ -n "$FEATURES" ]; then
+              echo "#### ✨ Neue Features" >> changelog.md
+              echo "$FEATURES" >> changelog.md
+              echo "" >> changelog.md
+            fi
+
+            # Fixes
+            FIXES=$(git log $PREVIOUS_TAG..$CURRENT_TAG \
+              --pretty=format:"- %s (%h)" \
+              --grep="^fix" || true)
+            if [ -n "$FIXES" ]; then
+              echo "#### 🐛 Bugfixes" >> changelog.md
+              echo "$FIXES" >> changelog.md
+              echo "" >> changelog.md
+            fi
+
+            # Docs
+            DOCS=$(git log $PREVIOUS_TAG..$CURRENT_TAG \
+              --pretty=format:"- %s (%h)" \
+              --grep="^docs" || true)
+            if [ -n "$DOCS" ]; then
+              echo "#### 📚 Dokumentation" >> changelog.md
+              echo "$DOCS" >> changelog.md
+              echo "" >> changelog.md
+            fi
+
+            # Sonstige
+            OTHER=$(git log $PREVIOUS_TAG..$CURRENT_TAG \
+              --pretty=format:"- %s (%h)" \
+              --invert-grep \
+              --grep="^feat\|^fix\|^docs\|^chore\|^ci" || true)
+            if [ -n "$OTHER" ]; then
+              echo "#### 🔧 Sonstiges" >> changelog.md
+              echo "$OTHER" >> changelog.md
+              echo "" >> changelog.md
+            fi
+          fi
+
+          echo "" >> changelog.md
+          echo "---" >> changelog.md
+          echo "**Synaptic Four** — BioResearch Assistant" >> changelog.md
+
+          # Changelog als Output speichern (multiline)
+          {
+            echo "content<<EOF"
+            cat changelog.md
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "BioResearch Assistant ${{ github.ref_name }}"
+          body: ${{ steps.changelog.outputs.content }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sync develop with main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin
+          git checkout develop
+          git merge origin/main --no-edit -m "chore: sync develop with main after release ${{ github.ref_name }}"
+          git push origin develop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

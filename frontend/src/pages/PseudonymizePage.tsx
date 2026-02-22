@@ -7,7 +7,7 @@ import type {
   PseudonymizeResult,
   AuditLogEntry,
 } from "@/types";
-import { useLanguage } from "@/components/ui/LanguageToggle";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,8 @@ interface InputPanelProps {
   onPseudonymize: () => void;
   isAnalyzing: boolean;
   isPseudonymizing: boolean;
+  analyzeLabel: string;
+  languageLabel: string;
 }
 
 function InputPanel({
@@ -95,6 +97,8 @@ function InputPanel({
   onPseudonymize,
   isAnalyzing,
   isPseudonymizing,
+  analyzeLabel,
+  languageLabel,
 }: InputPanelProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -111,7 +115,7 @@ function InputPanel({
       />
       <div>
         <span className="mb-1 block text-sm font-medium text-slate-700">
-          Sprache
+          {languageLabel}
         </span>
         <div className="flex rounded-lg border border-slate-300 p-0.5">
           <button
@@ -147,7 +151,7 @@ function InputPanel({
           disabled={!text.trim() || isAnalyzing || isPseudonymizing}
           className="flex-1"
         >
-          {isAnalyzing ? "…" : "Analysieren"}
+          {isAnalyzing ? "…" : analyzeLabel}
         </Button>
         <Button
           onClick={onPseudonymize}
@@ -410,7 +414,7 @@ function exportPseudonymizedPdf(text: string): void {
 
 export function PseudonymizePage() {
   const [text, setText] = useState("");
-  const { language, setLanguage } = useLanguage();
+  const { t, language, changeLanguage } = useTranslation();
   const [result, setResult] = useState<PseudonymizeResult | null>(null);
   const [analyzeOnlyEntities, setAnalyzeOnlyEntities] = useState<
     EntityFound[]
@@ -474,7 +478,7 @@ export function PseudonymizePage() {
       <div className="flex items-center gap-2">
         <Shield className="h-7 w-7 text-primary" />
         <h1 className="text-2xl font-semibold text-slate-800">
-          Pseudonymisierung
+          {t("pseudonymize", "title")}
         </h1>
       </div>
 
@@ -484,11 +488,13 @@ export function PseudonymizePage() {
             text={text}
             setText={setText}
             language={language}
-            setLanguage={setLanguage}
+            setLanguage={changeLanguage}
             onAnalyze={handleAnalyze}
             onPseudonymize={handlePseudonymize}
             isAnalyzing={analyzeMutation.isPending}
             isPseudonymizing={pseudonymizeMutation.isPending}
+            analyzeLabel={t("pseudonymize", "analyze")}
+            languageLabel={t("pseudonymize", "language")}
           />
         </div>
         <div className="lg:col-span-2">

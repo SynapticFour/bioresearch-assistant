@@ -60,5 +60,7 @@ class AuditLogEntry(BaseModel):
     entities_count: int
     input_hash: str
     operation_type: str
+    language: str | None = None
+    mapping_id: str | None = None
 
     model_config = {"from_attributes": True}

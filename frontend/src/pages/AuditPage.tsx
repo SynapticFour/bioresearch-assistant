@@ -22,7 +22,7 @@ function exportAuditCsv(entries: AuditLogEntry[]): void {
   const header = "Zeitstempel;Operation;Entities;Sprache;Mapping ID\n";
   const rows = entries.map(
     (e) =>
-      `${formatTime(e.timestamp)};${e.operation_type};${e.entities_count};—;—`
+      `${formatTime(e.timestamp)};${e.operation_type};${e.entities_count};${e.language ?? "—"};${e.mapping_id ?? "—"}`
   );
   const csv = header + rows.join("\n");
   const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -41,7 +41,11 @@ export function AuditPage() {
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ["audit-log"],
-    queryFn: () => pseudonymizeApi.getAuditLog(),
+    queryFn: async () => {
+      const data = await pseudonymizeApi.getAuditLog();
+      console.log("Audit entries:", data);
+      return data;
+    },
     refetchInterval: REFETCH_MS,
   });
 
@@ -57,7 +61,7 @@ export function AuditPage() {
       list = list.filter((e) => new Date(e.timestamp) <= to);
     }
     if (langFilter !== "all") {
-      list = list.filter((e) => (e as { language?: string }).language === langFilter);
+      list = list.filter((e) => e.language === langFilter);
     }
     return list;
   }, [entries, dateFrom, dateTo, langFilter]);
@@ -147,9 +151,11 @@ export function AuditPage() {
                   <td className="px-4 py-2">{formatTime(e.timestamp)}</td>
                   <td className="px-4 py-2">{e.operation_type}</td>
                   <td className="px-4 py-2">{e.entities_count}</td>
-                  <td className="px-4 py-2 text-slate-500">—</td>
-                  <td className="px-4 py-2 font-mono text-xs text-slate-500">
-                    —
+                  <td className="px-4 py-2 text-slate-600">
+                    {e.language ?? "—"}
+                  </td>
+                  <td className="px-4 py-2 font-mono text-xs text-slate-600">
+                    {e.mapping_id ?? "—"}
                   </td>
                 </tr>
               ))}

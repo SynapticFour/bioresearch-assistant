@@ -3,11 +3,10 @@
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import select
 
 from app.models.paper import EMBEDDING_DIM, Paper
 from app.schemas.pubmed import PubMedArticle
-from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
+from app.services.embedding_service import EmbeddingService
 
 
 @pytest.fixture

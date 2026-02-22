@@ -11,6 +11,7 @@ import {
 import {
   health,
   literature,
+  phenopackets,
   pseudonymize,
   wes,
   drs,
@@ -443,10 +444,24 @@ export function DashboardPage() {
     retry: false,
   });
 
+  const {
+    isSuccess: phenopacketsSuccess,
+    isError: phenopacketsError,
+    isLoading: phenopacketsLoading,
+  } = useQuery({
+    queryKey: ["phenopackets-list"],
+    queryFn: () => phenopackets.list(),
+    retry: false,
+  });
+  const phenopacketsOkFromApi =
+    !phenopacketsLoading && phenopacketsSuccess && !phenopacketsError;
+  const phenopacketsOk = phenopacketsLoading ? null : phenopacketsOkFromApi;
+
+  const healthStatus = (healthData as { status?: string })?.status;
   const systemStatus: "ok" | "degraded" | "error" | null =
     healthLoading || healthData == null
       ? null
-      : (healthData as { status?: string }).status === "ok"
+      : healthStatus === "ok" || healthStatus === "healthy"
         ? "ok"
         : "error";
 
@@ -468,7 +483,6 @@ export function DashboardPage() {
 
   const drsOk = drsSuccess && drsInfo != null;
   const wesOk = wesSuccess && wesInfo != null;
-  const phenopacketsOk = systemStatus === "ok";
 
   return (
     <div className="space-y-6">
@@ -531,7 +545,7 @@ export function DashboardPage() {
           drsOk={drsSuccess ? drsOk : null}
           wesOk={wesSuccess ? wesOk : null}
           phenopacketsOk={phenopacketsOk}
-          loading={drsLoading || wesInfoLoading}
+          loading={drsLoading || wesInfoLoading || phenopacketsLoading}
         />
         <LastPapersCard
           papers={recentPapers.map((p) => ({

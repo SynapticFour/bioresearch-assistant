@@ -1,5 +1,6 @@
 import { NavLink } from "react-router-dom";
 import {
+  Bookmark,
   BookOpen,
   ClipboardList,
   FileSearch,
@@ -10,18 +11,20 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHealth } from "@/hooks/useHealth";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Badge } from "@/components/ui/badge";
 
 const APP_VERSION = "0.1.0";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: Home },
-  { to: "/literature", label: "Literature", icon: BookOpen },
-  { to: "/pseudonymize", label: "Pseudonymize", icon: Shield },
-  { to: "/pipelines", label: "Pipelines", icon: Settings },
-  { to: "/blast", label: "BLAST", icon: FileSearch },
-  { to: "/drs", label: "DRS Files", icon: FolderOpen },
-  { to: "/audit", label: "Audit Log", icon: ClipboardList },
+const navItems: { to: string; labelKey: string; icon: typeof Home }[] = [
+  { to: "/", labelKey: "dashboard", icon: Home },
+  { to: "/literature", labelKey: "literature", icon: BookOpen },
+  { to: "/library", labelKey: "library", icon: Bookmark },
+  { to: "/pseudonymize", labelKey: "pseudonymize", icon: Shield },
+  { to: "/pipelines", labelKey: "pipelines", icon: Settings },
+  { to: "/blast", labelKey: "blast", icon: FileSearch },
+  { to: "/drs", labelKey: "drs", icon: FolderOpen },
+  { to: "/audit", labelKey: "audit", icon: ClipboardList },
 ];
 
 interface SidebarProps {
@@ -51,6 +54,7 @@ function SynapticFourLogo({ className }: { className?: string }) {
 
 export function Sidebar({ collapsed }: SidebarProps) {
   const { data: healthData, isSuccess } = useHealth();
+  const { t } = useTranslation();
   const isHealthy = isSuccess && healthData != null;
 
   return (
@@ -78,7 +82,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto scrollbar-thin p-2">
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, labelKey, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
@@ -92,7 +96,9 @@ export function Sidebar({ collapsed }: SidebarProps) {
             }
           >
             <Icon className="h-5 w-5 shrink-0" />
-            {!collapsed && <span className="truncate">{label}</span>}
+            {!collapsed && (
+              <span className="truncate">{t("nav", labelKey)}</span>
+            )}
           </NavLink>
         ))}
       </nav>
@@ -113,7 +119,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
                 aria-label={isHealthy ? "API erreichbar" : "API nicht erreichbar"}
               />
               <span className="text-xs text-muted">
-                {isHealthy ? "Online" : "Offline"}
+                {isHealthy ? t("status", "online") : t("status", "offline")}
               </span>
             </div>
           </div>
@@ -130,6 +136,18 @@ export function Sidebar({ collapsed }: SidebarProps) {
           </div>
         )}
       </div>
+
+      {/* Attribution */}
+      {!collapsed && (
+        <div className="px-4 py-3 border-t border-gray-100">
+          <p className="text-xs text-gray-400 leading-relaxed">
+            Proudly developed by individuals on the autism spectrum in Germany 🇩🇪
+          </p>
+          <p className="text-xs text-gray-400 mt-1">
+            © 2026 Synaptic Four, Stuttgart
+          </p>
+        </div>
+      )}
     </aside>
   );
 }

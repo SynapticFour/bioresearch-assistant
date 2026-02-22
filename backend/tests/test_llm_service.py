@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.schemas.llm import BiologicalEntities, PaperSummary
-from app.services.llm_service import LLMService, LLMServiceError
+from app.services.llm_service import LLMService
 
 
 @pytest.fixture

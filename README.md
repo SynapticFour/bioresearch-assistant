@@ -1,6 +1,7 @@
 # BioResearch Assistant — Synaptic Four
 
 [![CI](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/SynapticFour/bioresearch-assistant)](https://github.com/SynapticFour/bioresearch-assistant/releases)
 ![Coverage](docs/coverage-badge.svg)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/)
 [![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets-green)](https://www.ga4gh.org/)
@@ -9,6 +10,7 @@
 [![Deploy DFN](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-dfn.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-dfn.yml)
 [![Deploy OTC](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-otc.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-otc.yml)
 [![Deploy Azure](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-azure.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-azure.yml)
+![License](https://img.shields.io/badge/License-BUSL%201.1-blue)
 
 ## Was ist das?
 
@@ -111,8 +113,22 @@ Der BioResearch Assistant ist nach GAIA-X Prinzipien designed:
 
 On-premise bedeutet: **Ihre Daten verlassen nicht Ihre Infrastruktur.** Keine Weitergabe an Dritte, volle Kontrolle über Speicherort und Zugriff. Pseudonymisierungen sind audit-logged und für Berechtigte reversibel. Ideal für Unikliniken und Forschungseinrichtungen mit hohen DSGVO-Anforderungen.
 
-## Lizenz & Kontakt
+## 📄 Lizenz
 
-**Synaptic Four**
+BioResearch Assistant ist unter der [Business Source License 1.1](LICENSE.md) lizenziert.
 
-Projekt- und Lizenzdetails siehe Repository.
+- ✅ Kostenlos für akademische Forschung und Evaluation
+- ✅ Code ist vollständig einsehbar
+- 💼 Kommerzielle Nutzung: Kontakt unter kontakt@synapticfour.com
+- 🔓 Wird automatisch Open Source (Apache 2.0) nach 4 Jahren
+
+---
+
+<p align="center">
+  <sub>
+    Proudly developed by individuals on the autism spectrum
+    in Germany 🇩🇪<br>
+    <a href="https://synapticfour.de">Synaptic Four</a> —
+    Stuttgart
+  </sub>
+</p>

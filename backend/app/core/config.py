@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
     debug: bool = Field(default=False, description="Enable debug mode")
     environment: str = Field(default="development", description="Environment name")
+    deployment: str = Field(
+        default="",
+        description="Deployment target e.g. 'railway' for demo limitations",
+    )
 
     # API
     api_v1_prefix: str = Field(default="/api/v1", description="API v1 URL prefix")

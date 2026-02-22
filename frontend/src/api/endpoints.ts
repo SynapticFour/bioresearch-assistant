@@ -48,6 +48,67 @@ export const literature = {
     );
     return data;
   },
+  async savePaper(paper: {
+    pmid: string;
+    title?: string | null;
+    abstract?: string | null;
+    authors?: string[];
+    year?: string | number | null;
+    journal?: string | null;
+    doi?: string | null;
+    keywords?: string[];
+  }): Promise<Paper> {
+    const year =
+      paper.year != null && paper.year !== undefined
+        ? String(paper.year)
+        : null;
+    const body = {
+      pmid: paper.pmid,
+      title: paper.title ?? "",
+      abstract: paper.abstract ?? "",
+      authors: Array.isArray(paper.authors) ? paper.authors : [],
+      year,
+      journal: paper.journal ?? "",
+      doi: paper.doi ?? null,
+      keywords: Array.isArray(paper.keywords) ? paper.keywords : [],
+    };
+    const { data } = await apiClient.post<Paper>(
+      `${API_V1}/literature/papers`,
+      body
+    );
+    return data;
+  },
+};
+
+// ----- Library (saved papers) -----
+
+export const library = {
+  async getPapers(params?: {
+    year?: string | null;
+    journal?: string | null;
+    limit?: number;
+    offset?: number;
+  }): Promise<Paper[]> {
+    const searchParams = new URLSearchParams();
+    if (params?.year) searchParams.set("year", params.year);
+    if (params?.journal) searchParams.set("journal", params.journal);
+    if (params?.limit != null) searchParams.set("limit", String(params.limit));
+    if (params?.offset != null) searchParams.set("offset", String(params.offset));
+    const qs = searchParams.toString();
+    const url = `${API_V1}/library/papers${qs ? `?${qs}` : ""}`;
+    const { data } = await apiClient.get<Paper[]>(url);
+    return data;
+  },
+  async deletePaper(pmid: string): Promise<void> {
+    await apiClient.delete(`${API_V1}/library/papers/${encodeURIComponent(pmid)}`);
+  },
+  async semanticSearch(query: string, limit: number = 10): Promise<Paper[]> {
+    const { data } = await apiClient.post<Paper[]>(
+      `${API_V1}/library/search/semantic`,
+      { query, limit }
+    );
+    return data;
+  },
 };
 
 // ----- Pseudonymize -----
@@ -271,6 +332,31 @@ export const drs = {
       type: { group: string; artifact: string; version: string };
       version: string;
     };
+  },
+};
+
+// ----- Phenopackets (GA4GH v2) -----
+
+export type PhenopacketItem = Record<string, unknown>;
+
+export const phenopackets = {
+  async list(): Promise<PhenopacketItem[]> {
+    const { data } = await apiClient.get<PhenopacketItem[]>(
+      `${API_V1}/phenopackets`
+    );
+    return Array.isArray(data) ? data : [];
+  },
+  async get(id: string): Promise<PhenopacketItem> {
+    const { data } = await apiClient.get<PhenopacketItem>(
+      `${API_V1}/phenopackets/${encodeURIComponent(id)}`
+    );
+    return data;
+  },
+  async export(id: string): Promise<PhenopacketItem> {
+    const { data } = await apiClient.get<PhenopacketItem>(
+      `${API_V1}/phenopackets/${encodeURIComponent(id)}/export`
+    );
+    return data;
   },
 };
 

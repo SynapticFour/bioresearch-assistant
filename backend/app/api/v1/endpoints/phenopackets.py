@@ -27,6 +27,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/phenopackets", tags=["phenopackets"])
 
 
+@router.get("", response_model=list[dict[str, Any]])
+async def list_phenopackets(
+    db: AsyncSession = Depends(get_db),
+) -> list[dict[str, Any]]:
+    """Liste alle Phenopackets (als JSON-Dicts)."""
+    stmt = select(PatientRecordModel).order_by(PatientRecordModel.pseudonym_id)
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+    return [row.phenopacket_json for row in rows]
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_phenopacket_endpoint(
     body: PatientData,
