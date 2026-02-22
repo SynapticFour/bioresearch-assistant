@@ -1,19 +1,6 @@
 """Tests for pseudonymization service (German and English clinical texts)."""
 
-import os
-
 import pytest
-
-# Set encryption key before importing app modules that use get_settings
-os.environ.setdefault(
-    "PSEUDONYMIZATION_ENCRYPTION_KEY",
-    "0" * 64,
-)
-# Ensure DATABASE_URL for Presidio/Settings load if needed
-os.environ.setdefault(
-    "DATABASE_URL",
-    "postgresql+asyncpg://u:p@localhost/d",
-)
 
 from app.services.pseudonymization_service import (
     analyze,

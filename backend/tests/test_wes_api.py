@@ -1,6 +1,6 @@
 """Tests for GA4GH WES v1.1 API endpoints."""
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from httpx import AsyncClient
 
@@ -47,11 +47,11 @@ async def test_wes_cancel_run_404(async_client: AsyncClient) -> None:
 
 async def test_wes_run_workflow_returns_run_id(async_client: AsyncClient) -> None:
     """POST /ga4gh/wes/v1/runs returns 200/201 and run_id."""
-
-    def noop_executor(*args: object, **kwargs: object) -> None:
-        pass
-
-    with patch("app.services.wes_service._execute_nextflow", side_effect=noop_executor):
+    with patch(
+        "app.services.wes_service._execute_nextflow",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
         response = await async_client.post(
             "/ga4gh/wes/v1/runs",
             data={

@@ -1,10 +1,5 @@
 """Tests for AES-256 mapping encryption."""
 
-import os
-
-os.environ.setdefault("PSEUDONYMIZATION_ENCRYPTION_KEY", "0" * 64)
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost/d")
-
 import pytest
 
 from app.core.encryption import decrypt_mapping, encrypt_mapping

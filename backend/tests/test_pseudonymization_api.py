@@ -1,12 +1,6 @@
 """API tests for pseudonymization endpoints."""
 
-import os
-
 from httpx import AsyncClient
-
-# Set env before importing app
-os.environ.setdefault("PSEUDONYMIZATION_ENCRYPTION_KEY", "0" * 64)
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost/db")
 
 
 async def test_pseudonymize_returns_200_and_placeholders(
