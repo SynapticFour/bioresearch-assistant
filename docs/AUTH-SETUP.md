@@ -4,6 +4,8 @@
 BioResearch Assistant unterstützt OpenID Connect (OIDC)
 mit GA4GH Passport Spec v1.2.
 
+**Datenisolation:** Mit OIDC kann zusätzlich `ISOLATION_MODE=user` oder `team` gesetzt werden, damit Daten pro Nutzer oder pro Team (z. B. E-Mail-Domain) getrennt sind. Siehe [ISOLATION-MODES.md](ISOLATION-MODES.md).
+
 ## Unterstützte Provider
 
 ### 1. Keycloak (empfohlen für Institutionen)

@@ -2,6 +2,8 @@
 
 **Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Vollinstallation mit Ollama bleiben alle Daten lokal; mit Anthropic API werden Suchanfragen an die USA übertragen.
 
+**Isolation:** Für Forschungsgruppen empfohlen: `ISOLATION_MODE=team` — Teams werden automatisch über DFN-AAI (E-Mail-Domain) erkannt. Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
+
 ## Warum DFN-Cloud?
 
 DFN (Deutsches Forschungsnetz) verbindet alle deutschen Universitäten und Forschungsinstitute. On-premise im deutschen Forschungsnetz — ideal für die Zielgruppe.

@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.isolation import get_scope_filter, get_scope_values
 from app.models.audit_log import AuditLog
 from app.models.pseudonymization_mapping import PseudonymizationMapping
 from app.schemas.pseudonymize import (
@@ -89,10 +90,13 @@ async def pseudonymize(
         )
         db.add(mapping_row)
 
+    scope_values = get_scope_values(current_user)
+    audit_user_id = user_id or scope_values.get("user_id")
     input_hash = input_hash_for_audit(body.text)
     audit_row = AuditLog(
         operation_id=operation_id,
-        user_id=user_id,
+        user_id=audit_user_id,
+        team_id=scope_values.get("team_id"),
         entities_count=len(entities_found),
         input_hash=input_hash,
         operation_type=OPERATION_TYPE_PSEUDONYMIZE,
@@ -138,6 +142,7 @@ async def restore(
     audit_row = AuditLog(
         operation_id=operation_id,
         user_id=user_id,
+        team_id=None,
         entities_count=0,
         input_hash=input_hash_for_audit(body.pseudonymized_text),
         operation_type=OPERATION_TYPE_RESTORE,
@@ -155,11 +160,17 @@ async def get_audit_log(
     limit: int = 100,
     offset: int = 0,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> list[AuditLogEntry]:
-    """Return recent pseudonymization/restore audit log entries (no raw text)."""
+    """Return recent pseudonymization/restore audit log entries (scoped by isolation mode)."""
     from sqlalchemy import desc
 
+    scope = get_scope_filter(current_user)
     stmt = select(AuditLog).order_by(desc(AuditLog.timestamp)).limit(min(limit, 500)).offset(offset)
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(AuditLog.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(AuditLog.team_id == scope["team_id"])
     r = await db.execute(stmt)
     rows = r.scalars().all()
     return [

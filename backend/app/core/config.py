@@ -118,10 +118,26 @@ class Settings(BaseSettings):
         description="Microsoft Entra ID / Azure AD tenant ID (e.g. for institution-specific login)",
     )
 
+    # Isolation: user = per-user, team = by institution, open = all (dev/demo)
+    isolation_mode: str = Field(
+        default="user",
+        description="Data isolation: user (own only), team (institution), open (all)",
+    )
+
     @property
     def auth_enabled(self) -> bool:
         """True if OIDC is configured (production auth)."""
         return bool(self.oidc_issuer and self.oidc_client_id)
+
+    @property
+    def is_user_isolation(self) -> bool:
+        """True when each user sees only their own data."""
+        return self.isolation_mode == "user"
+
+    @property
+    def is_team_isolation(self) -> bool:
+        """True when users share data by institution/team."""
+        return self.isolation_mode == "team"
 
     @field_validator("pseudonymization_encryption_key")
     @classmethod

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.isolation import get_scope_values
 from app.models.paper import Paper
 from app.schemas.pubmed import (
     LiteratureStatsResponse,
@@ -107,9 +108,15 @@ async def save_paper(
     current_user: dict = Depends(get_current_user),
 ) -> PubMedSearchResponse:
     """Speichere ein Paper (z. B. aus Suchergebnissen) in der DB inkl. Embedding."""
+    scope_values = get_scope_values(current_user)
     service = EmbeddingService()
     try:
-        paper = await service.store_paper(db, body)
+        paper = await service.store_paper(
+            db,
+            body,
+            user_id=scope_values.get("user_id"),
+            team_id=scope_values.get("team_id"),
+        )
         await db.commit()
     except EmbeddingServiceError as e:
         logger.warning("Save paper failed: %s", e)

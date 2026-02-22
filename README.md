@@ -25,6 +25,7 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 - 📁 **GA4GH DRS** — Datei-Management für genomische Daten
 - 🏥 **Phenopackets v2** — Unterstützung für phänotypische Daten
 - 🔍 **Vollständiges Audit Logging** — Für Pseudonymisierungen
+- 👤 **Konfigurierbare Datenisolation** — User-, Team- oder Open-Modus ([docs/ISOLATION-MODES.md](docs/ISOLATION-MODES.md))
 
 ## Tech Stack
 

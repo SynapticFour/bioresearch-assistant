@@ -36,9 +36,36 @@ export function AuthStatus() {
   }
 
   if (isLoggedIn && user) {
-    const name = (user as AuthUser).name ?? (user as AuthUser).email ?? (user as AuthUser).sub ?? "User";
+    const u = user as AuthUser;
+    const name = u.name ?? u.email ?? u.sub ?? "User";
+    const isolationMode = u.isolation_mode ?? "open";
+    const teamId = u.team_id ?? "";
     return (
       <div className="flex items-center gap-2">
+        {isolationMode === "user" && (
+          <span
+            className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+            title="Persönliche Ansicht"
+          >
+            👤 Nur meine Daten
+          </span>
+        )}
+        {isolationMode === "team" && (
+          <span
+            className="rounded bg-primary/10 px-2 py-0.5 text-xs text-primary"
+            title={`Team: ${teamId}`}
+          >
+            👥 Team: {teamId}
+          </span>
+        )}
+        {isolationMode === "open" && (
+          <span
+            className="rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800"
+            title="Geteilte Ansicht (Demo)"
+          >
+            ⚠️ Geteilte Ansicht (Demo)
+          </span>
+        )}
         <span className="flex items-center gap-1.5 text-sm text-slate-700">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
             <User className="h-4 w-4" />

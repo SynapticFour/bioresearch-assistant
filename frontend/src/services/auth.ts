@@ -22,6 +22,9 @@ export interface AuthUser {
   roles?: string[];
   passports?: unknown[];
   visas?: unknown[];
+  isolation_mode?: "user" | "team" | "open";
+  team_id?: string;
+  scope?: Record<string, string>;
 }
 
 export const authService = {

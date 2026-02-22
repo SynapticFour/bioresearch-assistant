@@ -13,7 +13,9 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.isolation import get_scope_filter, get_scope_values
 from app.models.patient_record import PatientRecordModel
 from app.schemas.phenopackets import (
     DiseaseTerm,
@@ -81,9 +83,15 @@ def _normalize_to_patient_data(body: PatientDataCreate) -> PatientData:
 @router.get("", response_model=list[dict[str, Any]])
 async def list_phenopackets(
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
-    """Liste alle Phenopackets (als JSON-Dicts)."""
+    """Liste Phenopackets (scoped by isolation mode)."""
+    scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).order_by(PatientRecordModel.pseudonym_id)
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
     result = await db.execute(stmt)
     rows = result.scalars().all()
     return [row.phenopacket_json for row in rows]
@@ -93,6 +101,7 @@ async def list_phenopackets(
 async def create_phenopacket_endpoint(
     body: PatientDataCreate,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> dict[str, Any]:
     """Create a phenopacket from PatientData and store by pseudonym_id.
 
@@ -103,9 +112,12 @@ async def create_phenopacket_endpoint(
     patient_data = _normalize_to_patient_data(body)
     pp = create_phenopacket(patient_data)
     pp_dict = phenopacket_to_dict(pp)
+    scope_values = get_scope_values(current_user)
     record = PatientRecordModel(
         pseudonym_id=patient_data.pseudonym_id,
         phenopacket_json=pp_dict,
+        user_id=scope_values.get("user_id"),
+        team_id=scope_values.get("team_id"),
     )
     db.add(record)
     try:
@@ -124,9 +136,15 @@ async def create_phenopacket_endpoint(
 async def get_phenopacket(
     id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """Get a phenopacket by pseudonym_id (id)."""
+    """Get a phenopacket by pseudonym_id (id), scoped by isolation mode."""
+    scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:
@@ -141,9 +159,15 @@ async def get_phenopacket(
 async def delete_phenopacket(
     id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> None:
-    """Delete a phenopacket by pseudonym_id."""
+    """Delete a phenopacket by pseudonym_id (scoped by isolation mode)."""
+    scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:
@@ -159,9 +183,15 @@ async def delete_phenopacket(
 async def export_phenopacket_endpoint(
     id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> dict[str, Any]:
-    """Export phenopacket as JSON-LD by pseudonym_id."""
+    """Export phenopacket as JSON-LD by pseudonym_id (scoped by isolation mode)."""
+    scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:

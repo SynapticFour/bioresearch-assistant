@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 
 from app.core.auth import get_auth_service, get_current_user
 from app.core.config import get_settings
+from app.core.isolation import _extract_team_id, get_scope_filter
 from app.services.auth_service import AuthService
 
 logger = logging.getLogger(__name__)
@@ -93,8 +94,14 @@ async def callback(
 async def get_me(
     user: dict = Depends(get_current_user),
 ) -> dict:
-    """Aktueller User mit GA4GH Passport Claims."""
-    return user
+    """Aktueller User mit GA4GH Passport Claims und Isolation-Info."""
+    settings = get_settings()
+    return {
+        **user,
+        "isolation_mode": settings.isolation_mode,
+        "team_id": _extract_team_id(user),
+        "scope": get_scope_filter(user),
+    }
 
 
 @router.get("/status")

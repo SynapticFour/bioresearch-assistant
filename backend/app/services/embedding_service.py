@@ -74,12 +74,21 @@ class EmbeddingService:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.embed_text, text)
 
-    async def store_paper(self, db: AsyncSession, paper: PubMedArticle) -> Paper:
+    async def store_paper(
+        self,
+        db: AsyncSession,
+        paper: PubMedArticle,
+        *,
+        user_id: str | None = None,
+        team_id: str | None = None,
+    ) -> Paper:
         """Store a paper and its abstract embedding; upsert by pmid.
 
         Args:
             db: Async SQLAlchemy session.
             paper: PubMed article to store.
+            user_id: Optional user id for isolation.
+            team_id: Optional team id for isolation.
 
         Returns:
             Paper instance (persisted, with embedding).
@@ -102,6 +111,10 @@ class EmbeddingService:
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
             existing.embedding = embedding
+            if user_id is not None:
+                existing.user_id = user_id
+            if team_id is not None:
+                existing.team_id = team_id
             await db.flush()
             await db.refresh(existing)
             return existing
@@ -115,6 +128,8 @@ class EmbeddingService:
             journal=paper.journal or "",
             doi=paper.doi,
             embedding=embedding,
+            user_id=user_id,
+            team_id=team_id,
         )
         db.add(new_paper)
         await db.flush()
@@ -126,6 +141,9 @@ class EmbeddingService:
         db: AsyncSession,
         query: str,
         limit: int = 10,
+        *,
+        user_id: str | None = None,
+        team_id: str | None = None,
     ) -> list[Paper]:
         """Return papers most similar to the query (cosine similarity via pgvector).
 
@@ -133,6 +151,8 @@ class EmbeddingService:
             db: Async SQLAlchemy session.
             query: Search query text.
             limit: Maximum number of papers to return.
+            user_id: Optional scope filter (isolation).
+            team_id: Optional scope filter (isolation).
 
         Returns:
             List of Paper ordered by cosine similarity (most similar first).
@@ -144,6 +164,11 @@ class EmbeddingService:
             return []
         query_embedding = await self.embed_text_async(query or "")
         distance_col = Paper.embedding.cosine_distance(query_embedding).label("distance")
-        stmt = select(Paper).where(Paper.embedding.isnot(None)).order_by(distance_col).limit(limit)
+        stmt = select(Paper).where(Paper.embedding.isnot(None))
+        if user_id is not None:
+            stmt = stmt.where(Paper.user_id == user_id)
+        if team_id is not None:
+            stmt = stmt.where(Paper.team_id == team_id)
+        stmt = stmt.order_by(distance_col).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())
