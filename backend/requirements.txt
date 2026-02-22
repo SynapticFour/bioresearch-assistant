@@ -21,6 +21,11 @@ alembic>=1.13.0,<2.0
 
 # Utilities
 httpx>=0.26.0,<1.0
+slowapi>=0.1.9,<1.0
+
+# OAuth2 / OIDC (GA4GH Passport)
+python-jose[cryptography]>=3.3.0
+authlib>=1.2.0,<2.0
 
 # Pseudonymization (DSGVO)
 # Pin spacy so thinc gets pre-built wheels (no C compiler required)
@@ -44,7 +49,8 @@ sentence-transformers>=2.2.0,<3.0
 # Bioinformatik (BLAST XML parsing)
 biopython>=1.81,<2.0
 
-# Tests
+# Tests (SQLite in-memory — no PostgreSQL needed)
+aiosqlite>=0.19.0,<1.0
 coverage
 genbadge[coverage]
 pytest>=7.4.0,<9.0

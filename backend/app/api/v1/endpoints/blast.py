@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.schemas.blast import (
     BLASTParams,
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/blast", tags=["blast"])
 async def blast_search(
     body: BLASTSearchRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> BLASTSearchResponse:
     """Start BLAST search (WES + Nextflow). Returns run_id; poll GET /blast/results/{run_id}."""
     params = BLASTParams(
@@ -58,6 +60,7 @@ async def blast_results(
         description="Include related papers from Literature Mining (find_papers_for_hits)",
     ),
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> BLASTResultsResponse:
     """Get BLAST results for run_id (from results.xml). Optionally include related papers."""
     try:

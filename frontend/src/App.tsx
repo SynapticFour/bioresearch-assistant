@@ -7,7 +7,8 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { DRSPage } from "@/pages/DRSPage";
 import { LibraryPage } from "@/pages/LibraryPage";
 import { LiteraturePage } from "@/pages/LiteraturePage";
-import { LoginPage } from "@/pages/LoginPage";
+import { PhenopacketsPage } from "@/pages/PhenopacketsPage";
+import { LoginPage } from "@/components/auth/LoginPage";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PseudonymizePage } from "@/pages/PseudonymizePage";
 import { WorkflowsPage } from "@/pages/WorkflowsPage";
@@ -26,6 +27,7 @@ function App() {
           <Route path="/blast" element={<BlastPage />} />
           <Route path="/workflows" element={<WorkflowsPage />} />
           <Route path="/drs" element={<DRSPage />} />
+          <Route path="/phenopackets" element={<PhenopacketsPage />} />
           <Route path="/audit" element={<AuditPage />} />
         </Route>
       </Routes>

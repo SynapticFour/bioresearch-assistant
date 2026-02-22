@@ -29,6 +29,7 @@ class AuditLog(Base):
     operation_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     language: Mapped[str | None] = mapped_column(String(8), nullable=True)
     mapping_id: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    team_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
 
     def __repr__(self) -> str:
         return f"<AuditLog operation_id={self.operation_id!r} type={self.operation_type!r}>"

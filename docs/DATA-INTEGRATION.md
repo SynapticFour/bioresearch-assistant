@@ -1,5 +1,35 @@
 # Eigene Daten integrieren
 
+## Schnellstart
+
+### Wo finde ich was?
+
+| Ich möchte... | Wo? |
+|---|---|
+| Paper aus PubMed speichern | Literature Mining → Suchen → Speichern |
+| Gespeicherte Paper durchsuchen | Bibliothek → Semantische Suche |
+| Eigene Paper manuell hinzufügen | API: POST /api/v1/library/papers |
+| Genomische Datei registrieren | API: POST /ga4gh/drs/v1/objects |
+| Datei über DRS abrufen | API: GET /ga4gh/drs/v1/objects/{id} |
+| Phenopacket erstellen | Phenopackets Seite oder API |
+| Pipeline starten | Pipelines Seite oder WES API |
+
+### Wichtig: Demo vs. Vollinstallation
+
+| Feature | Railway Demo | Lokale/Hetzner Installation |
+|---|---|---|
+| Papers speichern | ✅ | ✅ |
+| Semantische Suche | ❌ (kein pgvector) | ✅ |
+| DRS Dateien | ✅ Metadata | ✅ Metadata + Dateien |
+| BLAST | ❌ | ✅ |
+| Nextflow | ❌ | ✅ |
+
+Für vollständige Funktionalität:
+→ docs/deployment/LOCAL-SETUP.md
+→ docs/deployment/DFN-CLOUD.md
+
+---
+
 ## 1. Eigene Papers / Bibliothek
 
 ### Paper manuell hinzufügen (API)

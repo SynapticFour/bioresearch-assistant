@@ -1,33 +1,47 @@
-"""Pytest configuration and shared fixtures.
-
-Single session-scoped event loop so asyncpg and SQLAlchemy share one stable loop.
+"""
+Zentrale Test-Konfiguration.
+Alle Tests laufen in vollständiger Isolation —
+keine echte Datenbank (SQLite In-Memory), keine echten HTTP-Calls,
+kein echtes Dateisystem nötig (außer ggf. spaCy für Pseudonymisierungs-Tests).
 """
 
 import asyncio
 import os
 from collections.abc import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import StaticPool
 
-# Set env before importing app (so get_settings() gets test config)
-os.environ.setdefault("PSEUDONYMIZATION_ENCRYPTION_KEY", "0" * 64)
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://u:p@localhost/db")
+# Set env before any app import (so get_settings() and Paper model use test config)
+os.environ["TESTING"] = "1"
+os.environ.setdefault(
+    "DATABASE_URL",
+    "sqlite+aiosqlite:///:memory:",
+)
+os.environ.setdefault(
+    "PSEUDONYMIZATION_ENCRYPTION_KEY",
+    "a" * 64,
+)
+os.environ.setdefault("ISOLATION_MODE", "open")
+os.environ.setdefault("DEPLOYMENT", "test")
 
-from app.core.config import get_settings
+from app.core.auth import get_current_user
 from app.core.database import Base, get_db
 from app.main import app
 
 
+# ── Event loop (session-scoped for async fixtures) ─────────────────────────
 @pytest.fixture(scope="session")
 def event_loop() -> asyncio.AbstractEventLoop:
-    """Einen einzigen Event Loop für die gesamte Test-Session."""
+    """Single event loop for the test session."""
     policy = asyncio.get_event_loop_policy()
     loop = policy.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -35,79 +49,218 @@ def event_loop() -> asyncio.AbstractEventLoop:
     loop.close()
 
 
-@pytest.fixture(autouse=True, scope="session")
-def load_spacy_models() -> None:
-    """Ensure German spaCy model is loaded before tests (for Presidio)."""
-    import spacy
-
-    try:
-        spacy.load("de_core_news_sm")
-    except OSError:
-        spacy.cli.download("de_core_news_sm")
-
-
+# ── In-Memory SQLite Engine ───────────────────────────────────────────────
 @pytest.fixture(scope="session")
-async def test_engine(
-    event_loop: asyncio.AbstractEventLoop,
-) -> AsyncGenerator[AsyncEngine, None]:
-    """Session-scoped Engine — gleicher Loop wie event_loop."""
-    settings = get_settings()
-    engine = create_async_engine(
-        settings.database_url,
+def engine():
+    """
+    SQLite In-Memory Engine für Tests.
+    Kein PostgreSQL nötig — läuft überall.
+    """
+    return create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
         echo=False,
-        pool_pre_ping=True,
-        pool_size=1,
-        max_overflow=0,
-        pool_reset_on_return=None,
     )
+
+
+@pytest_asyncio.fixture(scope="session")
+async def create_tables(engine):
+    """Erstelle alle Tabellen in der In-Memory DB."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    yield engine
-    await engine.dispose()
+    yield
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest.fixture(scope="session")
-def session_factory(
-    test_engine: AsyncEngine,
-) -> async_sessionmaker[AsyncSession]:
-    """Session Factory — session-scoped damit kein Loop-Wechsel."""
-    return async_sessionmaker(
-        test_engine,
-        expire_on_commit=False,
+@pytest_asyncio.fixture
+async def db_session(engine, create_tables) -> AsyncGenerator[AsyncSession, None]:
+    """
+    Isolierte DB-Session pro Test.
+    Jeder Test bekommt eine eigene Transaction, die am Ende zurückgerollt wird.
+    """
+    async_session_factory = async_sessionmaker(
+        engine,
         class_=AsyncSession,
+        expire_on_commit=False,
     )
-
-
-@pytest.fixture
-async def db_session(
-    session_factory: async_sessionmaker[AsyncSession],
-) -> AsyncGenerator[AsyncSession, None]:
-    """Jeder Test bekommt eine frische Session mit Rollback."""
-    async with session_factory() as session:
-        async with session.begin():
+    async with async_session_factory() as session:
+        trans = await session.begin()
+        try:
             yield session
-            await session.rollback()
+        finally:
+            await trans.rollback()
+
+
+# ── Dev User Mock ─────────────────────────────────────────────────────────
+# Matches app dev-user shape so tests expecting dev mode pass
+DEV_USER = {
+    "sub": "dev-user",
+    "email": "dev@synapticfour.de",
+    "name": "Developer",
+    "roles": ["admin"],
+    "passports": [],
+    "visas": [],
+}
 
 
 @pytest.fixture
-async def async_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """AsyncClient mit DB Override für jeden Test."""
+def mock_current_user():
+    """Mock für get_current_user — kein OIDC nötig."""
+    return DEV_USER
+
+
+# ── HTTP Test Client ───────────────────────────────────────────────────────
+@pytest_asyncio.fixture
+async def async_client(
+    db_session: AsyncSession,
+    mock_current_user,
+    mock_embedding,
+) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Async HTTP Test Client mit:
+    - In-Memory SQLite statt PostgreSQL
+    - Mock User statt echtem OIDC Login
+    """
 
     async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
 
+    async def override_get_current_user() -> dict:
+        return mock_current_user
+
     app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
     ) as client:
         yield client
+
     app.dependency_overrides.clear()
 
 
-# ─── Test-Daten Fixtures ─────────────────────────────────────────
+# ── PubMed Mock ─────────────────────────────────────────────────────────────
+@pytest.fixture
+def mock_pubmed():
+    """
+    Mock für PubMed API Calls.
+    Kein echtes Internet nötig.
+    """
+    mock_papers = [
+        {
+            "pmid": "12345678",
+            "title": "BRCA1 Mutations in Breast Cancer",
+            "abstract": "This study examines BRCA1...",
+            "authors": ["Smith J", "Mueller A"],
+            "year": "2024",
+            "journal": "Nature Genetics",
+            "doi": "10.1038/test",
+        }
+    ]
+    with patch(
+        "app.services.pubmed_service.PubMedService.search_pubmed",
+        new_callable=AsyncMock,
+        return_value=mock_papers,
+    ):
+        yield mock_papers
 
 
+# ── LLM Mock ───────────────────────────────────────────────────────────────
+@pytest.fixture
+def mock_llm():
+    """
+    Mock für LLM Service (Anthropic/Ollama).
+    Kein API Key nötig.
+    """
+    with patch(
+        "app.services.llm_service.LLMService.summarize_paper",
+        new_callable=AsyncMock,
+        return_value=MagicMock(
+            summary="Test Zusammenfassung",
+            key_findings=["Finding 1", "Finding 2"],
+            methods=[],
+            relevance_score=None,
+        ),
+    ):
+        yield
+
+
+# ── Embedding Mock ─────────────────────────────────────────────────────────
+@pytest.fixture
+def mock_embedding():
+    """
+    Mock für Embedding Service.
+    Kein ML-Model nötig.
+    """
+    with patch(
+        "app.services.embedding_service.EmbeddingService.embed_text_async",
+        new_callable=AsyncMock,
+        return_value=[0.1] * 384,
+    ):
+        yield
+
+
+# ── BLAST Mock ─────────────────────────────────────────────────────────────
+@pytest.fixture
+def mock_blast():
+    """
+    Mock für BLAST Service.
+    Kein BLAST-Binary nötig.
+    """
+    with patch(
+        "app.services.blast_service.run_blast_search",
+        new_callable=AsyncMock,
+        return_value="blast-test-run-001",
+    ):
+        yield
+
+
+# ── Nextflow / WES Mock ────────────────────────────────────────────────────
+@pytest.fixture
+def mock_nextflow():
+    """
+    Mock für Nextflow/WES Service.
+    Kein Nextflow-Binary nötig.
+    """
+    with patch(
+        "app.services.wes_service._execute_nextflow",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        yield
+
+
+# ── Encryption / Env Mock ───────────────────────────────────────────────────
+@pytest.fixture(autouse=True)
+def mock_encryption_key(monkeypatch):
+    """
+    Setze Test-Encryption-Key.
+    Kein echter Key in Umgebung nötig.
+    """
+    monkeypatch.setenv(
+        "PSEUDONYMIZATION_ENCRYPTION_KEY",
+        "a" * 64,
+    )
+    monkeypatch.setenv("ISOLATION_MODE", "open")
+    monkeypatch.setenv("DEPLOYMENT", "test")
+
+
+# ── spaCy (optional, für Pseudonymisierungs-Service-Tests) ──────────────────
+@pytest.fixture(autouse=True, scope="session")
+def load_spacy_models() -> None:
+    """Lade spaCy-Modelle für Presidio (Pseudonymisierung). Optional, Skip wenn nicht vorhanden."""
+    try:
+        import spacy
+
+        spacy.load("de_core_news_sm")
+    except (OSError, ImportError):
+        pass  # In CI/ohne Modelle laufen nur API-Tests mit Mocks
+
+
+# ── Test-Daten Fixtures ────────────────────────────────────────────────────
 @pytest.fixture
 def test_patient_text() -> str:
     """Sample patient text for pseudonymization tests."""

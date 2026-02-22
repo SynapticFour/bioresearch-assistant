@@ -1,5 +1,9 @@
 # Deployment auf Microsoft Azure
 
+**Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Klinikbetrieb Ollama empfohlen.
+
+**Isolation:** `ISOLATION_MODE=user` (pro Person) oder `ISOLATION_MODE=team` (Teams z. B. über Azure AD organization claim). Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
+
 ## Warum Azure?
 
 Viele deutsche Unikliniken haben bereits Azure Enterprise Agreements — einfacherer Einstieg für diese Kunden.

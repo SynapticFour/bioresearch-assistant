@@ -10,6 +10,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.schemas.wes import (
     RunId,
@@ -77,7 +78,10 @@ def _service_info() -> ServiceInfo:
 
 
 @router.get("/service-info", response_model=ServiceInfo, status_code=status.HTTP_200_OK)
-async def get_service_info(db: AsyncSession = Depends(get_db)) -> ServiceInfo:
+async def get_service_info(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> ServiceInfo:
     """Get information about the workflow execution service (WES v1.1)."""
     info = _service_info()
     counts = await get_system_state_counts(db)
@@ -90,6 +94,7 @@ async def list_runs(
     page_size: int | None = 100,
     page_token: str | None = None,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> RunListResponse:
     """List workflow runs (paginated)."""
     size = min(max(1, page_size or 100), 1000)
@@ -110,6 +115,7 @@ async def run_workflow(
     workflow_engine_parameters: str | None = Form(default=None),
     workflow_attachment: list[UploadFile] | None = File(default=None),
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> RunId:
     """Submit a new workflow run. Returns run_id to monitor progress."""
     params: dict[str, Any] | None = None
@@ -166,6 +172,7 @@ async def run_workflow(
 async def get_run_log(
     run_id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> RunLog:
     """Get detailed information about a workflow run (logs, outputs, state)."""
     run = await service_get_run(db, run_id)
@@ -181,6 +188,7 @@ async def get_run_log(
 async def cancel_run(
     run_id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> RunId:
     """Cancel a running workflow."""
     found = await service_cancel_run(db, run_id)
@@ -197,6 +205,7 @@ async def cancel_run(
 async def get_run_status(
     run_id: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> RunStatus:
     """Get abbreviated status of a workflow run (run_id and state)."""
     run = await service_get_run(db, run_id)

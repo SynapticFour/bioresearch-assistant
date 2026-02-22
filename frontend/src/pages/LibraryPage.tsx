@@ -6,23 +6,26 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Plus,
   Trash2,
   Search,
 } from "lucide-react";
 import { library as libraryApi } from "@/api/endpoints";
-import { useHealth } from "@/hooks/useHealth";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useToast } from "@/contexts/ToastContext";
 import type { Paper } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const PUBMED_URL = (pmid: string) =>
   `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
-
-function useIsRailway(): boolean {
-  const { data } = useHealth();
-  const deployment = (data?.deployment as string) ?? "";
-  return deployment === "railway";
-}
 
 interface PaperCardProps {
   paper: Paper;
@@ -110,9 +113,24 @@ function PaperCard({ paper, onRemove, isRemoving }: PaperCardProps) {
   );
 }
 
+const initialPaperForm = {
+  title: "",
+  authors: "",
+  year: "",
+  journal: "",
+  doi: "",
+  pmid: "",
+  abstract: "",
+  tags: "",
+};
+
 export function LibraryPage() {
   const queryClient = useQueryClient();
-  const isRailway = useIsRailway();
+  const features = useFeatureFlags();
+  const { showSuccess, showError } = useToast();
+
+  const [addPaperOpen, setAddPaperOpen] = useState(false);
+  const [paperForm, setPaperForm] = useState(initialPaperForm);
 
   const [semanticQuery, setSemanticQuery] = useState("");
   const [yearFilter, setYearFilter] = useState<string>("");
@@ -144,15 +162,36 @@ export function LibraryPage() {
     },
   });
 
+  const addPaperMutation = useMutation({
+    mutationFn: (paper: {
+      pmid: string;
+      title: string;
+      abstract: string;
+      authors?: string[];
+      year?: string;
+      journal?: string;
+      doi?: string;
+      keywords?: string[];
+    }) => libraryApi.addPaper(paper),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["library-papers"] });
+      setAddPaperOpen(false);
+      setPaperForm(initialPaperForm);
+      showSuccess("Paper gespeichert und erscheint in der Bibliothek.");
+    },
+    onError: (err: Error) =>
+      showError(err?.message ?? "Fehler beim Speichern"),
+  });
+
   const handleSemanticSearch = useCallback(() => {
     const q = semanticQuery.trim();
     if (!q) {
       setSemanticResults(null);
       return;
     }
-    if (isRailway) return;
+    if (!features.semantic_search) return;
     semanticSearchMutation.mutate(q);
-  }, [semanticQuery, isRailway, semanticSearchMutation]);
+  }, [semanticQuery, features.semantic_search, semanticSearchMutation]);
 
   const displayList = semanticResults !== null ? semanticResults : papers;
   const years = useMemo(
@@ -203,37 +242,88 @@ export function LibraryPage() {
     journalFilter,
   ]);
 
+  const handleAddPaper = () => {
+    const title = paperForm.title.trim();
+    const abstract = paperForm.abstract.trim();
+    if (!title || !abstract) {
+      showError("Titel und Abstract sind Pflichtfelder.");
+      return;
+    }
+    const pmid = paperForm.pmid.trim() || `manual-${Date.now()}`;
+    const authors = paperForm.authors
+      .split(",")
+      .map((a) => a.trim())
+      .filter(Boolean);
+    const tags = paperForm.tags
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    addPaperMutation.mutate({
+      pmid,
+      title,
+      abstract,
+      authors: authors.length ? authors : undefined,
+      year: paperForm.year.trim() || undefined,
+      journal: paperForm.journal.trim() || undefined,
+      doi: paperForm.doi.trim() || undefined,
+      keywords: tags.length ? tags : undefined,
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-slate-800">Bibliothek</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-slate-800">Bibliothek</h1>
+        <Button onClick={() => setAddPaperOpen(true)}>
+          <Plus className="h-5 w-5" />
+          Paper hinzufügen
+        </Button>
+      </div>
 
       {/* Semantic search */}
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
+            <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" aria-hidden />
+            <textarea
               value={semanticQuery}
               onChange={(e) => setSemanticQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSemanticSearch()}
-              placeholder="Semantische Suche in gespeicherten Papers..."
-              className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
+                  handleSemanticSearch();
+              }}
+              placeholder="Semantische Suche — z.B.: 'Zeige Paper über BRCA1 Mutationsanalyse bei jungen Patientinnen mit familiärer Vorbelastung' oder einfach Stichwörter: 'BRCA1 therapy options'"
+              className="search-textarea w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              rows={3}
+              style={{
+                resize: "vertical",
+                minHeight: "80px",
+                maxHeight: "200px",
+                width: "100%",
+              }}
               aria-label="Semantische Suche"
             />
+            <small className="mt-1 block text-xs text-slate-500">
+              ⌘+Enter oder Strg+Enter zum Suchen
+            </small>
           </div>
           <Button
             onClick={handleSemanticSearch}
-            disabled={!semanticQuery.trim() || semanticSearchMutation.isPending}
+            disabled={
+              !semanticQuery.trim() ||
+              semanticSearchMutation.isPending ||
+              !features.semantic_search
+            }
+            className="self-start"
           >
             <Search className="h-5 w-5" />
             Suchen
           </Button>
         </div>
-        {isRailway && (
+        {!features.semantic_search && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            Semantische Suche ist in der Demo-Version nicht verfügbar. In der
-            vollständigen Installation können Sie Papers semantisch durchsuchen.
+            ℹ️ Demo-Version: Nur PubMed-Suche verfügbar. In der vollständigen
+            Installation können Sie Papers semantisch durchsuchen.
           </div>
         )}
       </div>
@@ -305,12 +395,13 @@ export function LibraryPage() {
           </Link>
         </div>
       ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            {filteredList.length} Paper
-            {semanticResults !== null && " (Semantische Suche)"}
-          </p>
-          {filteredList.map((paper) => (
+        <>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">
+              {filteredList.length} Paper
+              {semanticResults !== null && " (Semantische Suche)"}
+            </p>
+            {filteredList.map((paper) => (
             <PaperCard
               key={paper.pmid}
               paper={paper}
@@ -318,8 +409,154 @@ export function LibraryPage() {
               isRemoving={deleteMutation.isPending}
             />
           ))}
-        </div>
+          </div>
+        </>
       )}
+
+      {/* Add paper modal */}
+      <Dialog open={addPaperOpen} onOpenChange={setAddPaperOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Paper manuell hinzufügen</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Titel *
+              </label>
+              <textarea
+                value={paperForm.title}
+                onChange={(e) =>
+                  setPaperForm((f) => ({ ...f, title: e.target.value }))
+                }
+                placeholder="Vollständiger Paper-Titel"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                rows={2}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Autoren (kommagetrennt)
+              </label>
+              <input
+                type="text"
+                value={paperForm.authors}
+                onChange={(e) =>
+                  setPaperForm((f) => ({ ...f, authors: e.target.value }))
+                }
+                placeholder="Mustermann M, Schmidt A"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Jahr
+                </label>
+                <input
+                  type="number"
+                  value={paperForm.year}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, year: e.target.value }))
+                  }
+                  placeholder="2024"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  Journal
+                </label>
+                <input
+                  type="text"
+                  value={paperForm.journal}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, journal: e.target.value }))
+                  }
+                  placeholder="Nature Genetics"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  DOI (optional)
+                </label>
+                <input
+                  type="text"
+                  value={paperForm.doi}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, doi: e.target.value }))
+                  }
+                  placeholder="10.1000/xyz"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-slate-700">
+                  PubMed ID (optional)
+                </label>
+                <input
+                  type="text"
+                  value={paperForm.pmid}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, pmid: e.target.value }))
+                  }
+                  placeholder="Leer = automatisch"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Abstract *
+              </label>
+              <textarea
+                value={paperForm.abstract}
+                onChange={(e) =>
+                  setPaperForm((f) => ({ ...f, abstract: e.target.value }))
+                }
+                placeholder="Vollständiger Abstract-Text"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                rows={5}
+              />
+              <p className="mt-1 text-xs text-slate-500">
+                Abstract wird für semantische Suche verwendet.
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Tags (kommagetrennt, optional)
+              </label>
+              <input
+                type="text"
+                value={paperForm.tags}
+                onChange={(e) =>
+                  setPaperForm((f) => ({ ...f, tags: e.target.value }))
+                }
+                placeholder="BRCA1, Therapie, …"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddPaperOpen(false)}>
+              Abbrechen
+            </Button>
+            <Button
+              onClick={handleAddPaper}
+              disabled={
+                !paperForm.title.trim() ||
+                !paperForm.abstract.trim() ||
+                addPaperMutation.isPending
+              }
+            >
+              {addPaperMutation.isPending ? "Speichern…" : "Speichern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

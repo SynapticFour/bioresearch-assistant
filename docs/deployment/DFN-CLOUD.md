@@ -1,5 +1,9 @@
 # Deployment auf DFN-Cloud
 
+**Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Vollinstallation mit Ollama bleiben alle Daten lokal; mit Anthropic API werden Suchanfragen an die USA übertragen.
+
+**Isolation:** Für Forschungsgruppen empfohlen: `ISOLATION_MODE=team` — Teams werden automatisch über DFN-AAI (E-Mail-Domain) erkannt. Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
+
 ## Warum DFN-Cloud?
 
 DFN (Deutsches Forschungsnetz) verbindet alle deutschen Universitäten und Forschungsinstitute. On-premise im deutschen Forschungsnetz — ideal für die Zielgruppe.
@@ -100,6 +104,23 @@ sudo certbot certonly --standalone -d deine-domain.dfn.de
 | m1.large   | ~0,15 €/h ≈ 110 €/Monat |
 | Storage 50GB | ~5 €/Monat   |
 | **Gesamt** | **~115 €/Monat** |
+
+## Authentifizierung mit DFN-AAI
+
+Das Deutsche Forschungsnetz betreibt **DFN-AAI** — den föderativen Identitätsdienst für deutsche Hochschulen und Forschungseinrichtungen.
+
+BioResearch Assistant integriert sich nativ:
+
+```
+OIDC_ISSUER=https://www.aai.dfn.de/oidc
+OIDC_CLIENT_ID=dein-client-id
+OIDC_CLIENT_SECRET=dein-secret
+OIDC_REDIRECT_URI=https://deine-app.dfn.de/api/v1/auth/callback
+```
+
+**Registrierung:** https://www.dfn.de/dienste/dfn-aai/
+
+Alle deutschen Universitäten sind bereits Mitglied.
 
 ## GitHub Actions Deployment
 

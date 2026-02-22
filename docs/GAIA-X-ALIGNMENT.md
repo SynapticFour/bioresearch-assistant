@@ -8,7 +8,7 @@ GAIA-X ist die europäische Initiative für souveräne, vertrauenswürdige Daten
 
 | GAIA-X Prinzip   | Status | Implementierung                                                                 |
 |-----------------|--------|----------------------------------------------------------------------------------|
-| Datensouveränität | ✅     | On-premise Deployment — Daten verlassen nie die Institution                     |
+| Datensouveränität | ✅     | On-Premise (Ollama) = volle Souveränität; Anthropic API = partiell (siehe README) |
 | DSGVO-Konformität | ✅     | Presidio Pseudonymisierung + Audit Logging                                       |
 | Offene Standards  | ✅     | GA4GH DRS, WES, Phenopackets v2                                                  |
 | Transparenz       | ✅     | Open Source, vollständige API-Dokumentation                                      |
@@ -19,7 +19,14 @@ GAIA-X ist die europäische Initiative für souveräne, vertrauenswürdige Daten
 
 ## Was bedeutet "GAIA-X Ready by Design"?
 
-"GAIA-X Ready by Design" ist **keine offizielle Zertifizierung** der GAIA-X Association. Es beschreibt, dass die Architektur des BioResearch Assistant von Grund auf nach GAIA-X Prinzipien gestaltet wurde: Datensouveränität durch On-premise, DSGVO durch technische und organisatorische Maßnahmen, offene Standards und Transparenz durch Self-Description und Open Source.
+"GAIA-X Ready by Design" ist **keine offizielle Zertifizierung** der GAIA-X Association. Es beschreibt, dass die Architektur des BioResearch Assistant von Grund auf nach GAIA-X Prinzipien gestaltet wurde: Datensouveränität im On-Premise-Modus (Ollama), DSGVO durch technische und organisatorische Maßnahmen, offene Standards und Transparenz durch Self-Description und Open Source.
+
+## Authentifizierung & Identität
+
+| Aspekt | Implementierung |
+|--------|------------------|
+| **Föderierte Identität via OIDC** | Anbindung an GAIA-X Identity & Trust — Unterstützung für Keycloak, DFN-AAI, ELIXIR AAI, Azure AD, Google |
+| **GA4GH Passports** | Nutzeridentität und Berechtigungen — Visa-Typen ResearcherStatus, AffiliationAndRole, ControlledAccessGrants |
 
 ## Roadmap zur offiziellen Zertifizierung
 

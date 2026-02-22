@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Search,
   ExternalLink,
@@ -16,6 +16,7 @@ import { literature } from "@/api/endpoints";
 import type { Paper } from "@/types";
 import { useToast } from "@/contexts/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useLanguage } from "@/components/ui/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +69,7 @@ interface SearchFormProps {
   history: string[];
   onHistoryClick: (q: string) => void;
   searchLabel: string;
+  semanticSearchAvailable: boolean;
 }
 
 function SearchForm({
@@ -82,21 +84,44 @@ function SearchForm({
   history,
   onHistoryClick,
   searchLabel,
+  semanticSearchAvailable,
 }: SearchFormProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
+        <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" aria-hidden />
+        <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          placeholder="z.B. BRCA1, CRISPR, COVID-19"
-          className="w-full rounded-lg border border-slate-300 py-3 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) onSearch();
+          }}
+          placeholder="Semantische Suche — z.B.: 'Zeige Paper über BRCA1 Mutationsanalyse bei jungen Patientinnen mit familiärer Vorbelastung' oder einfach Stichwörter: 'BRCA1 therapy options'"
+          className="search-textarea w-full rounded-lg border border-slate-300 py-3 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          rows={3}
+          style={{
+            resize: "vertical",
+            minHeight: "80px",
+            maxHeight: "200px",
+            width: "100%",
+          }}
           aria-label="Suchbegriff"
         />
+        <small className="mt-1 block text-xs text-slate-500">
+          ⌘+Enter oder Strg+Enter zum Suchen
+        </small>
       </div>
+      {semanticSearchAvailable ? (
+        <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+          ✓ Semantische Suche aktiv — durchsucht PubMed und Ihre gespeicherte
+          Bibliothek.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          ℹ️ Demo-Version: Nur PubMed-Suche verfügbar. In der vollständigen
+          Installation werden zusätzlich Ihre Papers semantisch durchsucht.
+        </div>
+      )}
       <div>
         <label className="mb-1 block text-sm font-medium text-slate-700">
           Max Ergebnisse
@@ -477,6 +502,8 @@ function PaperDetailModal({
 // --- Main page ---
 
 export function LiteraturePage() {
+  const location = useLocation();
+  const features = useFeatureFlags();
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(20);
   const { language, setLanguage } = useLanguage();
@@ -517,6 +544,16 @@ export function LiteraturePage() {
     setHistory(loadSearchHistory());
     mutation.mutate({ q, max: maxResults, lang: language });
   }, [query, maxResults, language, mutation]);
+
+  useEffect(() => {
+    const searchQuery = (location.state as { searchQuery?: string } | null)?.searchQuery;
+    if (searchQuery && typeof searchQuery === "string") {
+      setQuery(searchQuery);
+      saveSearchToHistory(searchQuery);
+      setHistory(loadSearchHistory());
+      mutation.mutate({ q: searchQuery, max: maxResults, lang: language });
+    }
+  }, [location.state]);
 
   const handleHistoryClick = useCallback((q: string) => {
     setQuery(q);
@@ -560,6 +597,7 @@ export function LiteraturePage() {
           history={history}
           onHistoryClick={handleHistoryClick}
           searchLabel={t("literature", "search")}
+          semanticSearchAvailable={features.semantic_search}
         />
       </aside>
 

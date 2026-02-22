@@ -2,11 +2,14 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.limiter import limiter
 from app.models.paper import Paper
 from app.schemas.pubmed import (
     LiteratureStatsResponse,
@@ -43,16 +46,19 @@ def _article_to_response(article: PubMedArticle) -> PubMedSearchResponse:
 
 
 @router.post("/search", response_model=list[PubMedSearchResponse], status_code=status.HTTP_200_OK)
+@limiter.limit("20/minute")
 async def search_literature(
-    request: PubMedSearchRequest,
+    request: Request,
+    body: PubMedSearchRequest,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> list[PubMedSearchResponse]:
     """Suche PubMed Papers und speichere mit KI-Zusammenfassung."""
     async with PubMedService() as service:
         try:
             articles = await service.search_pubmed(
-                request.query,
-                max_results=request.max_results,
+                body.query,
+                max_results=body.max_results,
             )
         except PubMedServiceError as e:
             logger.warning("Literature search failed: %s", e)
@@ -70,12 +76,25 @@ async def search_literature(
 )
 async def get_literature_stats(
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> LiteratureStatsResponse:
     """Dashboard: total papers count and last stored papers (from DB)."""
-    count_result = await db.execute(select(func.count()).select_from(Paper))
+    scope = get_scope_filter(current_user)
+
+    count_query = select(func.count()).select_from(Paper)
+    if "user_id" in scope:
+        count_query = count_query.where(Paper.user_id == scope["user_id"])
+    elif "team_id" in scope:
+        count_query = count_query.where(Paper.team_id == scope["team_id"])
+    count_result = await db.execute(count_query)
     total = count_result.scalar_one() or 0
-    stmt = select(Paper).order_by(Paper.created_at.desc()).limit(3)
-    result = await db.execute(stmt)
+
+    recent_query = select(Paper).order_by(Paper.created_at.desc()).limit(3)
+    if "user_id" in scope:
+        recent_query = recent_query.where(Paper.user_id == scope["user_id"])
+    elif "team_id" in scope:
+        recent_query = recent_query.where(Paper.team_id == scope["team_id"])
+    result = await db.execute(recent_query)
     papers = result.scalars().all()
     recent = [
         PubMedSearchResponse(
@@ -101,11 +120,18 @@ async def get_literature_stats(
 async def save_paper(
     body: PubMedArticle,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> PubMedSearchResponse:
     """Speichere ein Paper (z. B. aus Suchergebnissen) in der DB inkl. Embedding."""
+    scope_values = get_scope_values(current_user)
     service = EmbeddingService()
     try:
-        paper = await service.store_paper(db, body)
+        paper = await service.store_paper(
+            db,
+            body,
+            user_id=scope_values.get("user_id"),
+            team_id=scope_values.get("team_id"),
+        )
         await db.commit()
     except EmbeddingServiceError as e:
         logger.warning("Save paper failed: %s", e)
@@ -133,6 +159,7 @@ async def save_paper(
 async def get_paper(
     pmid: str,
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> PubMedSearchResponse:
     """Hole ein spezifisches Paper per PMID."""
     async with PubMedService() as service:

@@ -3,6 +3,7 @@ import {
   Bookmark,
   BookOpen,
   ClipboardList,
+  Dna,
   FileSearch,
   FolderOpen,
   Home,
@@ -24,6 +25,7 @@ const navItems: { to: string; labelKey: string; icon: typeof Home }[] = [
   { to: "/pipelines", labelKey: "pipelines", icon: Settings },
   { to: "/blast", labelKey: "blast", icon: FileSearch },
   { to: "/drs", labelKey: "drs", icon: FolderOpen },
+  { to: "/phenopackets", labelKey: "phenopackets", icon: Dna },
   { to: "/audit", labelKey: "audit", icon: ClipboardList },
 ];
 

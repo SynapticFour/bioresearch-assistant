@@ -1,5 +1,9 @@
 # Deployment auf Open Telekom Cloud
 
+**Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — Konfiguration Ollama vs. Anthropic API.
+
+**Isolation:** `ISOLATION_MODE=team` oder `user` je nach Einsatz. Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
+
 ## Warum Open Telekom Cloud?
 
 - GAIA-X Mitglied und konform

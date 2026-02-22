@@ -23,7 +23,7 @@
       "GA4GH-WES-v1.1",
       "GA4GH-Phenopackets-v2"
     ],
-    "gx:dataLineage": "All data processed locally, no external transmission",
+    "gx:dataLineage": "On-premise (Ollama): data stays local; with Anthropic API: query text may be sent to US",
     "gx:openSourceLicense": "MIT"
   }
 }

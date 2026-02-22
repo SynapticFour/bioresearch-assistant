@@ -1,5 +1,9 @@
 # Deployment auf Railway (Demo)
 
+**Datensouveränität:** Demo-Betrieb — siehe [README Datensouveränität](../../README.md#datensouveränität) für On-Premise vs. Cloud-LLM.
+
+**Isolation:** Für Demo: `ISOLATION_MODE=open`, damit alle Nutzer die gleichen Daten sehen. Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
+
 Railway eignet sich für eine schnelle Demo-Installation des BioResearch Assistant. Die folgende Tabelle beschreibt die Einschränkungen im Vergleich zu einer vollständigen Installation.
 
 ---

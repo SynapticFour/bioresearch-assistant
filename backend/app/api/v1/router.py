@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from app.api.v1.endpoints import auth as auth_ep
 from app.api.v1.endpoints import blast as blast_ep
 from app.api.v1.endpoints import gaia_x as gaia_x_ep
 from app.api.v1.endpoints import health
@@ -16,6 +17,7 @@ settings = get_settings()
 api_router = APIRouter(prefix=settings.api_v1_prefix)
 
 api_router.include_router(health.router)
+api_router.include_router(auth_ep.router)
 api_router.include_router(gaia_x_ep.router)
 api_router.include_router(literature_ep.router)
 api_router.include_router(library_ep.router)

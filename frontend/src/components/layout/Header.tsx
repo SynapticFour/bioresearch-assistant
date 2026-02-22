@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { Bell, Menu, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
+import { AuthStatus } from "@/components/auth/AuthStatus";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { Badge } from "@/components/ui/badge";
 
@@ -74,6 +75,7 @@ export function Header({ onMenuClick, sidebarCollapsed }: HeaderProps) {
           onChange={changeLanguage}
           className="w-24"
         />
+        <AuthStatus />
         <button
           type="button"
           className="flex h-10 w-10 items-center justify-center rounded-lg text-text transition-smooth hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
