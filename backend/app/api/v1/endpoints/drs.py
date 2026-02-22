@@ -146,13 +146,26 @@ async def stream_drs_object(object_id: str) -> FileResponse:
     return FileResponse(path, filename=path.name, media_type="application/octet-stream")
 
 
-@router.post("/objects/extract-metadata", status_code=status.HTTP_200_OK)
+MAX_EXTRACT_METADATA_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@router.post(
+    "/objects/extract-metadata",
+    status_code=status.HTTP_200_OK,
+    summary="Datei-Metadaten extrahieren",
+    description="Extrahiert Metadaten aus FASTA- oder VCF-Dateiinhalt (Header-Parsing).",
+)
 async def extract_file_metadata(
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Extract metadata from file content (FASTA, VCF)."""
+    """Extract metadata from file content (FASTA, VCF). Max 50 MB."""
     content = await file.read()
+    if len(content) > MAX_EXTRACT_METADATA_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Datei zu groß (max. 50 MB für Metadaten-Extraktion)",
+        )
     try:
         content_str = content.decode("utf-8", errors="ignore")
     except Exception:

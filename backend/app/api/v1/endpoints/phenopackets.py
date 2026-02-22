@@ -6,9 +6,9 @@ Reference: https://phenopacket-schema.readthedocs.io/
 
 import logging
 import re
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.limiter import limiter
 from app.models.patient_record import PatientRecordModel
 from app.schemas.phenopackets import (
     DiseaseTerm,
@@ -88,9 +89,16 @@ class ExtractPhenotypesRequest(BaseModel):
     text: str = Field(..., min_length=1, description="Clinical free text to analyze")
 
 
-@router.get("/hpo/search", status_code=status.HTTP_200_OK)
+@router.get(
+    "/hpo/search",
+    status_code=status.HTTP_200_OK,
+    summary="HPO-Terme suchen",
+    description="Sucht HPO-Terme (Human Phenotype Ontology) nach Freitext.",
+)
+@limiter.limit("30/minute")
 async def hpo_search(
-    q: str = "",
+    request: Request,
+    q: Annotated[str, Query(max_length=100)] = "",
     current_user: dict = Depends(get_current_user),
 ) -> list[dict]:
     """Search HPO terms (e.g. ?q=seizure)."""
@@ -98,8 +106,15 @@ async def hpo_search(
     return await service.search_terms(q)
 
 
-@router.post("/extract", status_code=status.HTTP_200_OK)
+@router.post(
+    "/extract",
+    status_code=status.HTTP_200_OK,
+    summary="Phänotypen aus Text extrahieren",
+    description="Extrahiert HPO-Terme und Gene aus klinischem Freitext.",
+)
+@limiter.limit("20/minute")
 async def extract_phenotypes(
+    request: Request,
     body: ExtractPhenotypesRequest,
     current_user: dict = Depends(get_current_user),
 ) -> dict[str, Any]:

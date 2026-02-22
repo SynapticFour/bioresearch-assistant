@@ -64,3 +64,42 @@ async def test_extract_from_doi_mock() -> None:
     assert result["title"] == "BRCA1 Study"
     assert result["year"] == 2024
     assert result.get("source") == "crossref"
+
+
+@pytest.mark.asyncio
+async def test_fasta_parsing_multisequence() -> None:
+    """FASTA mit mehreren Sequenzen — erste Header-Zeile wird verwendet."""
+    service = MetadataService()
+    fasta = ">seq1 Description1 [Homo sapiens]\nATCGATCG\n>seq2 Description2\nGCTAGCTA"
+    result = await service.extract_from_fasta(fasta)
+    assert result["name"] == "seq1"
+    assert "Description1" in result["description"]
+    assert result["organism"] == "Homo sapiens"
+    assert result["sequence_length"] == 8  # only first sequence before next >
+
+
+@pytest.mark.asyncio
+async def test_vcf_no_samples() -> None:
+    """VCF ohne Sample-Spalten."""
+    service = MetadataService()
+    vcf = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT"
+    result = await service.extract_from_vcf_header(vcf)
+    assert result["samples"] == []
+    assert result.get("format") == "vcf"
+
+
+@pytest.mark.asyncio
+async def test_doi_invalid_returns_none() -> None:
+    """Ungültige DOI oder 404 gibt None zurück."""
+    from unittest.mock import patch
+
+    service = MetadataService()
+    with patch("app.services.metadata_service.httpx.AsyncClient") as MockClient:
+        mock_resp = MagicMock(status_code=404)
+        mock_get = AsyncMock(return_value=mock_resp)
+        mock_client_instance = MagicMock()
+        mock_client_instance.get = mock_get
+        MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
+        result = await service.extract_from_doi("10.9999/invalid")
+    assert result is None

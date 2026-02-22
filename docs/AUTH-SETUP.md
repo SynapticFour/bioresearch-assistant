@@ -55,6 +55,25 @@ GA4GH Passport nativ unterstützt.
    OIDC_REDIRECT_URI=http://localhost:8000/api/v1/auth/callback
    ```
 
+## De-Pseudonymisierung — Zugriffskontrolle
+
+Wer darf De-Pseudonymisierung durchführen, wird über **DEPSEUDO_ACCESS** gesteuert:
+
+| Wert   | Bedeutung |
+|--------|-----------|
+| `owner` | Nur der User, der pseudonymisiert hat (Standard) |
+| `team`  | Alle Mitglieder desselben Teams |
+| `admin` | Nur Nutzer mit Rolle `admin` |
+
+Beispiel in `.env`:
+```bash
+DEPSEUDO_ACCESS=owner   # Standard
+# DEPSEUDO_ACCESS=team
+# DEPSEUDO_ACCESS=admin
+```
+
+Jeder De-Pseudonymisierungs-Zugriff wird im Audit Log protokolliert (operation_type=DEPSEUDONYMIZE).
+
 ## Dev-Modus (kein Auth)
 Ohne OIDC Konfiguration läuft das System im Dev-Modus —
 kein Login nötig, alle Endpunkte offen.

@@ -20,6 +20,9 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 
 - 📚 **Literature Mining** — PubMed-Suche mit KI-Zusammenfassung (DE/EN)
 - 🔒 **DSGVO-konforme Pseudonymisierung** — Presidio-basiert (DE + EN)
+- ↩️ **De-Pseudonymisierung** — Mit Audit Trail und konfigurierbarer Zugriffskontrolle (DEPSEUDO_ACCESS)
+- 📋 **Automatische Metadaten-Extraktion** — DOI (CrossRef), PMID (PubMed), FASTA/VCF-Header
+- 🧬 **Geführte Phenopacket-Erstellung** — HPO-Suche und Extraktion aus Freitext
 - 🧬 **BLAST Sequenzsuche** — Anbindung an Nextflow-Pipelines
 - ⚙️ **GA4GH WES** — Pipeline-Ausführung (Nextflow)
 - 📁 **GA4GH DRS** — Datei-Management für genomische Daten

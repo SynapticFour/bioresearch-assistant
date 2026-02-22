@@ -1,13 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import {
-  Dna,
-  Plus,
-  Search,
-  Trash2,
-  ExternalLink,
-} from "lucide-react";
+import { Dna, Plus, Search, Trash2 } from "lucide-react";
 import { phenopackets, type PhenopacketCreate, type PhenopacketItem } from "@/api/endpoints";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/button";

@@ -170,9 +170,17 @@ async def restore(
     return RestoreResult(restored_text=restored_text)
 
 
-@router.post("/reverse", status_code=status.HTTP_200_OK)
+@router.post(
+    "/reverse",
+    status_code=status.HTTP_200_OK,
+    summary="De-Pseudonymisierung",
+    description="De-Pseudonymisierung. Zugriff via DEPSEUDO_ACCESS. Im Audit Log.",
+    response_description="Original Text und Metadaten (accessed_by, access_time)",
+)
+@limiter.limit("10/minute")
 async def reverse_pseudonymization(
-    request: ReversePseudonymizationRequest,
+    request: Request,
+    body: ReversePseudonymizationRequest,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> dict:
@@ -185,7 +193,7 @@ async def reverse_pseudonymization(
     """
     settings = get_settings()
     stmt = select(PseudonymizationMapping).where(
-        PseudonymizationMapping.mapping_id == request.mapping_id
+        PseudonymizationMapping.mapping_id == body.mapping_id
     )
     r = await db.execute(stmt)
     mapping = r.scalars().first()
@@ -229,10 +237,10 @@ async def reverse_pseudonymization(
         user_id=sub,
         team_id=_extract_team_id(current_user),
         entities_count=0,
-        input_hash=input_hash_for_audit(request.mapping_id),
+        input_hash=input_hash_for_audit(body.mapping_id),
         operation_type=OPERATION_TYPE_DEPSEUDONYMIZE,
         language=None,
-        mapping_id=request.mapping_id,
+        mapping_id=body.mapping_id,
     )
     db.add(audit_row)
     await db.flush()
@@ -243,7 +251,7 @@ async def reverse_pseudonymization(
     )
     now = datetime.now(UTC)
     return {
-        "mapping_id": request.mapping_id,
+        "mapping_id": body.mapping_id,
         "original_text": original_text,
         "pseudonymized_text": mapping.pseudonymized_text,
         "accessed_by": sub,

@@ -1,10 +1,11 @@
 """Library API: list/delete saved papers and semantic search."""
 
 import logging
+import re
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -29,12 +30,27 @@ class SemanticSearchRequest(BaseModel):
     limit: int = Field(default=10, ge=1, le=100, description="Max number of results")
 
 
+DOI_REGEX = re.compile(r"^10\.\d{4,}/\S+$")
+
+
 class MetadataExtractionRequest(BaseModel):
     """Request body for POST /library/extract-metadata."""
 
     doi: str | None = Field(default=None, description="DOI (e.g. 10.1038/...)")
     pmid: str | None = Field(default=None, description="PubMed ID")
     text: str | None = Field(default=None, description="Freitext mit Paper-Info (optional)")
+
+    @field_validator("doi")
+    @classmethod
+    def doi_format(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        s = (v or "").strip()
+        if not s:
+            return None
+        if not DOI_REGEX.match(s):
+            raise ValueError("Ungültiges DOI-Format (erwartet: 10.xxxx/...)")
+        return s
 
 
 def _paper_to_response(p: Paper) -> PubMedSearchResponse:
@@ -57,7 +73,12 @@ def _paper_to_response(p: Paper) -> PubMedSearchResponse:
     )
 
 
-@router.post("/extract-metadata", status_code=status.HTTP_200_OK)
+@router.post(
+    "/extract-metadata",
+    status_code=status.HTTP_200_OK,
+    summary="Metadaten extrahieren",
+    description="Metadaten aus DOI (CrossRef) oder PMID (PubMed). Vorausgefüllte Felder.",
+)
 async def extract_metadata(
     request: MetadataExtractionRequest,
     current_user: dict = Depends(get_current_user),
@@ -68,8 +89,8 @@ async def extract_metadata(
     """
     service = MetadataService()
     metadata = None
-    if request.doi and request.doi.strip():
-        metadata = await service.extract_from_doi(request.doi.strip())
+    if request.doi:
+        metadata = await service.extract_from_doi(request.doi)
     elif request.pmid and request.pmid.strip():
         metadata = await service.extract_from_pmid(request.pmid.strip())
     if not metadata:
