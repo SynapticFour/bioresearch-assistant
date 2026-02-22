@@ -211,20 +211,33 @@ export function LibraryPage() {
       <div className="flex flex-col gap-2">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
+            <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" aria-hidden />
+            <textarea
               value={semanticQuery}
               onChange={(e) => setSemanticQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSemanticSearch()}
-              placeholder="Semantische Suche in gespeicherten Papers..."
-              className="w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.ctrlKey || e.metaKey))
+                  handleSemanticSearch();
+              }}
+              placeholder="Semantische Suche — z.B.: 'Zeige Paper über BRCA1 Mutationsanalyse bei jungen Patientinnen mit familiärer Vorbelastung' oder einfach Stichwörter: 'BRCA1 therapy options'"
+              className="search-textarea w-full rounded-lg border border-slate-300 py-2.5 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              rows={3}
+              style={{
+                resize: "vertical",
+                minHeight: "80px",
+                maxHeight: "200px",
+                width: "100%",
+              }}
               aria-label="Semantische Suche"
             />
+            <small className="mt-1 block text-xs text-slate-500">
+              ⌘+Enter oder Strg+Enter zum Suchen
+            </small>
           </div>
           <Button
             onClick={handleSemanticSearch}
             disabled={!semanticQuery.trim() || semanticSearchMutation.isPending}
+            className="self-start"
           >
             <Search className="h-5 w-5" />
             Suchen

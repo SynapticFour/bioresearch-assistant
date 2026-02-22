@@ -54,6 +54,8 @@ function saveSearchToHistory(query: string): void {
   localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
 }
 
+const isRailway = import.meta.env.VITE_DEPLOYMENT === "railway";
+
 // --- Left panel: search form ---
 
 interface SearchFormProps {
@@ -86,17 +88,40 @@ function SearchForm({
   return (
     <div className="flex flex-col gap-4">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
+        <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" aria-hidden />
+        <textarea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onSearch()}
-          placeholder="z.B. BRCA1, CRISPR, COVID-19"
-          className="w-full rounded-lg border border-slate-300 py-3 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) onSearch();
+          }}
+          placeholder="Semantische Suche — z.B.: 'Zeige Paper über BRCA1 Mutationsanalyse bei jungen Patientinnen mit familiärer Vorbelastung' oder einfach Stichwörter: 'BRCA1 therapy options'"
+          className="search-textarea w-full rounded-lg border border-slate-300 py-3 pl-10 pr-4 text-slate-800 placeholder:text-slate-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          rows={3}
+          style={{
+            resize: "vertical",
+            minHeight: "80px",
+            maxHeight: "200px",
+            width: "100%",
+          }}
           aria-label="Suchbegriff"
         />
+        <small className="mt-1 block text-xs text-slate-500">
+          ⌘+Enter oder Strg+Enter zum Suchen
+        </small>
       </div>
+      {isRailway ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          ℹ️ Demo-Version: Suche läuft über PubMed API. In der vollständigen
+          Installation werden zusätzlich Ihre gespeicherten Papers semantisch
+          durchsucht — z.B. &quot;Finde Paper ähnlich zu diesem Befund&quot;.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+          ✓ Semantische Suche aktiv — durchsucht PubMed und Ihre gespeicherte
+          Bibliothek.
+        </div>
+      )}
       <div>
         <label className="mb-1 block text-sm font-medium text-slate-700">
           Max Ergebnisse
