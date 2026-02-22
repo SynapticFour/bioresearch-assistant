@@ -83,7 +83,7 @@ class Settings(BaseSettings):
     depseudo_access: str = Field(
         default="owner",
         description="Who may de-pseudonymize: owner (only pseudonymizing user), team, admin",
-        env="DEPSEUDO_ACCESS",
+        validation_alias="DEPSEUDO_ACCESS",
     )
 
     # GA4GH WES (Phase 3)

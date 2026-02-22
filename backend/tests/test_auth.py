@@ -64,7 +64,7 @@ async def test_get_me_with_valid_token(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_me_invalid_token_401(async_client: AsyncClient) -> None:
+async def test_get_me_invalid_token_401(unauthed_client: AsyncClient) -> None:
     """GET /auth/me mit ungültigem Token → 401 (wenn Auth aktiv)."""
     with patch("app.core.auth.get_settings") as mock_get_settings:
         mock_get_settings.return_value = MagicMock(auth_enabled=True)
@@ -73,7 +73,7 @@ async def test_get_me_invalid_token_401(async_client: AsyncClient) -> None:
             new_callable=AsyncMock,
             side_effect=ValueError("Invalid token"),
         ):
-            response = await async_client.get(
+            response = await unauthed_client.get(
                 "/api/v1/auth/me",
                 headers={"Authorization": "Bearer invalid-token"},
             )
@@ -82,12 +82,12 @@ async def test_get_me_invalid_token_401(async_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_get_me_no_token_when_auth_enabled_401(
-    async_client: AsyncClient,
+    unauthed_client: AsyncClient,
 ) -> None:
     """GET /auth/me ohne Token wenn Auth aktiv → 401."""
     with patch("app.core.auth.get_settings") as mock_get_settings:
         mock_get_settings.return_value = MagicMock(auth_enabled=True)
-        response = await async_client.get("/api/v1/auth/me")
+        response = await unauthed_client.get("/api/v1/auth/me")
         assert response.status_code == 401
 
 

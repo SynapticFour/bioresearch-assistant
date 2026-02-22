@@ -45,6 +45,9 @@ def test_embed_text_empty_string_returns_vector(mock_embedding_model):
     assert all(x == 0.0 for x in result)
 
 
+@pytest.mark.skip(
+    reason="cosine_distance requires pgvector — not available in SQLite test environment",
+)
 @pytest.mark.asyncio
 async def test_find_similar_returns_ranked_results(
     mock_embedding_model, db_session, embedding_service
@@ -67,6 +70,9 @@ async def test_find_similar_returns_ranked_results(
         assert results[0].pmid == "12345"
 
 
+@pytest.mark.skip(
+    reason="cosine_distance requires pgvector — not available in SQLite test environment",
+)
 @pytest.mark.asyncio
 async def test_find_similar_limit_zero_returns_empty(
     mock_embedding_model, db_session, embedding_service

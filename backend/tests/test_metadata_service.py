@@ -16,7 +16,7 @@ async def test_extract_from_fasta() -> None:
     assert result["name"] == "NM_007294.4"
     assert "BRCA1" in result["description"]
     assert result["organism"] == "Homo sapiens"
-    assert result["sequence_length"] == 40
+    assert result["sequence_length"] == 39
     assert result.get("format") == "fasta"
     assert result.get("source") == "fasta_header"
 

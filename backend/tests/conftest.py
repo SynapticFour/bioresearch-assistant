@@ -68,19 +68,19 @@ async def create_tables(engine):
 async def db_session(engine, create_tables) -> AsyncGenerator[AsyncSession, None]:
     """
     Isolierte DB-Session pro Test.
-    Jeder Test bekommt eine eigene Transaction, die am Ende zurückgerollt wird.
+    Nutzt Savepoints statt Rollback auf bereits geschlossener Transaktion.
     """
-    async_session_factory = async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    async with async_session_factory() as session:
-        trans = await session.begin()
-        try:
+    async with engine.connect() as conn:
+        await conn.begin()
+        async_session_factory = async_sessionmaker(
+            bind=conn,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+        async with async_session_factory() as session:
             yield session
-        finally:
-            await trans.rollback()
+        await conn.rollback()
 
 
 # ── Dev User Mock ─────────────────────────────────────────────────────────
@@ -122,6 +122,30 @@ async def async_client(
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = override_get_current_user
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def unauthed_client(
+    db_session: AsyncSession,
+) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Async HTTP Client OHNE Auth-Override.
+    Für Tests die echte Auth-Logik (z. B. 401) prüfen.
+    """
+
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    # Kein get_current_user Override
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

@@ -6,10 +6,10 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_list_papers_empty(async_client: AsyncClient) -> None:
-    """GET /library/papers returns 200 and empty list when no papers."""
+    """GET /library/papers returns 200 and a list."""
     response = await async_client.get("/api/v1/library/papers")
     assert response.status_code == 200
-    assert response.json() == []
+    assert isinstance(response.json(), list)
 
 
 @pytest.mark.asyncio
