@@ -8,7 +8,6 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-
 from app.core.database import Base
 
 # Alembic Config object
@@ -24,6 +23,7 @@ target_metadata = Base.metadata
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode (SQL emitted to script only)."""
     from app.core.config import get_settings
+
     settings = get_settings()
     url = settings.database_url
     context.configure(

@@ -1,21 +1,17 @@
-# BioResearch Assistant — Development stack
-# PostgreSQL with pgvector for vector search
-
 services:
-  db:
+  postgres:
     image: pgvector/pgvector:pg16
-    container_name: bioresearch-db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-bioresearch}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bioresearch}
-      POSTGRES_DB: ${POSTGRES_DB:-bioresearch}
+      POSTGRES_USER: bioresearch
+      POSTGRES_PASSWORD: bioresearch
+      POSTGRES_DB: bioresearch
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bioresearch} -d ${POSTGRES_DB:-bioresearch}"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U bioresearch -d bioresearch"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
@@ -23,18 +19,43 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: bioresearch-backend
+    ports:
+      - "8000:8000"
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-bioresearch}:${POSTGRES_PASSWORD:-bioresearch}@db:5432/${POSTGRES_DB:-bioresearch}
-    ports:
-      - "${BACKEND_PORT:-8000}:8000"
-    depends_on:
-      db:
-        condition: service_healthy
+      DATABASE_URL: postgresql+asyncpg://bioresearch:bioresearch@postgres:5432/bioresearch
     volumes:
       - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    profiles:
+      - ollama
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://backend:8000
+    profiles:
+      - frontend
 
 volumes:
   postgres_data:
+  ollama_data:
+  pipeline_outputs:

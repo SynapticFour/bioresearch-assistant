@@ -2,12 +2,14 @@
 
 import logging
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.v1.endpoints import drs as drs_ep
+from app.api.v1.endpoints import wes as wes_ep
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 
@@ -38,22 +40,37 @@ def create_application() -> FastAPI:
 
     app = FastAPI(
         title=settings.app_name,
-        description="On-premise KI-System für Literature Mining, Bioinformatik-Pipelines und DSGVO-konforme Pseudonymisierung",
+        description=(
+            "On-premise KI-System für Literature Mining, "
+            "Bioinformatik-Pipelines und DSGVO-konforme Pseudonymisierung"
+        ),
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
     )
 
+    cors_origins = list(settings.cors_origins)
+    for origin in (
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://bioresearch-assistant.vercel.app",
+        "https://*.vercel.app",
+    ):
+        if origin not in cors_origins:
+            cors_origins.append(origin)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=cors_origins,
+        allow_origin_regex=r"https://.*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     app.include_router(api_router)
+    app.include_router(wes_ep.router, prefix="/ga4gh/wes/v1")
+    app.include_router(drs_ep.router, prefix="/ga4gh/drs/v1")
 
     @app.get("/")
     async def root() -> dict[str, str]:

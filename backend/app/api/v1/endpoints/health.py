@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
@@ -19,9 +20,17 @@ async def health_check() -> dict[str, Any]:
     """Basic liveness probe: returns 200 if the API is running.
 
     Returns:
-        dict: Status and app name.
+        dict: Status, version, and metadata.
     """
-    return {"status": "ok", "service": "BioResearch Assistant API"}
+    settings = get_settings()
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "developed_by": "Synaptic Four — proudly developed by individuals on the autism spectrum",
+        "ga4gh_compliant": True,
+        "gaia_x_ready": True,
+        "deployment": (settings.deployment or "").lower(),
+    }
 
 
 @router.get("/ready", response_model=dict[str, Any])

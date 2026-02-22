@@ -1,0 +1,14 @@
+#!/bin/bash
+branch=$(git rev-parse --abbrev-ref HEAD)
+
+while read local_ref local_sha remote_ref remote_sha; do
+  if [[ "$remote_ref" == refs/tags/* ]]; then
+    exit 0
+  fi
+done
+
+if [ "$branch" = "main" ]; then
+  echo "❌ Direkter Push auf main nicht erlaubt!"
+  echo "   Nutze: git push origin develop"
+  exit 1
+fi
