@@ -86,7 +86,7 @@ async def test_store_paper_saves_with_embedding(
         title="Test Paper",
         abstract="This is the abstract.",
         authors=["Author A"],
-        year="2024",
+        year=2024,
         journal="Test Journal",
     )
     paper = await embedding_service.store_paper(db_session, article)

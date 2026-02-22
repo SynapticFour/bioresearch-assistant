@@ -26,19 +26,13 @@ router = APIRouter(prefix="/literature", tags=["Literature Mining"])
 
 
 def _article_to_response(article: PubMedArticle) -> PubMedSearchResponse:
-    """Map PubMedArticle to PubMedSearchResponse (year str -> int when possible)."""
-    year_int: int | None = None
-    if article.year is not None:
-        try:
-            year_int = int(article.year.strip())
-        except ValueError:
-            pass
+    """Map PubMedArticle to PubMedSearchResponse."""
     return PubMedSearchResponse(
         pmid=article.pmid,
         title=article.title,
         abstract=article.abstract or None,
         authors=article.authors,
-        year=year_int,
+        year=article.year,
         journal=article.journal or None,
         doi=article.doi,
         summary=None,

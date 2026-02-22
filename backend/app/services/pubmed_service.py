@@ -140,13 +140,16 @@ def _parse_article(article_elem: Element) -> PubMedArticle:
                 if k:
                     keywords.append(k)
 
+    year_int: int | None = None
+    if year and str(year).strip().isdigit():
+        year_int = int(str(year).strip())
     return PubMedArticle(
         pmid=pmid,
         title=title,
         abstract=" ".join(abstract_parts).strip(),
         authors=authors,
         journal=journal,
-        year=year,
+        year=year_int,
         doi=doi,
         keywords=keywords,
     )

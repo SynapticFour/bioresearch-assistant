@@ -42,7 +42,7 @@ class EmbeddingService:
             existing.title = paper.title or ""
             existing.abstract = paper.abstract or ""
             existing.authors = authors_list
-            existing.year = paper.year
+            existing.year = str(paper.year) if paper.year is not None else None
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
             existing.embedding = zero_embedding
@@ -54,7 +54,7 @@ class EmbeddingService:
             title=paper.title or "",
             abstract=paper.abstract or "",
             authors=authors_list,
-            year=paper.year,
+            year=str(paper.year) if paper.year is not None else None,
             journal=paper.journal or "",
             doi=paper.doi,
             embedding=zero_embedding,

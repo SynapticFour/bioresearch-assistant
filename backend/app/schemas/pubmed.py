@@ -54,7 +54,7 @@ class PubMedArticle(BaseModel):
         default_factory=list, description="Author names (e.g. 'LastName ForeName')"
     )
     journal: str = Field(default="", description="Journal title")
-    year: str | None = Field(default=None, description="Publication year")
+    year: int | None = Field(default=None, description="Publication year")
     doi: str | None = Field(default=None, description="Digital Object Identifier")
     keywords: list[str] = Field(default_factory=list, description="Keywords or MeSH terms")
 

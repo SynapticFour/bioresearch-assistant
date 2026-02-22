@@ -122,7 +122,7 @@ async def test_search_pubmed_success(
     assert "First part" in art.abstract and "Second part" in art.abstract
     assert art.authors == ["Doe John", "Smith J"]
     assert art.journal == "Test Journal"
-    assert art.year == "2024"
+    assert art.year == 2024
     assert art.doi == "10.1234/test.2024"
     assert "cancer" in art.keywords and "therapy" in art.keywords
 
@@ -215,7 +215,7 @@ def test_parse_article_minimal_xml() -> None:
     assert "First part" in art.abstract
     assert art.authors == ["Doe John", "Smith J"]
     assert art.journal == "Test Journal"
-    assert art.year == "2024"
+    assert art.year == 2024
     assert art.doi == "10.1234/test.2024"
     assert set(art.keywords) == {"cancer", "therapy"}
 
@@ -228,7 +228,7 @@ def test_pubmed_article_schema() -> None:
         abstract="A",
         authors=["A1"],
         journal="J",
-        year="2024",
+        year=2024,
         doi="10.0/xyz",
         keywords=["k"],
     )
