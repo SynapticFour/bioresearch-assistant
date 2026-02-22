@@ -1,5 +1,7 @@
 # Deployment auf Microsoft Azure
 
+**Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Klinikbetrieb Ollama empfohlen.
+
 ## Warum Azure?
 
 Viele deutsche Unikliniken haben bereits Azure Enterprise Agreements — einfacherer Einstieg für diese Kunden.

@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Search,
   ExternalLink,
@@ -502,6 +502,7 @@ function PaperDetailModal({
 // --- Main page ---
 
 export function LiteraturePage() {
+  const location = useLocation();
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(20);
   const { language, setLanguage } = useLanguage();
@@ -542,6 +543,16 @@ export function LiteraturePage() {
     setHistory(loadSearchHistory());
     mutation.mutate({ q, max: maxResults, lang: language });
   }, [query, maxResults, language, mutation]);
+
+  useEffect(() => {
+    const searchQuery = (location.state as { searchQuery?: string } | null)?.searchQuery;
+    if (searchQuery && typeof searchQuery === "string") {
+      setQuery(searchQuery);
+      saveSearchToHistory(searchQuery);
+      setHistory(loadSearchHistory());
+      mutation.mutate({ q: searchQuery, max: maxResults, lang: language });
+    }
+  }, [location.state]);
 
   const handleHistoryClick = useCallback((q: string) => {
     setQuery(q);

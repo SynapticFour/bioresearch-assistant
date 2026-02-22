@@ -20,6 +20,7 @@ export const translations = {
       blast: "BLAST",
       workflows: "Workflows",
       drs: "DRS Files",
+      phenopackets: "Phenopackets",
       audit: "Audit Log",
     },
     status: {
@@ -49,6 +50,7 @@ export const translations = {
       blast: "BLAST",
       workflows: "Workflows",
       drs: "DRS Files",
+      phenopackets: "Phenopackets",
       audit: "Audit Log",
     },
     status: {

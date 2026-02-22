@@ -83,6 +83,32 @@ export const literature = {
 // ----- Library (saved papers) -----
 
 export const library = {
+  async addPaper(paper: {
+    pmid: string;
+    title: string;
+    abstract: string;
+    authors?: string[];
+    year?: string | number | null;
+    journal?: string | null;
+    doi?: string | null;
+    keywords?: string[];
+  }): Promise<Paper> {
+    const year =
+      paper.year != null && paper.year !== undefined
+        ? String(paper.year)
+        : undefined;
+    const { data } = await apiClient.post<Paper>(`${API_V1}/library/papers`, {
+      pmid: paper.pmid,
+      title: paper.title,
+      abstract: paper.abstract,
+      authors: Array.isArray(paper.authors) ? paper.authors : [],
+      year: year ?? undefined,
+      journal: paper.journal ?? undefined,
+      doi: paper.doi ?? undefined,
+      keywords: Array.isArray(paper.keywords) ? paper.keywords : [],
+    });
+    return data;
+  },
   async getPapers(params?: {
     year?: string | null;
     journal?: string | null;
@@ -310,6 +336,14 @@ export const drs = {
     );
     return data;
   },
+  async registerObject(form: FormData): Promise<DRSObject> {
+    const { data } = await apiClient.post<DRSObject>(
+      `${DRS_PREFIX}/objects`,
+      form,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
+    return data;
+  },
   async getAccessUrl(
     objectId: string,
     accessId: string = "default"
@@ -339,6 +373,14 @@ export const drs = {
 
 export type PhenopacketItem = Record<string, unknown>;
 
+export interface PhenopacketCreate {
+  pseudonym_id: string;
+  phenotypes?: string[];
+  diseases?: string[];
+  genes_of_interest?: string[];
+  notes?: string | null;
+}
+
 export const phenopackets = {
   async list(): Promise<PhenopacketItem[]> {
     const { data } = await apiClient.get<PhenopacketItem[]>(
@@ -351,6 +393,18 @@ export const phenopackets = {
       `${API_V1}/phenopackets/${encodeURIComponent(id)}`
     );
     return data;
+  },
+  async create(payload: PhenopacketCreate): Promise<PhenopacketItem> {
+    const { data } = await apiClient.post<PhenopacketItem>(
+      `${API_V1}/phenopackets`,
+      payload
+    );
+    return data;
+  },
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(
+      `${API_V1}/phenopackets/${encodeURIComponent(id)}`
+    );
   },
   async export(id: string): Promise<PhenopacketItem> {
     const { data } = await apiClient.get<PhenopacketItem>(

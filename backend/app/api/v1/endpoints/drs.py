@@ -5,7 +5,7 @@ Reference: https://ga4gh.github.io/data-repository-service-schemas/
 
 import logging
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.schemas.drs import (
@@ -23,6 +23,12 @@ from app.services.drs_service import (
 )
 from app.services.drs_service import (
     list_objects as service_list_objects,
+)
+from app.services.drs_service import (
+    register_object as service_register_object,
+)
+from app.services.drs_service import (
+    register_object_from_path as service_register_from_path,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,6 +52,56 @@ async def list_drs_objects() -> DrsObjectListResponse:
     raw = service_list_objects()
     objects = [DrsObjectSummary(**x) for x in raw]
     return DrsObjectListResponse(objects=objects)
+
+
+@router.post(
+    "/objects",
+    response_model=DrsObject,
+    status_code=status.HTTP_201_CREATED,
+)
+async def register_drs_object(
+    name: str = Form(..., min_length=1),
+    file: UploadFile | None = File(default=None),
+    path: str | None = Form(default=None),
+    description: str | None = Form(default=None),
+) -> DrsObject:
+    """Register a DRS object: upload a file or register existing path under storage.
+
+    Send multipart/form-data: `name` (required), and either `file` (upload) or `path`
+    (relative path under DRS storage for existing file).
+    """
+    if file is not None and file.filename:
+        filename = (name or file.filename or "upload").strip()
+        if filename in (".", ".."):
+            filename = "upload"
+        content = await file.read()
+        try:
+            object_id = service_register_object(filename, content)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            ) from e
+    elif path:
+        try:
+            object_id = service_register_from_path(path.strip())
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            ) from e
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Provide either file upload or path for existing file",
+        )
+    obj = get_object(object_id)
+    if obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Object registered but metadata could not be read",
+        )
+    return obj
 
 
 @router.get("/objects/{object_id}", response_model=DrsObject, status_code=status.HTTP_200_OK)

@@ -14,7 +14,7 @@
 
 ## Was ist das?
 
-BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute und Unikliniken. Es kombiniert Literature Mining (PubMed + KI-Zusammenfassung), Bioinformatik-Pipelines (BLAST, RNA-Seq, Variant Calling) und **DSGVO-konforme Pseudonymisierung**. Alle sensiblen Daten bleiben in Ihrer Infrastruktur; es werden GA4GH-Standards (WES, DRS, Phenopackets) unterstützt.
+BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute und Unikliniken. Es kombiniert Literature Mining (PubMed + KI-Zusammenfassung), Bioinformatik-Pipelines (BLAST, RNA-Seq, Variant Calling) und **DSGVO-konforme Pseudonymisierung**. GA4GH-Standards (WES, DRS, Phenopackets) werden unterstützt.
 
 ## Features
 
@@ -101,7 +101,7 @@ Der BioResearch Assistant ist nach GAIA-X Prinzipien designed:
 
 | Prinzip | Implementierung |
 |--------|-----------------|
-| **Datensouveränität** | Vollständig on-premise — keine Cloud-Abhängigkeit |
+| **Datensouveränität** | On-Premise (Ollama) oder Cloud-LLM (Anthropic) — siehe Abschnitt unten |
 | **DSGVO** | Presidio Pseudonymisierung + vollständiges Audit Logging |
 | **Offene Standards** | GA4GH DRS, WES, Phenopackets — keine Vendor Lock-ins |
 | **Transparenz** | Open Source, Self-Description API unter `/api/v1/gaia-x/self-description` |
@@ -111,9 +111,34 @@ Der BioResearch Assistant ist nach GAIA-X Prinzipien designed:
 > Ausrichtung nach GAIA-X Prinzipien. Eine formale Zertifizierung durch
 > die GAIA-X Association ist in der Roadmap.
 
+## Datensouveränität
+
+BioResearch Assistant unterstützt zwei Modi:
+
+### On-Premise Modus (vollständige Datensouveränität)
+Mit Ollama als lokalem LLM:
+- ✅ Alle Daten bleiben im System
+- ✅ Keine externen API-Aufrufe
+- ✅ DSGVO-konform für Patientendaten
+- ✅ Empfohlen für produktiven Klinikbetrieb
+
+Konfiguration: Kein `ANTHROPIC_API_KEY` gesetzt; `OLLAMA_URL=http://localhost:11434`
+
+### Cloud-LLM Modus (Anthropic API)
+Mit Anthropic Claude API:
+- ⚠️ Suchanfragen und Texte werden an Anthropic (USA) übertragen
+- ⚠️ Nicht für unpseudonymisierte Patientendaten geeignet
+- ✅ Für Recherche mit öffentlichen Daten verwendbar
+- ✅ Für pseudonymisierte Texte vertretbar
+
+Konfiguration: `ANTHROPIC_API_KEY=sk-ant-...`
+
+### Empfehlung für Unikliniken
+Für den produktiven Einsatz mit Patientendaten: Ollama mit lokalem Modell (z.B. Mistral, Llama3). Anthropic API nur für Recherche mit öffentlichen/pseudonymisierten Daten.
+
 ## Für Kunden / Institutionen
 
-On-premise bedeutet: **Ihre Daten verlassen nicht Ihre Infrastruktur.** Keine Weitergabe an Dritte, volle Kontrolle über Speicherort und Zugriff. Pseudonymisierungen sind audit-logged und für Berechtigte reversibel. Ideal für Unikliniken und Forschungseinrichtungen mit hohen DSGVO-Anforderungen.
+Pseudonymisierungen sind audit-logged und für Berechtigte reversibel. Volle Kontrolle über Speicherort und Zugriff bei On-Premise-Betrieb. Ideal für Unikliniken und Forschungseinrichtungen mit hohen DSGVO-Anforderungen.
 
 ## 📄 Lizenz
 

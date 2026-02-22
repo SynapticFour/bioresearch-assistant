@@ -26,6 +26,9 @@ logger = logging.getLogger(__name__)
 # DRS ID allowed chars per spec [A-Za-z0-9.-_~]; we allow / for path segments
 _ALLOWED_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_~/")
 
+# Safe filename chars for uploads (no path separators or ..)
+_SAFE_NAME_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_")
+
 
 def _safe_object_id(object_id: str) -> Path | None:
     """Resolve object_id to a Path under drs_storage_path; None if invalid."""
@@ -170,6 +173,41 @@ def get_object(object_id: str) -> DrsObject | None:
         mime_type=mime_type,
         access_methods=access_methods,
     )
+
+
+def register_object(name: str, content: bytes) -> str:
+    """Write content to DRS storage under a safe name; return object_id.
+
+    Args:
+        name: Requested file name (e.g. patient001.vcf). Path separators stripped.
+        content: File bytes to store.
+
+    Returns:
+        object_id (relative path) for the stored file.
+
+    Raises:
+        ValueError: If name is invalid or empty after sanitization.
+    """
+    safe = "".join(c for c in (name or "").strip() if c in _SAFE_NAME_CHARS)
+    if not safe:
+        raise ValueError("Invalid or empty file name")
+    root = Path(get_settings().drs_storage_path).resolve()
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / safe
+    path.write_bytes(content)
+    return safe
+
+
+def register_object_from_path(relative_path: str) -> str:
+    """Register an existing file under DRS storage by relative path.
+
+    The path must be relative and within drs_storage_path (no ..).
+    Returns object_id (relative path).
+    """
+    path = _safe_object_id(relative_path.strip())
+    if path is None or not path.is_file():
+        raise ValueError("Path not found or not under DRS storage")
+    return str(path.relative_to(Path(get_settings().drs_storage_path).resolve())).replace("\\", "/")
 
 
 def get_access_url(object_id: str, access_id: str) -> AccessURL | None:

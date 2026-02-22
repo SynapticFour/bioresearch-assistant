@@ -23,6 +23,8 @@ async def health_check() -> dict[str, Any]:
         dict: Status, version, and metadata.
     """
     settings = get_settings()
+    # data_sovereignty: "full" when using local LLM (Ollama), "partial" when using Anthropic API
+    data_sovereignty = "partial" if settings.anthropic_api_key else "full"
     return {
         "status": "healthy",
         "version": "1.0.0",
@@ -30,6 +32,7 @@ async def health_check() -> dict[str, Any]:
         "ga4gh_compliant": True,
         "gaia_x_ready": True,
         "deployment": (settings.deployment or "").lower(),
+        "data_sovereignty": data_sovereignty,
     }
 
 

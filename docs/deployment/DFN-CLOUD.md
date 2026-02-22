@@ -1,5 +1,7 @@
 # Deployment auf DFN-Cloud
 
+**Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Vollinstallation mit Ollama bleiben alle Daten lokal; mit Anthropic API werden Suchanfragen an die USA übertragen.
+
 ## Warum DFN-Cloud?
 
 DFN (Deutsches Forschungsnetz) verbindet alle deutschen Universitäten und Forschungsinstitute. On-premise im deutschen Forschungsnetz — ideal für die Zielgruppe.
