@@ -8,6 +8,7 @@ import type {
   AuditLogEntry,
 } from "@/types";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -413,6 +414,7 @@ function exportPseudonymizedPdf(text: string): void {
 // --- Main page ---
 
 export function PseudonymizePage() {
+  const features = useFeatureFlags();
   const [text, setText] = useState("");
   const { t, language, changeLanguage } = useTranslation();
   const [result, setResult] = useState<PseudonymizeResult | null>(null);
@@ -481,6 +483,16 @@ export function PseudonymizePage() {
           {t("pseudonymize", "title")}
         </h1>
       </div>
+      {features.spacy_ner ? (
+        <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+          ✓ NLP-Erkennung aktiv (Namen, Orte, etc.)
+        </div>
+      ) : (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          ℹ️ Basis-Erkennung (Datum, Email, Telefon). Für vollständige
+          NLP-Erkennung: lokale Installation mit spaCy.
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
         <div className="lg:col-span-2">

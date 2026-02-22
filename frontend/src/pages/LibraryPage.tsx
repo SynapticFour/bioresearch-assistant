@@ -11,7 +11,7 @@ import {
   Search,
 } from "lucide-react";
 import { library as libraryApi } from "@/api/endpoints";
-import { useHealth } from "@/hooks/useHealth";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useToast } from "@/contexts/ToastContext";
 import type { Paper } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -26,12 +26,6 @@ import {
 
 const PUBMED_URL = (pmid: string) =>
   `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
-
-function useIsRailway(): boolean {
-  const { data } = useHealth();
-  const deployment = (data?.deployment as string) ?? "";
-  return deployment === "railway";
-}
 
 interface PaperCardProps {
   paper: Paper;
@@ -132,7 +126,7 @@ const initialPaperForm = {
 
 export function LibraryPage() {
   const queryClient = useQueryClient();
-  const isRailway = useIsRailway();
+  const features = useFeatureFlags();
   const { showSuccess, showError } = useToast();
 
   const [addPaperOpen, setAddPaperOpen] = useState(false);
@@ -195,9 +189,9 @@ export function LibraryPage() {
       setSemanticResults(null);
       return;
     }
-    if (isRailway) return;
+    if (!features.semantic_search) return;
     semanticSearchMutation.mutate(q);
-  }, [semanticQuery, isRailway, semanticSearchMutation]);
+  }, [semanticQuery, features.semantic_search, semanticSearchMutation]);
 
   const displayList = semanticResults !== null ? semanticResults : papers;
   const years = useMemo(
@@ -315,17 +309,21 @@ export function LibraryPage() {
           </div>
           <Button
             onClick={handleSemanticSearch}
-            disabled={!semanticQuery.trim() || semanticSearchMutation.isPending}
+            disabled={
+              !semanticQuery.trim() ||
+              semanticSearchMutation.isPending ||
+              !features.semantic_search
+            }
             className="self-start"
           >
             <Search className="h-5 w-5" />
             Suchen
           </Button>
         </div>
-        {isRailway && (
+        {!features.semantic_search && (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-            Semantische Suche ist in der Demo-Version nicht verfügbar. In der
-            vollständigen Installation können Sie Papers semantisch durchsuchen.
+            ℹ️ Demo-Version: Nur PubMed-Suche verfügbar. In der vollständigen
+            Installation können Sie Papers semantisch durchsuchen.
           </div>
         )}
       </div>

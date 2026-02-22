@@ -16,6 +16,7 @@ import { literature } from "@/api/endpoints";
 import type { Paper } from "@/types";
 import { useToast } from "@/contexts/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useLanguage } from "@/components/ui/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -54,8 +55,6 @@ function saveSearchToHistory(query: string): void {
   localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(next));
 }
 
-const isRailway = import.meta.env.VITE_DEPLOYMENT === "railway";
-
 // --- Left panel: search form ---
 
 interface SearchFormProps {
@@ -70,6 +69,7 @@ interface SearchFormProps {
   history: string[];
   onHistoryClick: (q: string) => void;
   searchLabel: string;
+  semanticSearchAvailable: boolean;
 }
 
 function SearchForm({
@@ -84,6 +84,7 @@ function SearchForm({
   history,
   onHistoryClick,
   searchLabel,
+  semanticSearchAvailable,
 }: SearchFormProps) {
   return (
     <div className="flex flex-col gap-4">
@@ -110,16 +111,15 @@ function SearchForm({
           ⌘+Enter oder Strg+Enter zum Suchen
         </small>
       </div>
-      {isRailway ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          ℹ️ Demo-Version: Suche läuft über PubMed API. In der vollständigen
-          Installation werden zusätzlich Ihre gespeicherten Papers semantisch
-          durchsucht — z.B. &quot;Finde Paper ähnlich zu diesem Befund&quot;.
-        </div>
-      ) : (
+      {semanticSearchAvailable ? (
         <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
           ✓ Semantische Suche aktiv — durchsucht PubMed und Ihre gespeicherte
           Bibliothek.
+        </div>
+      ) : (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          ℹ️ Demo-Version: Nur PubMed-Suche verfügbar. In der vollständigen
+          Installation werden zusätzlich Ihre Papers semantisch durchsucht.
         </div>
       )}
       <div>
@@ -503,6 +503,7 @@ function PaperDetailModal({
 
 export function LiteraturePage() {
   const location = useLocation();
+  const features = useFeatureFlags();
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(20);
   const { language, setLanguage } = useLanguage();
@@ -596,6 +597,7 @@ export function LiteraturePage() {
           history={history}
           onHistoryClick={handleHistoryClick}
           searchLabel={t("literature", "search")}
+          semanticSearchAvailable={features.semantic_search}
         />
       </aside>
 

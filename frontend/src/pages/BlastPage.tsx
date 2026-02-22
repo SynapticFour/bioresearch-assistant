@@ -3,12 +3,14 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { Play, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { blast } from "@/api/endpoints";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import type { BlastHit } from "@/types";
 import { Button } from "@/components/ui/button";
 
 const POLL_MS = 5_000;
 
 export function BlastPage() {
+  const features = useFeatureFlags();
   const [sequence, setSequence] = useState("");
   const [database, setDatabase] = useState("nt");
   const [evalue, setEvalue] = useState("0.001");
@@ -47,6 +49,24 @@ export function BlastPage() {
     <div className="flex h-full min-h-0 gap-0">
       <aside className="flex w-[400px] shrink-0 flex-col gap-4 border-r border-slate-200 bg-white p-6">
         <h1 className="text-xl font-semibold text-slate-800">BLAST Suche</h1>
+        {features.blast ? (
+          <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+            ✓ BLAST verfügbar
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            ⚠️ BLAST nicht installiert — siehe docs/TOOLS-SETUP.md
+          </div>
+        )}
+        {features.nextflow ? (
+          <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+            ✓ Nextflow verfügbar
+          </div>
+        ) : (
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            ⚠️ Nextflow nicht installiert — siehe docs/TOOLS-SETUP.md
+          </div>
+        )}
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">
             Sequence
