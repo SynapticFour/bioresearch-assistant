@@ -38,7 +38,10 @@ def mock_anthropic_client(mocker):
     mock_response = MagicMock()
     mock_response.content = [
         MagicMock(
-            text='{"summary": "This paper investigates BRCA1 mutations.", "key_findings": ["BRCA1"], "methods": ["PCR"], "relevance_score": null}'
+            text=(
+                '{"summary": "This paper investigates BRCA1 mutations.", '
+                '"key_findings": ["BRCA1"], "methods": ["PCR"], "relevance_score": null}'
+            )
         )
     ]
     mock_client = MagicMock()
@@ -55,7 +58,10 @@ def mock_ollama(mocker):
     mock_response.raise_for_status = MagicMock()
     mock_response.json.return_value = {
         "message": {
-            "content": '{"summary": "Summary of the paper.", "key_findings": [], "methods": [], "relevance_score": null}'
+            "content": (
+                '{"summary": "Summary of the paper.", "key_findings": [], '
+                '"methods": [], "relevance_score": null}'
+            )
         }
     }
     mock_client.return_value.post = AsyncMock(return_value=mock_response)
@@ -83,7 +89,10 @@ async def test_summarize_paper_with_context_includes_relevance(
         return_value=MagicMock(
             content=[
                 MagicMock(
-                    text='{"summary": "Relevant.", "key_findings": [], "methods": [], "relevance_score": 0.85}'
+                    text=(
+                        '{"summary": "Relevant.", "key_findings": [], '
+                        '"methods": [], "relevance_score": 0.85}'
+                    )
                 )
             ]
         )
@@ -114,7 +123,10 @@ async def test_extract_entities_returns_genes_and_diseases(mock_anthropic_client
         return_value=MagicMock(
             content=[
                 MagicMock(
-                    text='{"genes": ["BRCA1", "TP53"], "proteins": [], "diseases": ["Breast cancer"], "organisms": [], "chemicals": []}'
+                    text=(
+                        '{"genes": ["BRCA1", "TP53"], "proteins": [], '
+                        '"diseases": ["Breast cancer"], "organisms": [], "chemicals": []}'
+                    )
                 )
             ]
         )

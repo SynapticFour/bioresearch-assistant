@@ -40,9 +40,7 @@ async def login(
             detail=f"Unknown provider: {provider}",
         )
     async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            f"{issuer.rstrip('/')}/.well-known/openid-configuration"
-        )
+        resp = await client.get(f"{issuer.rstrip('/')}/.well-known/openid-configuration")
         resp.raise_for_status()
         oidc_config = resp.json()
     params = {

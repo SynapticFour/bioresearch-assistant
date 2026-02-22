@@ -142,9 +142,7 @@ async def test_literature_search_works_in_dev_mode(
     async_client: AsyncClient,
 ) -> None:
     """Literature Search funktioniert ohne Auth im Dev-Modus."""
-    with patch(
-        "app.api.v1.endpoints.literature.PubMedService"
-    ) as mock_pubmed_class:
+    with patch("app.api.v1.endpoints.literature.PubMedService") as mock_pubmed_class:
         mock_instance = MagicMock()
         mock_instance.search_pubmed = AsyncMock(return_value=[])
         mock_instance.__aenter__ = AsyncMock(return_value=mock_instance)
