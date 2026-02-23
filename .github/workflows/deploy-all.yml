@@ -1,9 +1,6 @@
 name: Deploy BioResearch Assistant
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       confirm:
@@ -34,9 +31,7 @@ on:
 
 jobs:
   build:
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.confirm == 'DEPLOY'
+    if: github.event.inputs.confirm == 'DEPLOY'
     uses: ./.github/workflows/build-images.yml
     secrets: inherit
 
