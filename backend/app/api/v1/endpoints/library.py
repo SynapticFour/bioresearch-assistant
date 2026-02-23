@@ -39,7 +39,10 @@ class SemanticSearchRequest(BaseModel):
         default=None,
         ge=0,
         le=2,
-        description="Max cosine distance (0=same, 2=opposite). Only return papers with distance <= threshold.",
+        description=(
+            "Max cosine distance (0=same, 2=opposite). "
+            "Only return papers with distance <= threshold."
+        ),
     )
 
 
@@ -310,7 +313,7 @@ async def semantic_search(
             limit=limit,
             user_id=user_id,
             team_id=team_id,
-            threshold=body.threshold if body.threshold is not None else 0.7,  # 0.7 = nur wirklich ähnliche Papers (0=identisch, 2=entgegengesetzt)
+            threshold=body.threshold if body.threshold is not None else 0.7,  # 0.7 = ähnliche Papers
         )
         return [_paper_to_response(p) for p in papers]
     except EmbeddingServiceError as e:

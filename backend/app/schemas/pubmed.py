@@ -64,7 +64,10 @@ class PubMedArticle(BaseModel):
     year: int | None = Field(default=None, description="Publication year")
     doi: str | None = Field(default=None, description="Digital Object Identifier")
     keywords: list[str] = Field(default_factory=list, description="Keywords or MeSH terms")
-    summary: str | None = Field(default=None, description="KI-generated summary (optional, stored when saving)")
+    summary: str | None = Field(
+        default=None,
+        description="KI-generated summary (optional, stored when saving)",
+    )
     summary_language: str | None = Field(default=None, description="Language of summary (de, en)")
     summary_model: str | None = Field(default=None, description="Model used for summary")
 
