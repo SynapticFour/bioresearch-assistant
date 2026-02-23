@@ -452,7 +452,7 @@ function exportPseudonymizedPdf(text: string): void {
 
 // --- Main page ---
 
-type TabId = "main" | "audit" | "depseudo";
+type TabId = "main" | "audit";
 
 export function PseudonymizePage() {
   const features = useFeatureFlags();
@@ -593,18 +593,6 @@ export function PseudonymizePage() {
           >
             Audit Log
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("depseudo")}
-            className={cn(
-              "rounded-md px-3 py-2 text-sm font-medium transition-colors",
-              activeTab === "depseudo"
-                ? "bg-primary text-primary-foreground"
-                : "text-slate-600 hover:bg-slate-100"
-            )}
-          >
-            De-Pseudonymisierung
-          </button>
         </div>
       </div>
       {activeTab === "main" && (
@@ -652,47 +640,40 @@ export function PseudonymizePage() {
       )}
 
       {activeTab === "audit" && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-3 text-lg font-semibold text-slate-800">
-            Audit Log
-          </h2>
-          <p className="mb-3 text-sm text-slate-500">
-            Letzte Pseudonymisierungen (nur Metadaten, kein Originaltext)
-          </p>
-          {auditQuery.isLoading ? (
-            <div className="h-24 animate-pulse rounded bg-slate-100" />
-          ) : (
-            <AuditLogTable
-              entries={auditEntries}
-              onReverseClick={handleReverseClick}
-              isReversing={reverseMutation.isPending}
-            />
-          )}
-        </section>
-      )}
-
-      {activeTab === "depseudo" && (
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
-          <h2 className="mb-3 text-lg font-semibold text-slate-800">
-            De-Pseudonymisierung
-          </h2>
-          <p className="mb-3 text-sm text-slate-500">
-            Einträge mit Mapping-ID, die Sie de-pseudonymisieren dürfen.
-          </p>
-          {auditQuery.isLoading ? (
-            <div className="h-24 animate-pulse rounded bg-slate-100" />
-          ) : reversibleEntries.length === 0 ? (
-            <p className="py-4 text-slate-500">
-              Keine Einträge mit Mapping-ID vorhanden.
+        <>
+          <section className="mb-4 rounded-lg border border-slate-200 bg-white p-4">
+            <h2 className="mb-3 text-lg font-semibold text-slate-800">
+              Audit Log
+            </h2>
+            <p className="mb-3 text-sm text-slate-500">
+              Letzte Pseudonymisierungen (nur Metadaten, kein Originaltext)
             </p>
-          ) : (
-            <AuditLogTable
-              entries={reversibleEntries}
-              onReverseClick={handleReverseClick}
-              isReversing={reverseMutation.isPending}
-            />
+            {auditQuery.isLoading ? (
+              <div className="h-24 animate-pulse rounded bg-slate-100" />
+            ) : (
+              <AuditLogTable
+                entries={auditEntries}
+                onReverseClick={handleReverseClick}
+                isReversing={reverseMutation.isPending}
+              />
+            )}
+          </section>
+          {reversibleEntries.length > 0 && (
+            <section className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <h2 className="mb-3 text-lg font-semibold text-slate-800">
+                ↩️ De-Pseudonymisierung möglich
+              </h2>
+              <p className="mb-3 text-sm text-slate-500">
+                Einträge die Sie de-pseudonymisieren dürfen.
+              </p>
+              <AuditLogTable
+                entries={reversibleEntries}
+                onReverseClick={handleReverseClick}
+                isReversing={reverseMutation.isPending}
+              />
+            </section>
           )}
-        </section>
+        </>
       )}
 
       {/* Confirm De-Pseudonymization */}
