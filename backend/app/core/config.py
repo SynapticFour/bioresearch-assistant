@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(
         default="http://localhost:11434",
         description="Ollama base URL when ANTHROPIC_API_KEY is not set",
+        validation_alias="OLLAMA_URL",
     )
     llm_claude_model: str = Field(
         default="claude-sonnet-4-6",
