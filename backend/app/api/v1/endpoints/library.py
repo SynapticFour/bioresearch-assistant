@@ -1,10 +1,15 @@
 """Library API: list/delete saved papers and semantic search."""
 
+import csv
+import io
+import json
 import logging
 import re
+import zipfile
 from typing import Annotated
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +18,7 @@ from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.limiter import limiter
 from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle, PubMedSearchResponse
 from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
@@ -225,3 +231,143 @@ async def semantic_search(
     except EmbeddingServiceError as e:
         logger.warning("Semantic search failed: %s", e)
         return []
+
+
+MAX_BULK_IMPORT_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_BULK_ENTRIES = 1000
+
+
+def _normalize_paper_data(data: dict) -> dict:
+    """Normalize a single paper dict for import (pmid, title, authors, year, etc.)."""
+    authors = data.get("authors")
+    if isinstance(authors, str):
+        authors = [a.strip() for a in authors.split(",") if a.strip()]
+    elif not isinstance(authors, list):
+        authors = []
+    year = data.get("year")
+    if year is not None and year != "":
+        year = str(year)
+    else:
+        year = None
+    return {
+        "pmid": (data.get("pmid") or "").strip() or f"import-{uuid4().hex[:12]}",
+        "title": (data.get("title") or "").strip() or "",
+        "abstract": (data.get("abstract") or "").strip() or "",
+        "authors": authors,
+        "year": year,
+        "journal": (data.get("journal") or "").strip() or "",
+        "doi": (data.get("doi") or "").strip() or None,
+    }
+
+
+async def _import_single_paper(
+    data: dict,
+    scope_values: dict,
+    db: AsyncSession,
+    results: dict,
+) -> None:
+    """Import one paper into DB; updates results['imported'] and results['errors']."""
+    try:
+        normalized = _normalize_paper_data(data)
+        paper = Paper(
+            pmid=normalized["pmid"],
+            title=normalized["title"],
+            abstract=normalized["abstract"],
+            authors=normalized["authors"],
+            year=normalized["year"],
+            journal=normalized["journal"],
+            doi=normalized["doi"],
+            user_id=scope_values.get("user_id"),
+            team_id=scope_values.get("team_id"),
+        )
+        db.add(paper)
+        results["imported"] += 1
+    except Exception as e:
+        results["errors"].append(str(e))
+        results["skipped"] += 1
+
+
+@router.post(
+    "/bulk-import",
+    status_code=status.HTTP_200_OK,
+    summary="Bulk Import",
+    description="Import mehrerer Papers (ZIP/JSON/CSV). Max 50MB, max 1000 Einträge.",
+)
+@limiter.limit("5/minute")
+async def bulk_import(
+    request: Request,
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Bulk import papers from ZIP, JSON or CSV. Returns imported/skipped/errors."""
+    content = await file.read()
+    if len(content) > MAX_BULK_IMPORT_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Datei zu groß (max. 50 MB)",
+        )
+    scope_values = get_scope_values(current_user)
+    results: dict = {"imported": 0, "skipped": 0, "errors": []}
+    filename = (file.filename or "").lower()
+
+    if filename.endswith(".zip"):
+        try:
+            with zipfile.ZipFile(io.BytesIO(content)) as zf:
+                names = zf.namelist()
+                if len(names) > MAX_BULK_ENTRIES:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"ZIP enthält zu viele Einträge (max. {MAX_BULK_ENTRIES})",
+                    )
+                for name in names:
+                    if name.endswith("/"):
+                        continue
+                    try:
+                        raw = zf.read(name).decode("utf-8")
+                        data = json.loads(raw)
+                        if isinstance(data, list):
+                            for item in data:
+                                await _import_single_paper(item, scope_values, db, results)
+                                if results["imported"] + results["skipped"] >= MAX_BULK_ENTRIES:
+                                    break
+                        else:
+                            await _import_single_paper(data, scope_values, db, results)
+                    except Exception as e:
+                        results["errors"].append(f"{name}: {e}")
+                        results["skipped"] += 1
+        except zipfile.BadZipFile as err:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ungültige ZIP-Datei",
+            ) from err
+    elif filename.endswith(".json"):
+        try:
+            data = json.loads(content.decode("utf-8"))
+        except json.JSONDecodeError as err:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ungültiges JSON",
+            ) from err
+        papers = data if isinstance(data, list) else [data]
+        for paper_data in papers[:MAX_BULK_ENTRIES]:
+            await _import_single_paper(paper_data, scope_values, db, results)
+    elif filename.endswith(".csv"):
+        try:
+            reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
+            rows = list(reader)[:MAX_BULK_ENTRIES]
+        except Exception as err:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ungültiges CSV",
+            ) from err
+        for row in rows:
+            await _import_single_paper(row, scope_values, db, results)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Format nicht unterstützt. Bitte ZIP, JSON oder CSV.",
+        )
+
+    await db.commit()
+    return results

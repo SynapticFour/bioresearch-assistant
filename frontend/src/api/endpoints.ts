@@ -23,7 +23,24 @@ export interface LiteratureStats {
   recent_papers: Paper[];
 }
 
+export interface ValidateQueryResponse {
+  safe: boolean;
+  warning?: string;
+  detected_types: string[];
+  recommendation?: string;
+}
+
 export const literature = {
+  async validateQuery(
+    query: string,
+    language: string = "de"
+  ): Promise<ValidateQueryResponse> {
+    const { data } = await apiClient.post<ValidateQueryResponse>(
+      `${API_V1}/literature/search/validate-query`,
+      { query, language }
+    );
+    return data;
+  },
   async getStats(): Promise<LiteratureStats> {
     const { data } = await apiClient.get<LiteratureStats>(
       `${API_V1}/literature/stats`
@@ -133,6 +150,18 @@ export const library = {
       `${API_V1}/library/search/semantic`,
       { query, limit }
     );
+    return data;
+  },
+  async bulkImport(file: File): Promise<{ imported: number; skipped: number; errors: string[] }> {
+    const form = new FormData();
+    form.append("file", file);
+    const { data } = await apiClient.post<{
+      imported: number;
+      skipped: number;
+      errors: string[];
+    }>(`${API_V1}/library/bulk-import`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return data;
   },
   async extractMetadata(params: {

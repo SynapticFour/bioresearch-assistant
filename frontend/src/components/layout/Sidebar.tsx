@@ -15,7 +15,8 @@ import { useHealth } from "@/hooks/useHealth";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Badge } from "@/components/ui/badge";
 
-const APP_VERSION = "0.1.0";
+const APP_VERSION =
+  import.meta.env.VITE_APP_VERSION ?? "dev";
 
 const navItems: { to: string; labelKey: string; icon: typeof Home }[] = [
   { to: "/", labelKey: "dashboard", icon: Home },
@@ -110,7 +111,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
         {!collapsed && (
           <div className="flex items-center justify-between gap-2">
             <Badge variant="outline" className="font-mono text-xs">
-              v{APP_VERSION}
+              v{healthData?.version ?? APP_VERSION}
             </Badge>
             <div className="flex items-center gap-1.5">
               <span

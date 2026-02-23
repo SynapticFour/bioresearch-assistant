@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2,
   Search,
+  Package,
 } from "lucide-react";
 import { library as libraryApi } from "@/api/endpoints";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
@@ -131,6 +132,13 @@ export function LibraryPage() {
 
   const [addPaperOpen, setAddPaperOpen] = useState(false);
   const [paperForm, setPaperForm] = useState(initialPaperForm);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkResult, setBulkResult] = useState<{
+    imported: number;
+    skipped: number;
+    errors: string[];
+  } | null>(null);
 
   const [semanticQuery, setSemanticQuery] = useState("");
   const [yearFilter, setYearFilter] = useState<string>("");
@@ -160,6 +168,16 @@ export function LibraryPage() {
       queryClient.invalidateQueries({ queryKey: ["library-papers"] });
       setSemanticResults(null);
     },
+  });
+
+  const bulkImportMutation = useMutation({
+    mutationFn: (file: File) => libraryApi.bulkImport(file),
+    onSuccess: (data) => {
+      setBulkResult(data);
+      queryClient.invalidateQueries({ queryKey: ["library-papers"] });
+      if (data.errors.length === 0) showSuccess(`${data.imported} Papers importiert.`);
+    },
+    onError: (err: Error) => showError(err?.message ?? "Bulk-Import fehlgeschlagen."),
   });
 
   const addPaperMutation = useMutation({
@@ -312,10 +330,16 @@ export function LibraryPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-slate-800">Bibliothek</h1>
-        <Button onClick={() => setAddPaperOpen(true)}>
-          <Plus className="h-5 w-5" />
-          Paper hinzufügen
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setAddPaperOpen(true)}>
+            <Plus className="h-5 w-5" />
+            Paper hinzufügen
+          </Button>
+          <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+            <Package className="h-5 w-5" />
+            Bulk Import
+          </Button>
+        </div>
       </div>
 
       {/* Semantic search */}
@@ -635,6 +659,91 @@ export function LibraryPage() {
               }
             >
               {addPaperMutation.isPending ? "Speichern…" : "Speichern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import modal */}
+      <Dialog
+        open={bulkImportOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkImportOpen(false);
+            setBulkFile(null);
+            setBulkResult(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Import</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Importiere mehrere Papers auf einmal.
+          </p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+            <h4 className="font-medium text-slate-700">Unterstützte Formate:</h4>
+            <ul className="mt-1 list-inside list-disc text-slate-600">
+              <li>ZIP mit papers.json (oder einzelnen JSON-Dateien)</li>
+              <li>JSON (Array von Papers)</li>
+              <li>CSV (Spalten: pmid, title, abstract, authors, year, journal)</li>
+            </ul>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Datei
+            </label>
+            <input
+              type="file"
+              accept=".zip,.json,.csv"
+              className="w-full text-sm"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                setBulkFile(f ?? null);
+                if (!f) setBulkResult(null);
+              }}
+            />
+          </div>
+          {bulkResult && (
+            <div
+              className={`rounded-lg border p-3 text-sm ${
+                bulkResult.errors.length > 0
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-green-200 bg-green-50 text-green-900"
+              }`}
+            >
+              <p>✅ {bulkResult.imported} Papers importiert</p>
+              {bulkResult.skipped > 0 && (
+                <p className="mt-1">⚠️ {bulkResult.skipped} übersprungen</p>
+              )}
+              {bulkResult.errors.length > 0 && (
+                <div className="mt-2">
+                  {bulkResult.errors.map((err, i) => (
+                    <div key={i} className="text-red-700">
+                      {err}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBulkImportOpen(false);
+                setBulkFile(null);
+                setBulkResult(null);
+              }}
+            >
+              Schließen
+            </Button>
+            <Button
+              onClick={() => bulkFile && bulkImportMutation.mutate(bulkFile)}
+              disabled={!bulkFile || bulkImportMutation.isPending}
+            >
+              {bulkImportMutation.isPending ? "⏳ Importiere…" : "📥 Importieren"}
             </Button>
           </DialogFooter>
         </DialogContent>

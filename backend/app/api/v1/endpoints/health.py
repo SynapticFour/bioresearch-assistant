@@ -88,7 +88,7 @@ async def health_check() -> dict[str, Any]:
     )
     return {
         "status": "healthy",
-        "version": "1.0.0",
+        "version": settings.version,
         "developed_by": "Synaptic Four — proudly developed by individuals on the autism spectrum",
         "ga4gh_compliant": True,
         "gaia_x_ready": True,

@@ -3,6 +3,13 @@
 from pydantic import BaseModel, Field
 
 
+class QueryValidationRequest(BaseModel):
+    """Request body for POST /literature/search/validate-query."""
+
+    query: str = Field(..., max_length=500, description="Search query to check for sensitive data")
+    language: str | None = Field(default="de", description="Language code for Presidio (de, en)")
+
+
 class PubMedSearchRequest(BaseModel):
     """Request body for POST /literature/search."""
 

@@ -1,7 +1,7 @@
 # BioResearch Assistant — Synaptic Four
 
 [![CI](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml)
-[![Latest Release](https://img.shields.io/github/v/release/SynapticFour/bioresearch-assistant)](https://github.com/SynapticFour/bioresearch-assistant/releases)
+[![Version](https://img.shields.io/github/v/tag/SynapticFour/bioresearch-assistant?label=version)](https://github.com/SynapticFour/bioresearch-assistant/tags)
 ![Coverage](docs/coverage-badge.svg)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/)
 [![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets%20%7C%20Passports-green)](https://www.ga4gh.org/)

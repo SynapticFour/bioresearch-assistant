@@ -16,8 +16,10 @@ from app.schemas.pubmed import (
     PubMedArticle,
     PubMedSearchRequest,
     PubMedSearchResponse,
+    QueryValidationRequest,
 )
 from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
+from app.services.pseudonymization_service import analyze as presidio_analyze
 from app.services.pubmed_service import PubMedService, PubMedServiceError
 
 logger = logging.getLogger(__name__)
@@ -37,6 +39,34 @@ def _article_to_response(article: PubMedArticle) -> PubMedSearchResponse:
         doi=article.doi,
         summary=None,
     )
+
+
+@router.post(
+    "/search/validate-query",
+    status_code=status.HTTP_200_OK,
+    summary="Suchanfrage auf sensitive Daten prüfen",
+    description="Prüft ob die Suchanfrage sensitive Daten enthält (Presidio).",
+)
+@limiter.limit("60/minute")
+async def validate_search_query(
+    request: Request,
+    body: QueryValidationRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Prüfe ob eine Suchanfrage sensitive Daten enthält. Gibt Warnung wenn ja."""
+    analysis = presidio_analyze(body.query, language=body.language or "de")
+    sensitive_types = [r.entity_type for r in analysis if r.score >= 0.7]
+    if sensitive_types:
+        return {
+            "safe": False,
+            "warning": "Die Suchanfrage enthält möglicherweise sensitive Daten.",
+            "detected_types": sensitive_types,
+            "recommendation": (
+                "Bitte pseudonymisieren Sie die Anfrage bevor Sie suchen, "
+                "oder entfernen Sie personenbezogene Daten."
+            ),
+        }
+    return {"safe": True, "detected_types": []}
 
 
 @router.post("/search", response_model=list[PubMedSearchResponse], status_code=status.HTTP_200_OK)
