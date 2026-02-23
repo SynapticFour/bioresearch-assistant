@@ -64,10 +64,10 @@ def header():
         f"""
 {Colors.BOLD}{Colors.BLUE}
 ╔═══════════════════════════════════════════════════╗
-║   BioResearch Assistant — Installer v1.3.0      ║
-║   Synaptic Four                                 ║
-║   Proudly built by individuals on the           ║
-║   autism spectrum                               ║
+║   BioResearch Assistant — Installer v1.3.0        ║
+║   Synaptic Four                                   ║
+║   Proudly built by individuals on the             ║
+║   autism spectrum                                 ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}"""
     )
