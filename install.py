@@ -778,6 +778,7 @@ def print_summary(config: dict, install_dir: Path):
 {Colors.YELLOW}Auth-Modus: Dev (kein Login erforderlich)
 Für Produktion: OIDC_ISSUER in .env setzen{Colors.RESET}
 
+<<<<<<< develop
 {Colors.YELLOW}Secrets gespeichert in:
   {install_dir}/.env
 
@@ -785,6 +786,8 @@ Bei Neuinstallation werden bestehende Secrets
 automatisch wiederverwendet.
 Für komplett neue Secrets: .env vorher löschen.{Colors.RESET}
 
+=======
+>>>>>>> main
 {Colors.YELLOW}⚠ WICHTIG: .env enthält Secrets —
   niemals in Git committen!{Colors.RESET}
 """
