@@ -308,9 +308,9 @@ async def semantic_search(
             db,
             query,
             limit=limit,
-            threshold=body.threshold,
             user_id=user_id,
             team_id=team_id,
+            threshold=body.threshold if body.threshold is not None else 0.7,  # 0.7 = nur wirklich ähnliche Papers (0=identisch, 2=entgegengesetzt)
         )
         return [_paper_to_response(p) for p in papers]
     except EmbeddingServiceError as e:
