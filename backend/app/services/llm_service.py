@@ -182,13 +182,9 @@ class LLMService:
         lang = (language or "de").lower()
         lang_instruction = {
             "de": (
-                "Antworte ausschließlich auf Deutsch. "
-                "Erstelle eine strukturierte Zusammenfassung."
+                "Antworte ausschließlich auf Deutsch. Erstelle eine strukturierte Zusammenfassung."
             ),
-            "en": (
-                "Reply in English only. "
-                "Create a structured summary."
-            ),
+            "en": ("Reply in English only. Create a structured summary."),
         }.get(lang, "Reply in the same language as the abstract.")
         system = (
             "You are a biomedical research assistant. Output valid JSON only, no markdown. "
