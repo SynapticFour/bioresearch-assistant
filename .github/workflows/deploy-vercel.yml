@@ -1,9 +1,6 @@
 name: Deploy to Vercel (Manual)
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       confirm:
@@ -22,9 +19,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: >
-      github.event_name == 'push' ||
-      github.event.inputs.confirm == 'DEPLOY'
+    if: github.event.inputs.confirm == 'DEPLOY'
     steps:
       - uses: actions/checkout@v4
 
