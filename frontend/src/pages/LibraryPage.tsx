@@ -31,6 +31,7 @@ const PUBMED_URL = (pmid: string) =>
 interface PaperCardProps {
   paper: Paper;
   summaryOverride?: string | null;
+  summaryCached?: boolean;
   onRemove: (pmid: string) => void;
   onSummarize?: (pmid: string) => void;
   isRemoving: boolean;
@@ -40,6 +41,7 @@ interface PaperCardProps {
 function PaperCard({
   paper,
   summaryOverride,
+  summaryCached,
   onRemove,
   onSummarize,
   isRemoving,
@@ -49,6 +51,8 @@ function PaperCard({
   const abstract = paper.abstract ?? "";
   const lineClamp = abstractExpanded ? undefined : 3;
   const displaySummary = summaryOverride ?? paper.summary;
+  const showCachedBadge = displaySummary && (summaryCached ?? !!paper.summary);
+  const isFromCache = summaryCached ?? !!paper.summary;
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -101,6 +105,11 @@ function PaperCard({
         <div className="mb-3 rounded-lg border border-teal-100 bg-teal-50 p-3 text-sm text-slate-800">
           <h4 className="font-medium text-teal-800">KI-Zusammenfassung</h4>
           <p className="mt-1">{displaySummary}</p>
+          {showCachedBadge && (
+            <span className="mt-2 block text-xs text-gray-400">
+              {isFromCache ? "📦 Gespeicherte Zusammenfassung" : "✨ Neu generiert"}
+            </span>
+          )}
         </div>
       )}
       {onSummarize && (
@@ -176,8 +185,12 @@ export function LibraryPage() {
   const [journalFilter, setJournalFilter] = useState<string>("");
   const [freeTextFilter, setFreeTextFilter] = useState("");
   const [semanticResults, setSemanticResults] = useState<Paper[] | null>(null);
-  const [summaryByPmid, setSummaryByPmid] = useState<Record<string, string>>({});
+  const [summaryDataByPmid, setSummaryDataByPmid] = useState<
+    Record<string, { summary: string; cached: boolean }>
+  >({});
   const [summarizingPmid, setSummarizingPmid] = useState<string | null>(null);
+
+  const userLanguage = navigator.language.startsWith("de") ? "de" : "en";
 
   const { data: papers = [], isLoading } = useQuery({
     queryKey: ["library-papers", yearFilter, journalFilter],
@@ -214,10 +227,13 @@ export function LibraryPage() {
   });
 
   const summarizeMutation = useMutation({
-    mutationFn: (pmid: string) => libraryApi.summarize(pmid),
+    mutationFn: (pmid: string) => libraryApi.summarize(pmid, userLanguage),
     onMutate: (pmid) => setSummarizingPmid(pmid),
     onSuccess: (data, pmid) => {
-      setSummaryByPmid((prev) => ({ ...prev, [pmid]: data.summary }));
+      setSummaryDataByPmid((prev) => ({
+        ...prev,
+        [pmid]: { summary: data.summary, cached: data.cached },
+      }));
     },
     onError: (err: Error) => showError(err?.message ?? "Zusammenfassung fehlgeschlagen."),
     onSettled: () => setSummarizingPmid(null),
@@ -511,6 +527,13 @@ export function LibraryPage() {
       ) : (
         <>
           <div className="space-y-4">
+            {semanticResults !== null && (
+              <p className="mb-4 text-sm text-gray-500">
+                {semanticResults.length === 0
+                  ? "Keine semantisch ähnlichen Papers gefunden."
+                  : `${semanticResults.length} semantisch ähnliche Papers gefunden.`}
+              </p>
+            )}
             {freeTextFilter.trim() && (
               <p className="text-sm text-slate-500">
                 {filteredList.length} von {papers.length} Papers gefunden für
@@ -527,7 +550,8 @@ export function LibraryPage() {
               <PaperCard
                 key={paper.pmid}
                 paper={paper}
-                summaryOverride={summaryByPmid[paper.pmid]}
+                summaryOverride={summaryDataByPmid[paper.pmid]?.summary}
+                summaryCached={summaryDataByPmid[paper.pmid]?.cached}
                 onRemove={(pmid) => deleteMutation.mutate(pmid)}
                 onSummarize={features.llm_summaries ? (pmid) => summarizeMutation.mutate(pmid) : undefined}
                 isRemoving={deleteMutation.isPending}

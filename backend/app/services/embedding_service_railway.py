@@ -83,6 +83,10 @@ class EmbeddingService:
         db: AsyncSession,
         query: str,
         limit: int = 10,
+        *,
+        threshold: float | None = None,
+        user_id: str | None = None,
+        team_id: str | None = None,
     ) -> list[Paper]:
         """Return empty list (semantic search disabled on Railway)."""
         return []

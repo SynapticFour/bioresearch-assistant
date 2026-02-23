@@ -110,6 +110,12 @@ class EmbeddingService:
             existing.year = str(paper.year) if paper.year is not None else None
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
+            if paper.summary is not None:
+                existing.summary = paper.summary
+            if paper.summary_language is not None:
+                existing.summary_language = paper.summary_language
+            if paper.summary_model is not None:
+                existing.summary_model = paper.summary_model
             if embedding is not None:
                 existing.embedding = embedding
             else:
@@ -133,6 +139,9 @@ class EmbeddingService:
             embedding=embedding if embedding is not None else None,  # NULL when unavailable
             user_id=user_id,
             team_id=team_id,
+            summary=paper.summary,
+            summary_language=paper.summary_language,
+            summary_model=paper.summary_model,
         )
         db.add(new_paper)
         await db.flush()
@@ -145,6 +154,7 @@ class EmbeddingService:
         query: str,
         limit: int = 10,
         *,
+        threshold: float | None = None,
         user_id: str | None = None,
         team_id: str | None = None,
     ) -> list[Paper]:
@@ -154,6 +164,8 @@ class EmbeddingService:
             db: Async SQLAlchemy session.
             query: Search query text.
             limit: Maximum number of papers to return.
+            threshold: Optional max cosine distance (0=same, 2=opposite). Only return
+                papers with distance <= threshold. None = no filter.
             user_id: Optional scope filter (isolation).
             team_id: Optional scope filter (isolation).
 
@@ -166,12 +178,14 @@ class EmbeddingService:
         if limit <= 0:
             return []
         query_embedding = await self.embed_text_async(query or "")
-        distance_col = Paper.embedding.cosine_distance(query_embedding).label("distance")
+        distance_expr = Paper.embedding.cosine_distance(query_embedding)
         stmt = select(Paper).where(Paper.embedding.isnot(None))
         if user_id is not None:
             stmt = stmt.where(Paper.user_id == user_id)
         if team_id is not None:
             stmt = stmt.where(Paper.team_id == team_id)
-        stmt = stmt.order_by(distance_col).limit(limit)
+        if threshold is not None:
+            stmt = stmt.where(distance_expr <= threshold)
+        stmt = stmt.order_by(distance_expr).limit(limit)
         result = await db.execute(stmt)
         return list(result.scalars().all())

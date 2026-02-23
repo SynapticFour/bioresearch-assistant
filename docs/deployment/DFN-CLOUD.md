@@ -75,7 +75,7 @@ sudo usermod -aG docker ubuntu
 git clone https://github.com/SynapticFour/bioresearch-assistant.git
 cd bioresearch-assistant
 cp .env.example .env
-nano .env  # Werte eintragen (GITHUB_REPO=synapticfour/bioresearch-assistant, DB_*, PSEUDONYMIZATION_ENCRYPTION_KEY, etc.)
+nano .env  # Werte eintragen (GITHUB_REPO=SynapticFour/bioresearch-assistant, DB_*, PSEUDONYMIZATION_ENCRYPTION_KEY, etc.)
 ```
 
 Ollama Modell vorladen (einmalig, ~4GB):

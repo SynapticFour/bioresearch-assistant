@@ -42,7 +42,7 @@ Images werden automatisch bei Push auf `main` nach GHCR gebaut. Für ACR manuell
 
 ```bash
 az acr login --name bioresearchregistry
-docker tag ghcr.io/synapticfour/bioresearch-assistant/backend:latest bioresearchregistry.azurecr.io/backend:latest
+docker tag ghcr.io/SynapticFour/bioresearch-assistant/backend:latest bioresearchregistry.azurecr.io/backend:latest
 docker push bioresearchregistry.azurecr.io/backend:latest
 ```
 

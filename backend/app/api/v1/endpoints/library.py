@@ -35,6 +35,15 @@ class SemanticSearchRequest(BaseModel):
 
     query: str = Field(default="", description="Search query text")
     limit: int = Field(default=10, ge=1, le=100, description="Max number of results")
+    threshold: float | None = Field(
+        default=None,
+        ge=0,
+        le=2,
+        description=(
+            "Max cosine distance (0=same, 2=opposite). "
+            "Only return papers with distance <= threshold."
+        ),
+    )
 
 
 DOI_REGEX = re.compile(r"^10\.\d{4,}/\S+$")
@@ -44,6 +53,7 @@ class SummarizeRequest(BaseModel):
     """Request body for POST /library/summarize."""
 
     pmid: str = Field(..., min_length=1, description="PubMed ID of the paper to summarize")
+    language: str = Field(default="de", description="Language for summary (de, en)")
 
 
 class MetadataExtractionRequest(BaseModel):
@@ -82,7 +92,7 @@ def _paper_to_response(p: Paper) -> PubMedSearchResponse:
         year=year_int,
         journal=p.journal or None,
         doi=p.doi,
-        summary=None,
+        summary=p.summary,
     )
 
 
@@ -99,8 +109,10 @@ async def summarize_paper(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> dict:
-    """Generiere KI-Zusammenfassung für ein Paper aus der Bibliothek."""
+    """Generiere KI-Zusammenfassung für ein Paper aus der Bibliothek (mit Cache)."""
+    settings = get_settings()
     scope = get_scope_filter(current_user)
+    language = (body.language or "de").strip().lower() or "de"
     stmt = select(Paper).where(Paper.pmid == body.pmid.strip())
     if "user_id" in scope and scope["user_id"]:
         stmt = stmt.where(Paper.user_id == scope["user_id"])
@@ -113,6 +125,12 @@ async def summarize_paper(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Paper nicht gefunden",
         )
+    if paper.summary and paper.summary_language == language:
+        return {
+            "summary": paper.summary,
+            "cached": True,
+            "language": language,
+        }
     abstract = (paper.abstract or "").strip()
     if not abstract:
         raise HTTPException(
@@ -121,8 +139,25 @@ async def summarize_paper(
         )
     try:
         llm = LLMService()
-        result = await llm.summarize_paper(abstract=abstract, language="de")
-        return {"summary": result.summary}
+        result = await llm.summarize_paper(
+            abstract=abstract,
+            language=language,
+            title=(paper.title or "").strip() or None,
+        )
+        summary_model = (
+            settings.llm_claude_model
+            if (settings.anthropic_api_key or "").strip()
+            else settings.ollama_model
+        )
+        paper.summary = result.summary
+        paper.summary_language = language
+        paper.summary_model = summary_model
+        await db.commit()
+        return {
+            "summary": result.summary,
+            "cached": False,
+            "language": language,
+        }
     except LLMServiceError as e:
         logger.warning("Summarize failed for pmid=%s: %s", body.pmid, e)
         raise HTTPException(
@@ -278,6 +313,7 @@ async def semantic_search(
             limit=limit,
             user_id=user_id,
             team_id=team_id,
+            threshold=body.threshold if body.threshold is not None else 0.7,
         )
         return [_paper_to_response(p) for p in papers]
     except EmbeddingServiceError as e:

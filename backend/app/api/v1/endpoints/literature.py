@@ -176,7 +176,7 @@ async def save_paper(
         year=int(paper.year) if paper.year and str(paper.year).strip().isdigit() else None,
         journal=paper.journal or None,
         doi=paper.doi,
-        summary=None,
+        summary=paper.summary,
     )
 
 

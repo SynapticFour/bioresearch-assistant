@@ -240,8 +240,16 @@ export function PhenopacketsPage() {
                   size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
+                    const genes = extractGenes(pp);
+                    const phenotypes = extractPhenotypes(pp);
+                    const diseases = extractDiseases(pp);
+                    const allTerms = [...genes, ...phenotypes, ...diseases].filter(Boolean);
                     navigate("/literature", {
-                      state: { searchQuery: genes.join(" ") },
+                      state: {
+                        searchQuery: allTerms.length
+                          ? allTerms.join(" ")
+                          : getPseudonymId(pp),
+                      },
                     });
                   }}
                 >
@@ -360,10 +368,24 @@ export function PhenopacketsPage() {
                   </p>
                 </div>
                 <DialogFooter>
+                  {!form.pseudonym_id.trim() && (
+                    <p className="text-sm text-amber-600 mb-2 w-full basis-full">
+                      ⚠️ Bitte Pseudonym-ID eingeben.
+                    </p>
+                  )}
+                  {(form.phenotypes?.length ?? 0) === 0 && (
+                    <p className="text-sm text-amber-600 mb-2 w-full basis-full">
+                      ⚠️ Bitte mindestens einen Phänotyp in Schritt 2 auswählen.
+                    </p>
+                  )}
                   <Button variant="outline" onClick={() => setCreateStep(2)}>Zurück</Button>
                   <Button
                     onClick={() => handleCreate()}
-                    disabled={!form.pseudonym_id.trim() || (form.phenotypes?.length ?? 0) === 0 || createMutation.isPending}
+                    disabled={
+                      !form.pseudonym_id.trim() ||
+                      (form.phenotypes?.length ?? 0) === 0 ||
+                      createMutation.isPending
+                    }
                   >
                     {createMutation.isPending ? "…" : "💾 Phenopacket speichern"}
                   </Button>
@@ -409,11 +431,19 @@ export function PhenopacketsPage() {
                   variant="outline"
                   onClick={() => {
                     const genes = extractGenes(detailItem);
+                    const phenotypes = extractPhenotypes(detailItem)
+                      .map((t) =>
+                        t.includes(":")
+                          ? t.split(":").slice(1).join(":")  // HP:0001234 → Label bevorzugen
+                          : t
+                      );
+                    const diseases = extractDiseases(detailItem);
+                    const allTerms = [...genes, ...phenotypes, ...diseases].filter(Boolean);
+                    const searchQuery = allTerms.length
+                      ? allTerms.join(" ")
+                      : getPseudonymId(detailItem);
                     setDetailItem(null);
-                    navigate(
-                      "/literature",
-                      { state: { searchQuery: genes.length ? genes.join(" ") : getPseudonymId(detailItem) } }
-                    );
+                    navigate("/literature", { state: { searchQuery } });
                   }}
                 >
                   <Search className="h-4 w-4" />

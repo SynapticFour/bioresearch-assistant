@@ -74,6 +74,7 @@ export const literature = {
     journal?: string | null;
     doi?: string | null;
     keywords?: string[];
+    summary?: string | null;
   }): Promise<Paper> {
     const year =
       paper.year != null && paper.year !== undefined
@@ -88,6 +89,7 @@ export const literature = {
       journal: paper.journal ?? "",
       doi: paper.doi ?? null,
       keywords: Array.isArray(paper.keywords) ? paper.keywords : [],
+      summary: paper.summary ?? null,
     };
     const { data } = await apiClient.post<Paper>(
       `${API_V1}/literature/papers`,
@@ -164,11 +166,15 @@ export const library = {
     });
     return data;
   },
-  async summarize(pmid: string): Promise<{ summary: string }> {
-    const { data } = await apiClient.post<{ summary: string }>(
-      `${API_V1}/library/summarize`,
-      { pmid }
-    );
+  async summarize(
+    pmid: string,
+    language = "de"
+  ): Promise<{ summary: string; cached: boolean; language: string }> {
+    const { data } = await apiClient.post<{
+      summary: string;
+      cached: boolean;
+      language: string;
+    }>(`${API_V1}/library/summarize`, { pmid, language });
     return data;
   },
   async extractMetadata(params: {
