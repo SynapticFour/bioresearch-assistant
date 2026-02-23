@@ -29,7 +29,7 @@ const WORKFLOW_OPTIONS: { value: WorkflowKind; label: string }[] = [
 
 // Placeholder workflow URLs (replace with real paths/URLs in deployment)
 const WORKFLOW_URLS: Record<WorkflowKind, string> = {
-  blast: "https://github.com/nf-core/blast/raw/master/main.nf",
+  blast: "blast",
   star: "https://github.com/nf-core/rnaseq/raw/master/main.nf",
   gatk: "https://github.com/nf-core/sarek/raw/master/main.nf",
   custom: "",
