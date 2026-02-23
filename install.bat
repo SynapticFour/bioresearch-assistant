@@ -1,6 +1,6 @@
 @echo off
 echo BioResearch Assistant - Installer v1.3.0
-echo Synaptic Four GmbH
+echo Synaptic Four
 echo.
 
 where python >nul 2>&1

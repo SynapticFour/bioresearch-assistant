@@ -1,7 +1,9 @@
 # Environment
 .env
+.env.frontend
 .env.local
 .env.*.local
+*.env.local
 !.env.example
 
 # Python / Backend

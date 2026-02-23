@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 BioResearch Assistant — Lokaler Installer
-Synaptic Four GmbH
+Synaptic Four
 
 Installiert das vollständige System via Docker:
 - PostgreSQL + pgvector
@@ -64,10 +64,10 @@ def header():
         f"""
 {Colors.BOLD}{Colors.BLUE}
 ╔═══════════════════════════════════════════════════╗
-║   BioResearch Assistant — Installer v1.3.0       ║
-║   Synaptic Four GmbH                             ║
-║   Proudly built by individuals on the            ║
-║   autism spectrum                                ║
+║   BioResearch Assistant — Installer v1.3.0        ║
+║   Synaptic Four                                   ║
+║   Proudly built by individuals on the             ║
+║   autism spectrum                                 ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}"""
     )

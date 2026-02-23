@@ -1,16 +1,12 @@
 # BioResearch Assistant — Synaptic Four
 
-[![CI](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml)
-[![Version](https://img.shields.io/github/v/tag/SynapticFour/bioresearch-assistant?label=version&sort=semver)](https://github.com/SynapticFour/bioresearch-assistant/tags)
-![Coverage](docs/coverage-badge.svg)
-[![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/)
-[![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets%20%7C%20Passports-green)](https://www.ga4gh.org/)
-[![DSGVO](https://img.shields.io/badge/DSGVO-konform-blue)](https://dsgvo-gesetz.de/)
-![GAIA-X Ready](https://img.shields.io/badge/GAIA--X-Ready%20by%20Design-0066CC?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyem0tMiAxNWwtNS01IDEuNDEtMS40MUwxMCAxNC4xN2w3LjU5LTcuNTlMMTkgOGwtOSA5eiIvPjwvc3ZnPg==)
-[![Deploy DFN](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-dfn.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-dfn.yml)
-[![Deploy OTC](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-otc.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-otc.yml)
-[![Deploy Azure](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-azure.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-azure.yml)
-![License](https://img.shields.io/badge/License-BUSL%201.1-blue)
+![Version](https://img.shields.io/github/v/tag/synapticfour/bioresearch-assistant?label=version&sort=semver)
+![Tests](https://img.shields.io/github/actions/workflow/status/synapticfour/bioresearch-assistant/ci.yml?label=tests)
+![Coverage](https://img.shields.io/badge/coverage-68%25-yellow)
+![License](https://img.shields.io/badge/license-BUSL%201.1-blue)
+![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets-green)
+![GAIA-X](https://img.shields.io/badge/GAIA--X-Ready-blue)
+![DSGVO](https://img.shields.io/badge/DSGVO-konform-green)
 
 ## 🚀 Schnellstart — Lokale Installation
 
@@ -60,6 +56,20 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 - 🏥 **Phenopackets v2** — Unterstützung für phänotypische Daten
 - 🔍 **Vollständiges Audit Logging** — Für Pseudonymisierungen
 - 👤 **Konfigurierbare Datenisolation** — User-, Team- oder Open-Modus ([docs/ISOLATION-MODES.md](docs/ISOLATION-MODES.md))
+
+## Audit & Qualität
+
+| Aspekt | Status |
+|--------|--------|
+| Security Audit | [Report](docs/AUDIT-REPORT.md) |
+| SBOM | [Verfügbar](docs/SBOM.md) |
+| Lizenz | [BUSL 1.1](LICENSE.md) |
+| Test Coverage | 68% |
+| GA4GH Compliant | WES, DRS, Phenopackets, Passports |
+| DSGVO | Vollständig dokumentiert |
+| Sicherheitslücken melden | [SECURITY.md](SECURITY.md) |
+| Beitragen | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| Changelog | [CHANGELOG.md](CHANGELOG.md) |
 
 ## Tech Stack
 
