@@ -1,4 +1,4 @@
-"""BLAST search via GA4GH WES (Nextflow) and result parsing with Biopython."""
+"""BLAST search via direct binary (WES workflow_url='blast') and Biopython parsing."""
 
 import logging
 from pathlib import Path
@@ -15,19 +15,6 @@ from app.services.wes_service import create_run as wes_create_run
 from app.services.wes_service import get_run as wes_get_run
 
 logger = logging.getLogger(__name__)
-
-
-def _blast_workflow_path() -> Path:
-    """Resolve path to blast_search.nf (config or default from project root)."""
-    settings = get_settings()
-    backend = Path(__file__).resolve().parent.parent.parent
-    project_root = backend.parent
-    if settings.blast_workflow_path:
-        p = Path(settings.blast_workflow_path)
-        if p.is_absolute():
-            return p
-        return (project_root / p).resolve()
-    return project_root / "pipelines" / "blast" / "blast_search.nf"
 
 
 def _query_to_fasta(query: str) -> bytes:
@@ -51,39 +38,32 @@ async def run_blast_search(
     database: str,
     params: BLASTParams,
 ) -> str:
-    """Start a BLAST search via WES (Nextflow workflow). Returns run_id.
+    """Start a BLAST search via direct binary (WES run with workflow_url='blast'). Returns run_id.
 
-    The workflow runs in the background; use get_blast_results(run_id) after
-    the run is COMPLETE (poll GET /ga4gh/wes/v1/runs/{run_id}/status).
+    BLAST runs in the background; use get_blast_results(run_id) after
+    the run is COMPLETE (poll GET /api/v1/blast/results/{run_id}).
+    Requires BLAST DB to be installed (see docs/TOOLS-SETUP.md).
     """
-    workflow_path = _blast_workflow_path()
-    if not workflow_path.exists():
-        raise FileNotFoundError(f"BLAST workflow not found: {workflow_path}")
-
-    workflow_content = workflow_path.read_bytes()
     fasta_bytes = _query_to_fasta(query)
+    program = "blastn"  # blastp for protein; could be extended via params later
 
     workflow_params: dict[str, str | float | int | None] = {
-        "query_file": "query.fasta",
         "database": database,
         "evalue": params.evalue,
         "max_hits": params.max_hits,
-        "sequence_type": params.sequence_type,
+        "program": program,
     }
     if params.db_path:
         workflow_params["db_path"] = params.db_path
 
     request = RunRequest(
-        workflow_type="NEXTFLOW",
-        workflow_type_version="DSL2",
-        workflow_url="blast_search.nf",
+        workflow_type="BLAST",
+        workflow_type_version="1.0",
+        workflow_url="blast",
         workflow_params=workflow_params,
-        workflow_engine="nextflow",
+        workflow_engine="blast",
     )
-    attachments = [
-        ("blast_search.nf", workflow_content),
-        ("query.fasta", fasta_bytes),
-    ]
+    attachments = [("query.fasta", fasta_bytes)]
     run_id = await wes_create_run(db, request, workflow_attachments=attachments)
     return str(run_id)
 

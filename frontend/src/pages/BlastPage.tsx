@@ -44,6 +44,12 @@ export function BlastPage() {
 
   const hits = resultsQuery.data?.results?.hits ?? [];
   const isLoading = startMutation.isPending || (!!runId && resultsQuery.isLoading);
+  const blastError = resultsQuery.error;
+  const isLikelyNoDb =
+    blastError &&
+    (String((blastError as Error)?.message ?? "").toLowerCase().includes("not complete") ||
+      String((blastError as Error)?.message ?? "").toLowerCase().includes("results not found") ||
+      String((blastError as Error)?.message ?? "").toLowerCase().includes("executor_error"));
 
   return (
     <div className="flex h-full min-h-0 gap-0">
@@ -126,6 +132,32 @@ export function BlastPage() {
         {!runId && !isLoading && (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-8 text-center text-slate-500">
             Bitte Sequence eingeben und BLAST starten.
+          </div>
+        )}
+        {features.blast && runId && !isLoading && isLikelyNoDb && (
+          <div className="empty-state rounded-lg border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+            <p className="mb-2 font-medium">
+              BLAST ist installiert, aber keine Datenbank gefunden.
+            </p>
+            <p className="mb-3">
+              Bitte zuerst eine BLAST-Datenbank einrichten:
+            </p>
+            <pre className="mb-3 overflow-x-auto rounded bg-white p-3 text-xs">
+              {`cd ~/bioresearch
+docker compose -f docker-compose.full.yml exec backend bash
+
+# Dann im Container:
+mkdir -p /blast/db
+cd /blast/db
+update_blastdb.pl --decompress nt
+# ⚠️ Warnung: nt-Datenbank ist ~100GB!
+
+# Für Tests: kleine Test-Datenbank erstellen:
+makeblastdb -in test.fasta -dbtype nucl -out /blast/db/test`}
+            </pre>
+            <p className="text-xs">
+              Siehe auch docs/TOOLS-SETUP.md im Repository.
+            </p>
           </div>
         )}
         {hits.length > 0 && (

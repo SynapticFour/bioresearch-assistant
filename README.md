@@ -37,6 +37,20 @@ Nach der Installation:
 
 → Vollständige Anleitung: [docs/INSTALL.md](docs/INSTALL.md)
 
+## 🚀 Deployment
+
+### Lokal (empfohlen, volles Feature-Set)
+`./install.sh`
+
+### Railway + Vercel (Demo, eingeschränkt)
+Manuell via GitHub Actions:
+
+- **GitHub → Actions → "Deploy to Railway"** → "Run workflow" → `DEPLOY` eingeben
+- **GitHub → Actions → "Deploy to Vercel"** → "Run workflow" → `DEPLOY` eingeben
+
+**Secrets in GitHub setzen:**  
+`RAILWAY_TOKEN`, `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+
 ---
 
 ## Was ist das?

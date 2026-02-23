@@ -1,0 +1,36 @@
+name: Deploy to Railway (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - staging
+      confirm:
+        description: 'Type DEPLOY to confirm'
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm == 'DEPLOY'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: |
+          curl -fsSL https://railway.app/install.sh | sh
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          railway up --service backend
+
+      - name: Notify success
+        run: echo "Deployed to Railway (${{ github.event.inputs.environment }})"
