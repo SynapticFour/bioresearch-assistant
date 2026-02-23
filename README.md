@@ -1,7 +1,7 @@
 # BioResearch Assistant — Synaptic Four
 
-![Version](https://img.shields.io/github/v/tag/synapticfour/bioresearch-assistant?label=version&sort=semver)
-![Tests](https://img.shields.io/github/actions/workflow/status/synapticfour/bioresearch-assistant/ci.yml?label=tests)
+![Version](https://img.shields.io/github/v/tag/SynapticFour/bioresearch-assistant?label=version&sort=semver)
+![Tests](https://img.shields.io/github/actions/workflow/status/SynapticFour/bioresearch-assistant/ci.yml?label=tests)
 ![Coverage](https://img.shields.io/badge/coverage-68%25-yellow)
 ![License](https://img.shields.io/badge/license-BUSL%201.1-blue)
 ![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets-green)
