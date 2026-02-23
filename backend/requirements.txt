@@ -33,9 +33,9 @@ spacy==3.7.4
 presidio-analyzer>=2.2.0,<3.0
 presidio-anonymizer>=2.2.0,<3.0
 cryptography>=42.0.0,<43.0
-# spaCy models for Presidio (de + en, small, py3-none-any wheels)
-de-core-news-sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.7.0/de_core_news_sm-3.7.0-py3-none-any.whl
-en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
+# spaCy models for Presidio (de + en, small, pinned versions)
+de_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.7.0/de_core_news_sm-3.7.0-py3-none-any.whl
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
 
 # GA4GH Phenopackets v2
 phenopackets>=2.0.0,<3.0
