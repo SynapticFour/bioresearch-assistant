@@ -16,6 +16,7 @@ try:
         IbanRecognizer,
         PhoneRecognizer,
     )
+
     _PREDEFINED_AVAILABLE = True
 except ImportError:
     _PREDEFINED_AVAILABLE = False
