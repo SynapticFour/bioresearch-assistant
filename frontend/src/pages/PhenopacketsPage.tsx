@@ -360,10 +360,24 @@ export function PhenopacketsPage() {
                   </p>
                 </div>
                 <DialogFooter>
+                  {!form.pseudonym_id.trim() && (
+                    <p className="text-sm text-amber-600 mb-2 w-full basis-full">
+                      ⚠️ Bitte Pseudonym-ID eingeben.
+                    </p>
+                  )}
+                  {(form.phenotypes?.length ?? 0) === 0 && (
+                    <p className="text-sm text-amber-600 mb-2 w-full basis-full">
+                      ⚠️ Bitte mindestens einen Phänotyp in Schritt 2 auswählen.
+                    </p>
+                  )}
                   <Button variant="outline" onClick={() => setCreateStep(2)}>Zurück</Button>
                   <Button
                     onClick={() => handleCreate()}
-                    disabled={!form.pseudonym_id.trim() || (form.phenotypes?.length ?? 0) === 0 || createMutation.isPending}
+                    disabled={
+                      !form.pseudonym_id.trim() ||
+                      (form.phenotypes?.length ?? 0) === 0 ||
+                      createMutation.isPending
+                    }
                   >
                     {createMutation.isPending ? "…" : "💾 Phenopacket speichern"}
                   </Button>
