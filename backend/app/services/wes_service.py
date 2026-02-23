@@ -1,8 +1,8 @@
-"""GA4GH WES v1.1 backend: Nextflow execution via async subprocess.
+"""GA4GH WES v1.1 backend: Nextflow execution and direct BLAST via async subprocess.
 
 Workflow files are staged under {wes_work_dir}/{run_id}/. Nextflow stdout/stderr
-are captured into RunLog.run_log and RunLog.task_logs. Status is updated via
-polling (DB state).
+are captured into RunLog.run_log and RunLog.task_logs. BLAST runs as binary
+(workflow_url='blast') without Nextflow.
 """
 
 import asyncio
@@ -42,6 +42,143 @@ def _iso_now() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+async def _run_blast_direct(
+    run_id: str,
+    run_dir: Path,
+    workflow_params: dict[str, Any] | None,
+) -> None:
+    """Run BLAST directly as binary (no Nextflow). Writes results.xml to run_dir."""
+    params = workflow_params or {}
+    query_file = run_dir / "query.fasta"
+    if not query_file.exists():
+        logger.warning("BLAST run %s: query.fasta not found", run_id)
+        return
+    database = str(params.get("database", "nt"))
+    program = str(params.get("program", "blastn"))
+    evalue = float(params.get("evalue", 0.001))
+    max_target_seqs = int(params.get("max_hits", 10))
+    out_xml = run_dir / "results.xml"
+
+    cmd = [
+        program,
+        "-query",
+        str(query_file),
+        "-db",
+        database,
+        "-out",
+        str(out_xml),
+        "-outfmt",
+        "5",
+        "-max_target_seqs",
+        str(max_target_seqs),
+        "-evalue",
+        str(evalue),
+    ]
+    start_time = _iso_now()
+    run_log_obj: dict[str, Any] = {
+        "name": "blast",
+        "cmd": cmd,
+        "start_time": start_time,
+        "end_time": None,
+        "stdout": None,
+        "stderr": None,
+        "exit_code": None,
+        "system_logs": None,
+    }
+    task_logs_list: list[dict[str, Any]] = []
+
+    async def update_db(
+        state: State,
+        start_time: str | None = None,
+        end_time: str | None = None,
+        run_log: dict | None = None,
+        task_logs: list | None = None,
+        outputs: dict | None = None,
+    ) -> None:
+        async with get_async_session_maker()() as session:
+            stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
+            r = await session.execute(stmt)
+            row = r.scalars().first()
+            if row:
+                row.state = state.value
+                if start_time:
+                    row.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                if end_time:
+                    row.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                if run_log is not None:
+                    row.run_log = run_log
+                if task_logs is not None:
+                    row.task_logs = task_logs
+                if outputs is not None:
+                    row.outputs = outputs
+                await session.commit()
+
+    try:
+        await update_db(
+            State.RUNNING,
+            start_time=start_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(run_dir),
+        )
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(process.communicate(), timeout=300)
+        end_time = _iso_now()
+        exit_code = process.returncode or 0
+        stdout_str = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
+        stderr_str = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
+
+        run_log_obj["end_time"] = end_time
+        run_log_obj["stdout"] = stdout_str
+        run_log_obj["stderr"] = stderr_str
+        run_log_obj["exit_code"] = exit_code
+        task_logs_list.append(
+            {
+                "id": run_id + "-blast",
+                "name": "blast",
+                "cmd": cmd,
+                "start_time": start_time,
+                "end_time": end_time,
+                "stdout": stdout_str,
+                "stderr": stderr_str,
+                "exit_code": exit_code,
+                "system_logs": None,
+            }
+        )
+        state = State.COMPLETE if exit_code == 0 and out_xml.exists() else State.EXECUTOR_ERROR
+        await update_db(state, end_time=end_time, run_log=run_log_obj, task_logs=task_logs_list)
+    except TimeoutError:
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["stderr"] = (run_log_obj.get("stderr") or "") + "\nBLAST timeout (300s)."
+        run_log_obj["exit_code"] = -1
+        await update_db(
+            State.EXECUTOR_ERROR,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+    except Exception as e:
+        logger.exception("BLAST execution failed for run_id=%s", run_id)
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["stderr"] = (run_log_obj.get("stderr") or "") + "\n" + str(e)
+        run_log_obj["exit_code"] = -1
+        await update_db(
+            State.SYSTEM_ERROR,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+    finally:
+        _run_tasks.pop(run_id, None)
+
+
 async def _execute_nextflow(
     run_id: str,
     run_dir: Path,
@@ -52,6 +189,13 @@ async def _execute_nextflow(
 
     Uses async subprocess; stdout/stderr captured into run_log and task_logs.
     """
+    if workflow_url == "blast":
+        task = asyncio.create_task(
+            _run_blast_direct(run_id, run_dir, workflow_params),
+        )
+        _run_tasks[run_id] = task
+        return
+
     workflow_path = (
         run_dir / _safe_filename(workflow_url)
         if not workflow_url.startswith(("http://", "https://"))

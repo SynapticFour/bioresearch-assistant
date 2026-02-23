@@ -20,11 +20,30 @@ update_blastdb.pl --decompress nt_prok
 # In .env eintragen:
 BLAST_DB_PATH=/Users/DEINNAME/blast-db
 
-### Docker
-Im docker-compose.yml ist BLAST bereits integriert.
-Das blast-db Volume wird automatisch gemountet.
-Datenbanken beim ersten Start herunterladen:
-docker compose exec backend python -m app.scripts.download_blast_db
+### Docker / Backend-Container
+
+BLAST läuft als Binary im Backend-Container (kein Nextflow für BLAST nötig). **Ohne Datenbank schlägt BLAST fehl** — die Fehlermeldung in der BLAST-Seite zeigt dann die Anleitung.
+
+**Datenbank im Backend-Container einrichten:**
+
+```bash
+cd ~/bioresearch   # oder Ihr Installationsverzeichnis
+docker compose -f docker-compose.full.yml exec backend bash
+
+# Im Container:
+mkdir -p /blast/db
+cd /blast/db
+# NCBI nt-Datenbank (⚠️ ~100GB):
+update_blastdb.pl --decompress nt
+
+# Alternativ kleine Test-Datenbank:
+echo ">testseq
+ATCGATCGATCG" > /tmp/test.fasta
+makeblastdb -in /tmp/test.fasta -dbtype nucl -out /blast/db/test
+# Dann in der UI Datenbank "test" wählen
+```
+
+Ohne Datenbank liefert BLAST einen Fehler (z. B. "BLAST database not found"). Die BLAST-UI zeigt in diesem Fall eine Anleitung an.
 
 ---
 

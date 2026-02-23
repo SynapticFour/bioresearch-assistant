@@ -3,6 +3,10 @@ name: Deploy to DFN-Cloud
 on:
   workflow_dispatch:
     inputs:
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        default: ""
       server_ip:
         description: "DFN Server IP"
         required: true
@@ -29,6 +33,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.confirm == 'DEPLOY' ||
+      github.event_name == 'workflow_call'
     steps:
       - uses: actions/checkout@v4
 

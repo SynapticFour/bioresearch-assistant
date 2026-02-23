@@ -1,7 +1,15 @@
 name: Build and Push Docker Images
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        default: ""
   workflow_call:
 
 env:
@@ -12,6 +20,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.confirm == 'DEPLOY' ||
+      github.event_name == 'workflow_call'
     permissions:
       contents: read
       packages: write
