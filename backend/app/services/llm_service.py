@@ -154,6 +154,7 @@ class LLMService:
         abstract: str,
         context: str = "",
         language: str = "de",
+        title: str = "",
     ) -> PaperSummary:
         """Summarize a paper abstract; optionally score relevance to context.
 
@@ -161,6 +162,7 @@ class LLMService:
             abstract: The paper abstract text.
             context: Optional research context; if provided, relevance_score is set (0-1).
             language: Output language for summary ('de' or 'en').
+            title: Optional paper title for structured summary.
 
         Returns:
             PaperSummary with summary, key_findings, methods, and optional relevance_score.
@@ -177,15 +179,22 @@ class LLMService:
                 relevance_score=None,
             )
         has_context = bool((context or "").strip())
-        lang_instruction = (
-            "Summarize in German."
-            if (language or "de").lower() == "de"
-            else "Summarize in English."
-        )
+        lang = (language or "de").lower()
+        lang_instruction = {
+            "de": (
+                "Antworte ausschließlich auf Deutsch. "
+                "Erstelle eine strukturierte Zusammenfassung."
+            ),
+            "en": (
+                "Reply in English only. "
+                "Create a structured summary."
+            ),
+        }.get(lang, "Reply in the same language as the abstract.")
         system = (
             "You are a biomedical research assistant. Output valid JSON only, no markdown. "
             "Use the exact keys: summary, key_findings, methods, relevance_score. "
-            "summary: 2-3 sentences. key_findings and methods: arrays of strings. "
+            "summary: structured 2-4 sentences covering: 1) Fragestellung/Ziel, 2) Methoden, "
+            "3) Ergebnisse, 4) Klinische Relevanz. key_findings and methods: arrays of strings. "
             f"{lang_instruction} "
         )
         if has_context:
@@ -193,7 +202,11 @@ class LLMService:
         else:
             system += "relevance_score: null. "
 
-        user = f"Abstract:\n{abstract}\n\n"
+        title_part = (title or "").strip()
+        user = ""
+        if title_part:
+            user += f"Titel: {title_part}\n\n"
+        user += f"Abstract:\n{abstract}\n\n"
         if has_context:
             user += f"Research context:\n{context}\n\n"
         user += "Return JSON with summary, key_findings, methods, relevance_score."

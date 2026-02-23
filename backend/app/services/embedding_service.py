@@ -110,6 +110,12 @@ class EmbeddingService:
             existing.year = str(paper.year) if paper.year is not None else None
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
+            if paper.summary is not None:
+                existing.summary = paper.summary
+            if paper.summary_language is not None:
+                existing.summary_language = paper.summary_language
+            if paper.summary_model is not None:
+                existing.summary_model = paper.summary_model
             if embedding is not None:
                 existing.embedding = embedding
             else:
@@ -133,6 +139,9 @@ class EmbeddingService:
             embedding=embedding if embedding is not None else None,  # NULL when unavailable
             user_id=user_id,
             team_id=team_id,
+            summary=paper.summary,
+            summary_language=paper.summary_language,
+            summary_model=paper.summary_model,
         )
         db.add(new_paper)
         await db.flush()
