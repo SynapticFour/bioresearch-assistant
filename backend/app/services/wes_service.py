@@ -127,9 +127,7 @@ async def _run_blast_direct(
             stderr=asyncio.subprocess.PIPE,
             cwd=str(run_dir),
         )
-        stdout_bytes, stderr_bytes = await asyncio.wait_for(
-            process.communicate(), timeout=300
-        )
+        stdout_bytes, stderr_bytes = await asyncio.wait_for(process.communicate(), timeout=300)
         end_time = _iso_now()
         exit_code = process.returncode or 0
         stdout_str = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
