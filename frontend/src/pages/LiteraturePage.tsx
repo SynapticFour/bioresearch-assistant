@@ -326,6 +326,11 @@ function PaperCard({
         {(paper.authors?.length ?? 0) > 5 && " et al."}
         {paper.year != null && ` · ${paper.year}`}
         {paper.journal && ` · ${paper.journal}`}
+        {paper.score != null && (
+          <span className="ml-2 text-teal-600">
+            Relevanz: {(paper.score * 100).toFixed(0)}%
+          </span>
+        )}
       </p>
       {abstract && (
         <div className="mb-3">
@@ -638,9 +643,20 @@ export function LiteraturePage() {
           {hasSearched && !isLoading && papers.length > 0 && (
             <>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-medium text-slate-700">
-                  {papers.length} Paper gefunden für &quot;{query.trim()}&quot;
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm font-medium text-slate-700">
+                    {papers.length} Paper gefunden für &quot;{query.trim()}&quot;
+                  </p>
+                  {features.semantic_search ? (
+                    <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800">
+                      🧠 Semantische Suche aktiv
+                    </span>
+                  ) : (
+                    <span className="rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                      🔍 Keyword-Suche
+                    </span>
+                  )}
+                </div>
                 <Button
                   variant="outline"
                   size="sm"

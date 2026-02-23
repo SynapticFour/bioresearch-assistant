@@ -164,6 +164,13 @@ export const library = {
     });
     return data;
   },
+  async summarize(pmid: string): Promise<{ summary: string }> {
+    const { data } = await apiClient.post<{ summary: string }>(
+      `${API_V1}/library/summarize`,
+      { pmid }
+    );
+    return data;
+  },
   async extractMetadata(params: {
     doi?: string | null;
     pmid?: string | null;

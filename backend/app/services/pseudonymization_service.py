@@ -8,32 +8,33 @@ from typing import Any
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, RecognizerResult
 from presidio_anonymizer import AnonymizerEngine
 
+try:
+    from presidio_analyzer.predefined_recognizers import (
+        CreditCardRecognizer,
+        DateRecognizer,
+        EmailRecognizer,
+        IbanRecognizer,
+        PhoneRecognizer,
+    )
+    _PREDEFINED_AVAILABLE = True
+except ImportError:
+    _PREDEFINED_AVAILABLE = False
+
 from app.core.config import get_settings
 from app.core.encryption import decrypt_mapping, encrypt_mapping
 from app.services.pseudonymization_recognizers import (
-    GERMAN_PATIENT_ID_ENTITY,
     GERMAN_PERSON_DENY_SET,
     GermanPatientIDRecognizer,
 )
 
 logger = logging.getLogger(__name__)
 
-# Entities to detect (Presidio built-in + our custom ID)
-DEFAULT_ENTITIES = [
-    "PERSON",
-    "DATE_TIME",
-    "PHONE_NUMBER",
-    "EMAIL_ADDRESS",
-    "MEDICAL_LICENSE",
-    GERMAN_PATIENT_ID_ENTITY,
-]
-
 # Minimum score for an entity to be returned (avoids spurious PERSON e.g. for "Keine")
 ANALYZER_SCORE_THRESHOLD = 0.7
 
 
 def _get_analyzer() -> AnalyzerEngine:
-    """Build analyzer with default recognizers plus German patient ID recognizer."""
+    """Build analyzer with NER + pattern-based recognizers (Phone, Email, Date, IBAN, etc.)."""
     from presidio_analyzer.nlp_engine import NlpEngineProvider
 
     nlp_configuration = {
@@ -50,6 +51,15 @@ def _get_analyzer() -> AnalyzerEngine:
     registry = RecognizerRegistry(supported_languages=supported_languages)
     registry.load_predefined_recognizers(languages=supported_languages)
     registry.add_recognizer(GermanPatientIDRecognizer())
+    # Pattern-basierte Recognizer explizit (Telefon, E-Mail, Datum, IBAN, Kreditkarte)
+    if _PREDEFINED_AVAILABLE:
+        registry.add_recognizer(PhoneRecognizer(supported_language="de"))
+        registry.add_recognizer(PhoneRecognizer(supported_language="en"))
+        registry.add_recognizer(EmailRecognizer())
+        registry.add_recognizer(DateRecognizer())
+        registry.add_recognizer(IbanRecognizer())
+        registry.add_recognizer(CreditCardRecognizer())
+
     return AnalyzerEngine(
         registry=registry,
         nlp_engine=nlp_engine,
@@ -98,14 +108,14 @@ def analyze(text: str, language: str = "de") -> list[RecognizerResult]:
         raw = engine.analyze(
             text=text,
             language=language,
-            entities=DEFAULT_ENTITIES,
+            entities=None,  # Alle registrierten Entity-Typen (PERSON, PHONE_NUMBER, EMAIL, etc.)
         )
     except KeyError:
         logger.warning("Language %r not available for Presidio, falling back to 'en'", language)
         raw = engine.analyze(
             text=text,
             language="en",
-            entities=DEFAULT_ENTITIES,
+            entities=None,
         )
     # Filter by score and drop PERSON spans that are German non-name words
     filtered = [

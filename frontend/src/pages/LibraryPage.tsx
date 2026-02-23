@@ -30,14 +30,25 @@ const PUBMED_URL = (pmid: string) =>
 
 interface PaperCardProps {
   paper: Paper;
+  summaryOverride?: string | null;
   onRemove: (pmid: string) => void;
+  onSummarize?: (pmid: string) => void;
   isRemoving: boolean;
+  isSummarizing?: boolean;
 }
 
-function PaperCard({ paper, onRemove, isRemoving }: PaperCardProps) {
+function PaperCard({
+  paper,
+  summaryOverride,
+  onRemove,
+  onSummarize,
+  isRemoving,
+  isSummarizing,
+}: PaperCardProps) {
   const [abstractExpanded, setAbstractExpanded] = useState(false);
   const abstract = paper.abstract ?? "";
   const lineClamp = abstractExpanded ? undefined : 3;
+  const displaySummary = summaryOverride ?? paper.summary;
 
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -84,6 +95,26 @@ function PaperCard({ paper, onRemove, isRemoving }: PaperCardProps) {
               )}
             </button>
           )}
+        </div>
+      )}
+      {displaySummary && (
+        <div className="mb-3 rounded-lg border border-teal-100 bg-teal-50 p-3 text-sm text-slate-800">
+          <h4 className="font-medium text-teal-800">KI-Zusammenfassung</h4>
+          <p className="mt-1">{displaySummary}</p>
+        </div>
+      )}
+      {onSummarize && (
+        <div className="mb-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onSummarize(paper.pmid)}
+            disabled={isSummarizing}
+            className="summarize-btn"
+          >
+            {isSummarizing ? "⏳ Zusammenfasse…" : "🤖 KI-Zusammenfassung"}
+          </Button>
         </div>
       )}
       <footer className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
@@ -145,6 +176,8 @@ export function LibraryPage() {
   const [journalFilter, setJournalFilter] = useState<string>("");
   const [freeTextFilter, setFreeTextFilter] = useState("");
   const [semanticResults, setSemanticResults] = useState<Paper[] | null>(null);
+  const [summaryByPmid, setSummaryByPmid] = useState<Record<string, string>>({});
+  const [summarizingPmid, setSummarizingPmid] = useState<string | null>(null);
 
   const { data: papers = [], isLoading } = useQuery({
     queryKey: ["library-papers", yearFilter, journalFilter],
@@ -178,6 +211,16 @@ export function LibraryPage() {
       if (data.errors.length === 0) showSuccess(`${data.imported} Papers importiert.`);
     },
     onError: (err: Error) => showError(err?.message ?? "Bulk-Import fehlgeschlagen."),
+  });
+
+  const summarizeMutation = useMutation({
+    mutationFn: (pmid: string) => libraryApi.summarize(pmid),
+    onMutate: (pmid) => setSummarizingPmid(pmid),
+    onSuccess: (data, pmid) => {
+      setSummaryByPmid((prev) => ({ ...prev, [pmid]: data.summary }));
+    },
+    onError: (err: Error) => showError(err?.message ?? "Zusammenfassung fehlgeschlagen."),
+    onSettled: () => setSummarizingPmid(null),
   });
 
   const addPaperMutation = useMutation({
@@ -443,6 +486,15 @@ export function LibraryPage() {
       {/* Paper list */}
       {isLoading ? (
         <div className="h-48 animate-pulse rounded-lg bg-slate-100" />
+      ) : filteredList.length === 0 && freeTextFilter.trim() ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 py-16 text-center empty-state">
+          <p className="mb-2 text-slate-600">
+            Keine Papers gefunden für &quot;{freeTextFilter}&quot;
+          </p>
+          <Button variant="outline" onClick={() => setFreeTextFilter("")}>
+            Suche zurücksetzen
+          </Button>
+        </div>
       ) : filteredList.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-slate-200 bg-slate-50 py-16 text-center">
           <BookOpen className="mb-4 h-16 w-16 text-slate-300" />
@@ -459,18 +511,29 @@ export function LibraryPage() {
       ) : (
         <>
           <div className="space-y-4">
-            <p className="text-sm text-slate-600">
-              {filteredList.length} Paper
-              {semanticResults !== null && " (Semantische Suche)"}
-            </p>
+            {freeTextFilter.trim() && (
+              <p className="text-sm text-slate-500">
+                {filteredList.length} von {papers.length} Papers gefunden für
+                &quot;{freeTextFilter}&quot;
+              </p>
+            )}
+            {!freeTextFilter.trim() && (
+              <p className="text-sm text-slate-600">
+                {filteredList.length} Paper
+                {semanticResults !== null && " (Semantische Suche)"}
+              </p>
+            )}
             {filteredList.map((paper) => (
-            <PaperCard
-              key={paper.pmid}
-              paper={paper}
-              onRemove={(pmid) => deleteMutation.mutate(pmid)}
-              isRemoving={deleteMutation.isPending}
-            />
-          ))}
+              <PaperCard
+                key={paper.pmid}
+                paper={paper}
+                summaryOverride={summaryByPmid[paper.pmid]}
+                onRemove={(pmid) => deleteMutation.mutate(pmid)}
+                onSummarize={features.llm_summaries ? (pmid) => summarizeMutation.mutate(pmid) : undefined}
+                isRemoving={deleteMutation.isPending}
+                isSummarizing={summarizingPmid === paper.pmid && summarizeMutation.isPending}
+              />
+            ))}
           </div>
         </>
       )}

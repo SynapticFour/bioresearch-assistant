@@ -17,6 +17,8 @@ export interface Paper {
   methods?: string[];
   /** Keywords / MeSH (when from enriched API). */
   keywords?: string[];
+  /** Relevance score 0–1 (e.g. from semantic search). */
+  score?: number;
 }
 
 export interface EntityFound {
