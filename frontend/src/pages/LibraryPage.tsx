@@ -527,6 +527,13 @@ export function LibraryPage() {
       ) : (
         <>
           <div className="space-y-4">
+            {semanticResults !== null && (
+              <p className="mb-4 text-sm text-gray-500">
+                {semanticResults.length === 0
+                  ? "Keine semantisch ähnlichen Papers gefunden."
+                  : `${semanticResults.length} semantisch ähnliche Papers gefunden.`}
+              </p>
+            )}
             {freeTextFilter.trim() && (
               <p className="text-sm text-slate-500">
                 {filteredList.length} von {papers.length} Papers gefunden für

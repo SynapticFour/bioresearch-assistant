@@ -35,6 +35,12 @@ class SemanticSearchRequest(BaseModel):
 
     query: str = Field(default="", description="Search query text")
     limit: int = Field(default=10, ge=1, le=100, description="Max number of results")
+    threshold: float | None = Field(
+        default=None,
+        ge=0,
+        le=2,
+        description="Max cosine distance (0=same, 2=opposite). Only return papers with distance <= threshold.",
+    )
 
 
 DOI_REGEX = re.compile(r"^10\.\d{4,}/\S+$")
@@ -302,6 +308,7 @@ async def semantic_search(
             db,
             query,
             limit=limit,
+            threshold=body.threshold,
             user_id=user_id,
             team_id=team_id,
         )
