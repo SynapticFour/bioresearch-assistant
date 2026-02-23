@@ -159,7 +159,7 @@ async def test_summarize_in_german_uses_german_prompt(mock_anthropic_client, moc
     service = LLMService()
     await service.summarize_paper(abstract="Test.", language="de")
     call_kwargs = mock_anthropic_client.messages.create.call_args[1]
-    assert "Summarize in German" in call_kwargs["system"]
+    assert "Deutsch" in call_kwargs["system"]
 
 
 @pytest.mark.asyncio
@@ -168,7 +168,7 @@ async def test_summarize_in_english_uses_english_prompt(mock_anthropic_client, m
     service = LLMService()
     await service.summarize_paper(abstract="Test.", language="en")
     call_kwargs = mock_anthropic_client.messages.create.call_args[1]
-    assert "Summarize in English" in call_kwargs["system"]
+    assert "English" in call_kwargs["system"]
 
 
 @pytest.mark.asyncio
