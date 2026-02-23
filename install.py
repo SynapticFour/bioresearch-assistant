@@ -198,13 +198,33 @@ def configure(
     print(f"\n  {Colors.BOLD}Basis:{Colors.RESET}")
     default_dir = install_dir_arg or str(Path.home() / "bioresearch")
     config["install_dir"] = ask("Installationsverzeichnis", default_dir)
+
+    # Prüfe ob bereits eine .env existiert — bestehende Secrets wiederverwenden
+    existing_env = Path(config["install_dir"]) / ".env"
+    existing_secrets = {}
+    if existing_env.exists():
+        info("Bestehende .env gefunden — lese vorhandene Secrets...")
+        for line in existing_env.read_text().splitlines():
+            if "=" in line and not line.startswith("#"):
+                key, _, val = line.partition("=")
+                existing_secrets[key.strip()] = val.strip()
+        ok("Bestehende Secrets werden wiederverwendet")
+
+    config["db_password"] = existing_secrets.get(
+        "POSTGRES_PASSWORD",
+        secrets.token_urlsafe(32),
+    )
+    config["jwt_secret"] = existing_secrets.get(
+        "JWT_SECRET",
+        secrets.token_urlsafe(64),
+    )
+    config["encryption_key"] = existing_secrets.get(
+        "PSEUDONYMIZATION_ENCRYPTION_KEY",
+        secrets.token_hex(32),
+    )
+
     config["app_version"] = "1.3.0"
     config["institution"] = ask("Name der Institution", "Meine Institution")
-
-    # Secrets (immer auto-generiert)
-    config["db_password"] = secrets.token_urlsafe(32)
-    config["jwt_secret"] = secrets.token_urlsafe(64)
-    config["encryption_key"] = secrets.token_hex(32)
 
     # Ports
     print(f"\n  {Colors.BOLD}Ports:{Colors.RESET}")
@@ -426,6 +446,28 @@ volumes:
 def install(config: dict, install_dir: Path) -> bool:
     step("Installiere BioResearch Assistant")
     os.chdir(install_dir)
+
+    # Prüfe ob DB bereits läuft
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "ps",
+            "db",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        cwd=install_dir,
+    )
+    if result.returncode == 0 and "running" in (result.stdout or "").lower():
+        warn("Datenbank läuft bereits!")
+        warn("Bestehende Daten bleiben erhalten.")
+        info("Für kompletten Neustart:")
+        info("  docker compose -f docker-compose.full.yml down -v")
 
     # Docker Images bauen
     info("Baue Docker Images (kann einige Minuten dauern)...")
@@ -735,6 +777,13 @@ def print_summary(config: dict, install_dir: Path):
 
 {Colors.YELLOW}Auth-Modus: Dev (kein Login erforderlich)
 Für Produktion: OIDC_ISSUER in .env setzen{Colors.RESET}
+
+{Colors.YELLOW}Secrets gespeichert in:
+  {install_dir}/.env
+
+Bei Neuinstallation werden bestehende Secrets
+automatisch wiederverwendet.
+Für komplett neue Secrets: .env vorher löschen.{Colors.RESET}
 
 {Colors.YELLOW}⚠ WICHTIG: .env enthält Secrets —
   niemals in Git committen!{Colors.RESET}
