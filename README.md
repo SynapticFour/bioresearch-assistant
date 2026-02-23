@@ -1,7 +1,7 @@
 # BioResearch Assistant — Synaptic Four
 
 [![CI](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/ci.yml)
-[![Latest Release](https://img.shields.io/github/v/release/SynapticFour/bioresearch-assistant)](https://github.com/SynapticFour/bioresearch-assistant/releases)
+[![Version](https://img.shields.io/github/v/tag/SynapticFour/bioresearch-assistant?label=version&sort=semver)](https://github.com/SynapticFour/bioresearch-assistant/tags)
 ![Coverage](docs/coverage-badge.svg)
 [![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/)
 [![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets%20%7C%20Passports-green)](https://www.ga4gh.org/)
@@ -12,6 +12,37 @@
 [![Deploy Azure](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-azure.yml/badge.svg)](https://github.com/SynapticFour/bioresearch-assistant/actions/workflows/deploy-azure.yml)
 ![License](https://img.shields.io/badge/License-BUSL%201.1-blue)
 
+## 🚀 Schnellstart — Lokale Installation
+
+```bash
+git clone https://github.com/SynapticFour/bioresearch-assistant.git
+cd bioresearch-assistant
+./install.sh        # macOS / Linux
+# install.bat       # Windows
+```
+
+Der Installer richtet das **komplette System** ein — kein manuelles Konfigurieren nötig:
+
+- PostgreSQL + pgvector (Vektordatenbank)
+- Backend (FastAPI)
+- Frontend (React)
+- Ollama (lokales LLM, DSGVO-konform)
+- BLAST (Sequenzsuche)
+- Nextflow (Pipeline Engine)
+
+Nach der Installation:
+
+```bash
+./start.sh    # Starten
+./stop.sh     # Stoppen
+./update.sh   # Aktualisieren
+./backup.sh   # Backup
+```
+
+→ Vollständige Anleitung: [docs/INSTALL.md](docs/INSTALL.md)
+
+---
+
 ## Was ist das?
 
 BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute und Unikliniken. Es kombiniert Literature Mining (PubMed + KI-Zusammenfassung), Bioinformatik-Pipelines (BLAST, RNA-Seq, Variant Calling) und **DSGVO-konforme Pseudonymisierung**. GA4GH-Standards (WES, DRS, Phenopackets) werden unterstützt.
@@ -20,6 +51,9 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 
 - 📚 **Literature Mining** — PubMed-Suche mit KI-Zusammenfassung (DE/EN)
 - 🔒 **DSGVO-konforme Pseudonymisierung** — Presidio-basiert (DE + EN)
+- ↩️ **De-Pseudonymisierung** — Mit Audit Trail und konfigurierbarer Zugriffskontrolle (DEPSEUDO_ACCESS)
+- 📋 **Automatische Metadaten-Extraktion** — DOI (CrossRef), PMID (PubMed), FASTA/VCF-Header
+- 🧬 **Geführte Phenopacket-Erstellung** — HPO-Suche und Extraktion aus Freitext
 - 🧬 **BLAST Sequenzsuche** — Anbindung an Nextflow-Pipelines
 - ⚙️ **GA4GH WES** — Pipeline-Ausführung (Nextflow)
 - 📁 **GA4GH DRS** — Datei-Management für genomische Daten
@@ -36,7 +70,9 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 | **GA4GH**   | WES v1.1, DRS v1.3, Phenopackets v2, Passports v1.2 |
 | **Sicherheit** | Presidio, AES-256 für Mappings, Audit-Log (kein Rohtext) |
 
-## Schnellstart (5 Minuten)
+## Manuelle Installation (ohne Installer)
+
+Falls Sie ohne den einen Befehls-Installer einrichten möchten:
 
 1. **Repository klonen und .env anlegen**
    ```bash
@@ -67,7 +103,7 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 
 5. **Öffnen:** http://localhost:5173 (oder http://localhost:3000 je nach Vite-Port)
 
-Ausführliche Schritte und Voraussetzungen: **[INSTALLATION.md](INSTALLATION.md)**.
+Ausführliche Schritte: **[docs/INSTALL.md](docs/INSTALL.md)**.
 
 ## Architektur
 

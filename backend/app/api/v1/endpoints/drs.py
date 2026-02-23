@@ -4,10 +4,13 @@ Reference: https://ga4gh.github.io/data-repository-service-schemas/
 """
 
 import logging
+from pathlib import Path
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
 
+from app.core.auth import get_current_user
+from app.core.config import get_settings
 from app.schemas.drs import (
     AccessURL,
     DrsObject,
@@ -30,6 +33,7 @@ from app.services.drs_service import (
 from app.services.drs_service import (
     register_object_from_path as service_register_from_path,
 )
+from app.services.metadata_service import MetadataService
 
 logger = logging.getLogger(__name__)
 
@@ -54,27 +58,45 @@ async def list_drs_objects() -> DrsObjectListResponse:
     return DrsObjectListResponse(objects=objects)
 
 
+MAX_DRS_UPLOAD_SIZE = 500 * 1024 * 1024  # 500 MB
+
+
 @router.post(
     "/objects",
     response_model=DrsObject,
     status_code=status.HTTP_201_CREATED,
+    summary="DRS-Objekt registrieren",
+    description="Upload (bis 500MB) oder Server-Pfad für große Dateien.",
 )
 async def register_drs_object(
     name: str = Form(..., min_length=1),
     file: UploadFile | None = File(default=None),
     path: str | None = Form(default=None),
+    server_path: str | None = Form(default=None),
     description: str | None = Form(default=None),
+    current_user: dict = Depends(get_current_user),
 ) -> DrsObject:
-    """Register a DRS object: upload a file or register existing path under storage.
+    """Register a DRS object: upload (max 500MB) or register existing path.
 
-    Send multipart/form-data: `name` (required), and either `file` (upload) or `path`
-    (relative path under DRS storage for existing file).
+    Either `file` (direct upload) or `path` (relative under DRS storage) or
+    `server_path` (absolute path on server; must be under drs_storage_path).
     """
+    settings = get_settings()
+    base_root = Path(settings.drs_storage_path).resolve()
+
     if file is not None and file.filename:
         filename = (name or file.filename or "upload").strip()
         if filename in (".", ".."):
             filename = "upload"
         content = await file.read()
+        if len(content) > MAX_DRS_UPLOAD_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=(
+                    f"Datei zu groß ({len(content) // 1024 // 1024}MB). "
+                    "Maximum: 500MB. Für größere Dateien Server-Pfad angeben."
+                ),
+            )
         try:
             object_id = service_register_object(filename, content)
         except ValueError as e:
@@ -82,6 +104,31 @@ async def register_drs_object(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(e),
             ) from e
+    elif server_path and server_path.strip():
+        resolved = Path(server_path.strip()).resolve()
+        if not resolved.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Datei nicht gefunden: {server_path}",
+            )
+        try:
+            rel = resolved.relative_to(base_root)
+        except ValueError as err:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Pfad nicht erlaubt (muss unter DRS-Speicher liegen)",
+            ) from err
+        object_id = str(rel).replace("\\", "/")
+        if ".." in object_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Pfad nicht erlaubt",
+            )
+        if not resolved.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Server-Pfad muss eine Datei sein",
+            )
     elif path:
         try:
             object_id = service_register_from_path(path.strip())
@@ -93,7 +140,7 @@ async def register_drs_object(
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Provide either file upload or path for existing file",
+            detail="Entweder file, path oder server_path angeben",
         )
     obj = get_object(object_id)
     if obj is None:
@@ -142,3 +189,42 @@ async def stream_drs_object(object_id: str) -> FileResponse:
             detail="The requested DRS object was not found.",
         )
     return FileResponse(path, filename=path.name, media_type="application/octet-stream")
+
+
+MAX_EXTRACT_METADATA_SIZE = 50 * 1024 * 1024  # 50 MB
+
+
+@router.post(
+    "/objects/extract-metadata",
+    status_code=status.HTTP_200_OK,
+    summary="Datei-Metadaten extrahieren",
+    description="Extrahiert Metadaten aus FASTA- oder VCF-Dateiinhalt (Header-Parsing).",
+)
+async def extract_file_metadata(
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Extract metadata from file content (FASTA, VCF). Max 50 MB."""
+    content = await file.read()
+    if len(content) > MAX_EXTRACT_METADATA_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Datei zu groß (max. 50 MB für Metadaten-Extraktion)",
+        )
+    try:
+        content_str = content.decode("utf-8", errors="ignore")
+    except Exception:
+        content_str = ""
+    service = MetadataService()
+    filename = file.filename or ""
+    if filename.endswith((".fasta", ".fa", ".fna")):
+        metadata = await service.extract_from_fasta(content_str)
+    elif filename.endswith(".vcf"):
+        metadata = await service.extract_from_vcf_header(content_str)
+    else:
+        metadata = {
+            "name": filename,
+            "size": len(content),
+            "format": "unknown",
+        }
+    return metadata

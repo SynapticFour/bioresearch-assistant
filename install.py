@@ -1,0 +1,801 @@
+#!/usr/bin/env python3
+"""
+BioResearch Assistant — Lokaler Installer
+Synaptic Four GmbH
+
+Installiert das vollständige System via Docker:
+- PostgreSQL + pgvector
+- Backend (FastAPI)
+- Frontend (React/nginx)
+- Ollama (lokales LLM, DSGVO-konform)
+- BLAST (Sequenzsuche)
+- Nextflow (Pipeline Engine)
+
+Verwendung:
+  python install.py              # Interaktiv
+  python install.py --minimal    # Nur Core
+  python install.py --unattended # Alle Defaults
+  python install.py --install-dir /opt/bioresearch
+"""
+
+import subprocess
+import sys
+import os
+import secrets
+import shutil
+import json
+import time
+import urllib.request
+from pathlib import Path
+
+
+# ── Farben für Terminal Output ────────────────────────
+class Colors:
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    BLUE = "\033[94m"
+    BOLD = "\033[1m"
+    RESET = "\033[0m"
+
+
+def ok(msg):
+    print(f"{Colors.GREEN}  ✓ {msg}{Colors.RESET}")
+
+
+def info(msg):
+    print(f"{Colors.BLUE}  ℹ {msg}{Colors.RESET}")
+
+
+def warn(msg):
+    print(f"{Colors.YELLOW}  ⚠ {msg}{Colors.RESET}")
+
+
+def err(msg):
+    print(f"{Colors.RED}  ✗ {msg}{Colors.RESET}")
+
+
+def step(msg):
+    print(f"\n{Colors.BOLD}{Colors.BLUE}▶ {msg}{Colors.RESET}")
+
+
+def header():
+    print(
+        f"""
+{Colors.BOLD}{Colors.BLUE}
+╔═══════════════════════════════════════════════════╗
+║   BioResearch Assistant — Installer v1.3.0       ║
+║   Synaptic Four GmbH                             ║
+║   Proudly built by individuals on the            ║
+║   autism spectrum                                ║
+╚═══════════════════════════════════════════════════╝
+{Colors.RESET}"""
+    )
+
+
+# ── Voraussetzungen prüfen ────────────────────────────
+def check_prerequisites() -> bool:
+    step("Prüfe Voraussetzungen")
+    all_ok = True
+
+    # Docker
+    if shutil.which("docker"):
+        try:
+            result = subprocess.run(
+                ["docker", "info"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                ok("Docker läuft")
+            else:
+                err("Docker ist installiert aber läuft nicht")
+                info("Bitte Docker Desktop starten")
+                all_ok = False
+        except Exception:
+            err("Docker nicht erreichbar")
+            all_ok = False
+    else:
+        err("Docker nicht installiert")
+        info("Bitte von https://docker.com installieren")
+        all_ok = False
+
+    # Docker Compose
+    compose_ok = False
+    for cmd in [
+        ["docker", "compose", "version"],
+        ["docker-compose", "--version"],
+    ]:
+        try:
+            r = subprocess.run(cmd, capture_output=True)
+            if r.returncode == 0:
+                ok("Docker Compose verfügbar")
+                compose_ok = True
+                break
+        except Exception:
+            continue
+    if not compose_ok:
+        err("Docker Compose nicht gefunden")
+        all_ok = False
+
+    # Python Version
+    if sys.version_info >= (3, 9):
+        ok(f"Python {sys.version_info.major}.{sys.version_info.minor}")
+    else:
+        err(
+            f"Python 3.9+ benötigt "
+            f"(aktuell: {sys.version_info.major}.{sys.version_info.minor})"
+        )
+        all_ok = False
+
+    # Git
+    if shutil.which("git"):
+        ok("Git verfügbar")
+    else:
+        err("Git nicht gefunden")
+        info("Bitte von https://git-scm.com installieren")
+        all_ok = False
+
+    # Freier Speicherplatz
+    disk = shutil.disk_usage(".")
+    free_gb = disk.free / (1024**3)
+    if free_gb >= 20:
+        ok(f"{free_gb:.1f} GB freier Speicher")
+    elif free_gb >= 10:
+        warn(f"Nur {free_gb:.1f} GB frei (20 GB empfohlen für Ollama-Modelle)")
+    else:
+        err(f"Zu wenig Speicher: {free_gb:.1f} GB (mind. 10 GB benötigt)")
+        all_ok = False
+
+    # RAM (optional via psutil)
+    try:
+        import psutil
+
+        ram_gb = psutil.virtual_memory().total / (1024**3)
+        if ram_gb >= 16:
+            ok(f"{ram_gb:.0f} GB RAM")
+        elif ram_gb >= 8:
+            warn(f"Nur {ram_gb:.0f} GB RAM (16 GB für Ollama empfohlen)")
+        else:
+            warn(
+                f"Wenig RAM: {ram_gb:.0f} GB — Ollama wird möglicherweise langsam sein"
+            )
+    except ImportError:
+        info("psutil nicht installiert — RAM-Check übersprungen")
+
+    return all_ok
+
+
+# ── Interaktive Konfiguration ─────────────────────────
+def configure(
+    unattended: bool = False,
+    install_dir_arg: str | None = None,
+) -> dict:
+    step("Konfiguration")
+
+    if unattended:
+        info("Unattended Modus — nutze alle Defaults")
+
+    def ask(prompt, default, secret=False):
+        if unattended:
+            return default
+        display = "[auto-generiert]" if secret else default
+        val = input(f"  {prompt} [{display}]: ").strip()
+        return val if val else default
+
+    def ask_bool(prompt, default=True):
+        if unattended:
+            return default
+        d = "J/n" if default else "j/N"
+        val = input(f"  {prompt} ({d}): ").strip().lower()
+        if not val:
+            return default
+        return val in ("j", "ja", "y", "yes")
+
+    config = {}
+
+    # Basis
+    print(f"\n  {Colors.BOLD}Basis:{Colors.RESET}")
+    default_dir = install_dir_arg or str(Path.home() / "bioresearch")
+    config["install_dir"] = ask("Installationsverzeichnis", default_dir)
+    config["app_version"] = "1.3.0"
+    config["institution"] = ask("Name der Institution", "Meine Institution")
+
+    # Secrets (immer auto-generiert)
+    config["db_password"] = secrets.token_urlsafe(32)
+    config["jwt_secret"] = secrets.token_urlsafe(64)
+    config["encryption_key"] = secrets.token_hex(32)
+
+    # Ports
+    print(f"\n  {Colors.BOLD}Ports:{Colors.RESET}")
+    config["frontend_port"] = ask("Frontend Port", "3000")
+    config["backend_port"] = ask("Backend Port", "8000")
+    config["db_port"] = ask("PostgreSQL Port", "5432")
+    config["ollama_port"] = ask("Ollama Port", "11434")
+
+    # LLM
+    print(f"\n  {Colors.BOLD}LLM / KI:{Colors.RESET}")
+    config["use_ollama"] = ask_bool(
+        "Ollama installieren? (lokal, DSGVO-konform)",
+        True,
+    )
+    if config["use_ollama"]:
+        info("Verfügbare Modelle: mistral (empfohlen), llama3, llama3.2, gemma2")
+        config["ollama_model"] = ask("Ollama Modell", "mistral")
+    else:
+        config["anthropic_key"] = ask("Anthropic API Key (optional)", "")
+
+    # Optionale Komponenten
+    print(f"\n  {Colors.BOLD}Optionale Komponenten:{Colors.RESET}")
+    config["install_blast"] = ask_bool("BLAST installieren? (Sequenzsuche)", True)
+    config["install_nextflow"] = ask_bool(
+        "Nextflow installieren? (Pipeline Engine)", True
+    )
+
+    # Isolation Mode
+    print(f"\n  {Colors.BOLD}Datenisolation:{Colors.RESET}")
+    print(
+        "  1) user  — Jeder Nutzer sieht nur seine eigenen Daten (empfohlen für Klinik)"
+    )
+    print("  2) team  — Team teilt Daten (empfohlen für Forschungsgruppen)")
+    print("  3) open  — Alle sehen alles (nur für Demo/Entwicklung)")
+    if not unattended:
+        choice = input("  Wahl [1]: ").strip() or "1"
+    else:
+        choice = "1"
+    config["isolation_mode"] = {"1": "user", "2": "team", "3": "open"}.get(
+        choice, "user"
+    )
+
+    # De-Pseudonymisierung Zugriff
+    print(f"\n  {Colors.BOLD}De-Pseudonymisierung:{Colors.RESET}")
+    print("  1) owner — Nur der pseudonymisierende User")
+    print("  2) team  — Ganzes Team")
+    print("  3) admin — Nur Admins")
+    if not unattended:
+        dchoice = input("  Wahl [1]: ").strip() or "1"
+    else:
+        dchoice = "1"
+    config["depseudo_access"] = {
+        "1": "owner",
+        "2": "team",
+        "3": "admin",
+    }.get(dchoice, "owner")
+
+    return config
+
+
+# ── .env Datei generieren ─────────────────────────────
+def generate_env(config: dict, install_dir: Path):
+    step("Generiere Konfigurationsdateien")
+
+    env_content = f"""# BioResearch Assistant — Konfiguration
+# Generiert von install.py am {time.strftime("%Y-%m-%d %H:%M")}
+# ACHTUNG: Diese Datei enthält Secrets —
+#          niemals in Git committen!
+
+# ── App ──────────────────────────────────────────────
+APP_VERSION={config["app_version"]}
+ENVIRONMENT=production
+INSTITUTION={config["institution"]}
+
+# ── Datenbank ─────────────────────────────────────────
+DATABASE_URL=postgresql+asyncpg://bioresearch:{config["db_password"]}@db:5432/bioresearch
+POSTGRES_USER=bioresearch
+POSTGRES_PASSWORD={config["db_password"]}
+POSTGRES_DB=bioresearch
+
+# ── Security ──────────────────────────────────────────
+JWT_SECRET={config["jwt_secret"]}
+JWT_ALGORITHM=HS256
+PSEUDONYMIZATION_ENCRYPTION_KEY={config["encryption_key"]}
+
+# ── LLM ───────────────────────────────────────────────
+LLM_PROVIDER={"ollama" if config.get("use_ollama") else "anthropic"}
+OLLAMA_URL=http://ollama:{config["ollama_port"]}
+OLLAMA_MODEL={config.get("ollama_model", "mistral")}
+ANTHROPIC_API_KEY={config.get("anthropic_key", "")}
+
+# ── Isolation & Zugriff ───────────────────────────────
+ISOLATION_MODE={config["isolation_mode"]}
+DEPSEUDO_ACCESS={config["depseudo_access"]}
+
+# ── Deployment ────────────────────────────────────────
+DEPLOYMENT=local
+DRS_DATA_DIR=/data/drs
+
+# ── Ports ─────────────────────────────────────────────
+FRONTEND_PORT={config["frontend_port"]}
+BACKEND_PORT={config["backend_port"]}
+DB_PORT={config["db_port"]}
+OLLAMA_PORT={config["ollama_port"]}
+"""
+
+    (install_dir / ".env").write_text(env_content)
+    ok(".env erstellt")
+
+    frontend_env = f"""VITE_API_URL=http://localhost:{config["backend_port"]}
+VITE_APP_VERSION={config["app_version"]}
+VITE_DEPLOYMENT=local
+VITE_INSTITUTION={config["institution"]}
+"""
+    (install_dir / ".env.frontend").write_text(frontend_env)
+    ok(".env.frontend erstellt")
+
+
+# ── docker-compose.full.yml generieren ───────────────
+def generate_docker_compose(config: dict, install_dir: Path):
+    step("Generiere Docker Compose Konfiguration")
+
+    # depends_on für backend: db (required) + optional ollama
+    depends_on_lines = ["      db:", "        condition: service_healthy"]
+    if config.get("use_ollama"):
+        depends_on_lines.append("      ollama:")
+        depends_on_lines.append("        condition: service_started")
+    depends_on_str = "\n".join(depends_on_lines)
+
+    optional_services = ""
+    if config.get("use_ollama"):
+        optional_services += f"""
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "{config["ollama_port"]}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+"""
+    if config.get("install_blast"):
+        optional_services += """
+  blast:
+    image: ncbi/blast:latest
+    volumes:
+      - blast_data:/blast/db
+    restart: unless-stopped
+"""
+    if config.get("install_nextflow"):
+        optional_services += """
+  nextflow:
+    image: nextflow/nextflow:latest
+    volumes:
+      - nextflow_data:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+"""
+
+    compose = f"""# BioResearch Assistant — Docker Compose (Vollinstallation)
+# Generiert von install.py v1.3.0
+
+version: "3.9"
+
+services:
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: bioresearch
+      POSTGRES_PASSWORD: {config["db_password"]}
+      POSTGRES_DB: bioresearch
+    ports:
+      - "{config["db_port"]}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bioresearch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "{config["backend_port"]}:8000"
+    env_file:
+      - .env
+    volumes:
+      - drs_data:/data/drs
+    depends_on:
+{depends_on_str}
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:{config["backend_port"]}
+        VITE_APP_VERSION: {config["app_version"]}
+        VITE_DEPLOYMENT: local
+        VITE_INSTITUTION: {config["institution"]}
+    ports:
+      - "{config["frontend_port"]}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+{optional_services}
+
+volumes:
+  postgres_data:
+  drs_data:
+  blast_data:
+  nextflow_data:
+  ollama_data:
+"""
+
+    (install_dir / "docker-compose.full.yml").write_text(compose)
+    ok("docker-compose.full.yml erstellt")
+
+
+# ── System installieren ───────────────────────────────
+def install(config: dict, install_dir: Path) -> bool:
+    step("Installiere BioResearch Assistant")
+    os.chdir(install_dir)
+
+    # Docker Images bauen
+    info("Baue Docker Images (kann einige Minuten dauern)...")
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "build",
+            "--no-cache",
+        ],
+        cwd=install_dir,
+    )
+    if result.returncode != 0:
+        err("Docker Build fehlgeschlagen")
+        return False
+    ok("Docker Images gebaut")
+
+    # Datenbank zuerst starten
+    info("Starte Datenbank...")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "up",
+            "-d",
+            "db",
+        ],
+        cwd=install_dir,
+    )
+
+    # Warte auf DB Health
+    info("Warte auf Datenbank...")
+    for i in range(30):
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "exec",
+                "db",
+                "pg_isready",
+                "-U",
+                "bioresearch",
+            ],
+            capture_output=True,
+            cwd=install_dir,
+        )
+        if result.returncode == 0:
+            ok("Datenbank bereit")
+            break
+        time.sleep(2)
+        print(f"  Warte... ({i + 1}/30)", end="\r")
+    else:
+        err("Datenbank Timeout — bitte Docker Logs prüfen")
+        return False
+
+    # pgvector Extension aktivieren
+    info("Aktiviere pgvector Extension...")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "exec",
+            "db",
+            "psql",
+            "-U",
+            "bioresearch",
+            "-c",
+            "CREATE EXTENSION IF NOT EXISTS vector;",
+        ],
+        cwd=install_dir,
+    )
+    ok("pgvector aktiviert")
+
+    # Alembic Migrationen
+    info("Führe Datenbank-Migrationen durch...")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "run",
+            "--rm",
+            "backend",
+            "alembic",
+            "upgrade",
+            "head",
+        ],
+        cwd=install_dir,
+    )
+    ok("Migrationen abgeschlossen")
+
+    # Alle Services starten
+    info("Starte alle Services...")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "up",
+            "-d",
+        ],
+        cwd=install_dir,
+    )
+    ok("Alle Services gestartet")
+
+    # Ollama Modell herunterladen
+    if config.get("use_ollama"):
+        model = config.get("ollama_model", "mistral")
+        info(f"Lade Ollama Modell '{model}' herunter...")
+        info("(Das kann 5-15 Minuten dauern je nach Internetgeschwindigkeit)")
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "exec",
+                "ollama",
+                "ollama",
+                "pull",
+                model,
+            ],
+            cwd=install_dir,
+        )
+        ok(f"Modell '{model}' heruntergeladen")
+
+    return True
+
+
+# ── Health Check ──────────────────────────────────────
+def health_check(config: dict) -> bool:
+    step("Prüfe Installation")
+    port = config["backend_port"]
+    url = f"http://localhost:{port}/api/v1/health"
+
+    info("Warte auf Backend...")
+    for i in range(15):
+        try:
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                data = json.loads(resp.read().decode())
+                if data.get("status") == "healthy":
+                    ok("Backend gesund")
+                    features = data.get("features", {})
+                    for feat, active in features.items():
+                        if active:
+                            ok(f"Feature aktiv: {feat}")
+                        else:
+                            info(f"Feature inaktiv: {feat} (optional)")
+                    return True
+        except Exception:
+            time.sleep(3)
+            print(f"  Warte... ({i + 1}/15)", end="\r")
+
+    warn("Backend antwortet noch nicht — warte 1-2 Minuten und prüfe ./logs.sh")
+    return False
+
+
+# ── Management Scripts erstellen ──────────────────────
+def create_management_scripts(config: dict, install_dir: Path):
+    step("Erstelle Management Scripts")
+
+    fp = config["frontend_port"]
+    bp = config["backend_port"]
+    install_dir_str = str(install_dir)
+
+    scripts = {
+        "start.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+echo "🚀 Starte BioResearch Assistant v1.3.0..."
+docker compose -f docker-compose.full.yml up -d
+echo ""
+echo "✅ System gestartet!"
+echo "   Frontend:  http://localhost:{fp}"
+echo "   Backend:   http://localhost:{bp}"
+echo "   API Docs:  http://localhost:{bp}/docs"
+echo "   Health:    http://localhost:{bp}/api/v1/health"
+""",
+        "stop.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+echo "⏹ Stoppe BioResearch Assistant..."
+docker compose -f docker-compose.full.yml down
+echo "✅ Gestoppt."
+""",
+        "restart.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+echo "🔄 Neustart..."
+docker compose -f docker-compose.full.yml restart
+echo "✅ Neugestartet."
+""",
+        "update.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+echo "🔄 Update BioResearch Assistant..."
+git pull origin main
+docker compose -f docker-compose.full.yml build --no-cache
+docker compose -f docker-compose.full.yml up -d
+echo "✅ Update abgeschlossen!"
+""",
+        "logs.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+docker compose -f docker-compose.full.yml logs --follow --tail=100 "$@"
+""",
+        "backup.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="./backups/$DATE"
+mkdir -p "$BACKUP_DIR"
+echo "📦 Erstelle Backup..."
+docker compose -f docker-compose.full.yml exec -T db pg_dump -U bioresearch bioresearch > "$BACKUP_DIR/database.sql"
+echo "✅ Backup: $BACKUP_DIR/database.sql"
+""",
+        "status.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+echo "📊 BioResearch Assistant Status"
+echo ""
+docker compose -f docker-compose.full.yml ps
+echo ""
+curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null || echo "Backend nicht erreichbar"
+""",
+    }
+
+    for name, content in scripts.items():
+        script_path = install_dir / name
+        script_path.write_text(content)
+        script_path.chmod(0o755)
+        ok(f"{name} erstellt")
+
+    (install_dir / "start.bat").write_text(
+        f'@echo off\ncd /d "{install_dir_str}"\n'
+        f"echo Starte BioResearch Assistant v1.3.0...\n"
+        f"docker compose -f docker-compose.full.yml up -d\n"
+        f"echo.\necho Frontend: http://localhost:{fp}\n"
+        f"echo Backend:  http://localhost:{bp}\npause\n"
+    )
+    (install_dir / "stop.bat").write_text(
+        f'@echo off\ncd /d "{install_dir_str}"\n'
+        f"docker compose -f docker-compose.full.yml down\npause\n"
+    )
+    ok("start.bat / stop.bat erstellt")
+
+
+# ── Zusammenfassung ───────────────────────────────────
+def print_summary(config: dict, install_dir: Path):
+    fp = config["frontend_port"]
+    bp = config["backend_port"]
+    llm = (
+        "Ollama — " + config.get("ollama_model", "mistral") + " (lokal, DSGVO-konform)"
+        if config.get("use_ollama")
+        else "Anthropic API"
+    )
+
+    print(
+        f"""
+{Colors.BOLD}{Colors.GREEN}
+╔═══════════════════════════════════════════════════╗
+║        Installation erfolgreich! 🎉               ║
+║        BioResearch Assistant v1.3.0               ║
+╚═══════════════════════════════════════════════════╝
+{Colors.RESET}
+{Colors.BOLD}URLs:{Colors.RESET}
+  Frontend:  http://localhost:{fp}
+  Backend:   http://localhost:{bp}
+  API Docs:  http://localhost:{bp}/docs
+  Health:    http://localhost:{bp}/api/v1/health
+
+{Colors.BOLD}Management:{Colors.RESET}
+  ./start.sh    System starten
+  ./stop.sh     System stoppen
+  ./restart.sh  System neustarten
+  ./update.sh   Auf neue Version aktualisieren
+  ./logs.sh     Logs anzeigen (./logs.sh backend)
+  ./backup.sh   Datenbank-Backup erstellen
+  ./status.sh   System-Status anzeigen
+
+{Colors.BOLD}Konfiguration:{Colors.RESET}
+  {install_dir}/.env
+
+{Colors.BOLD}Einstellungen:{Colors.RESET}
+  Isolation:  {config["isolation_mode"]}
+  De-Pseudo:  {config["depseudo_access"]}
+  LLM:        {llm}
+
+{Colors.YELLOW}⚠ WICHTIG: .env enthält Secrets —
+  niemals in Git committen!{Colors.RESET}
+"""
+    )
+
+
+# ── Main ──────────────────────────────────────────────
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="BioResearch Assistant Installer v1.3.0"
+    )
+    parser.add_argument(
+        "--minimal",
+        action="store_true",
+        help="Nur Core Komponenten",
+    )
+    parser.add_argument(
+        "--unattended",
+        action="store_true",
+        help="Keine interaktiven Fragen",
+    )
+    parser.add_argument(
+        "--install-dir",
+        default=None,
+        help="Installationsverzeichnis",
+    )
+    args = parser.parse_args()
+
+    header()
+
+    if not check_prerequisites():
+        err("Voraussetzungen nicht erfüllt.")
+        sys.exit(1)
+
+    config = configure(
+        unattended=args.unattended,
+        install_dir_arg=args.install_dir,
+    )
+    install_dir = Path(config["install_dir"])
+
+    # Repo klonen falls nicht vorhanden
+    if not (install_dir / "backend").exists():
+        step("Lade BioResearch Assistant herunter")
+        install_dir.parent.mkdir(parents=True, exist_ok=True)
+        result = subprocess.run(
+            [
+                "git",
+                "clone",
+                "https://github.com/SynapticFour/bioresearch-assistant.git",
+                str(install_dir),
+            ]
+        )
+        if result.returncode != 0:
+            err("Git clone fehlgeschlagen")
+            sys.exit(1)
+        ok(f"Repository geklont: {install_dir}")
+    else:
+        ok(f"Repository gefunden: {install_dir}")
+
+    generate_env(config, install_dir)
+    generate_docker_compose(config, install_dir)
+    create_management_scripts(config, install_dir)
+
+    if not install(config, install_dir):
+        err("Installation fehlgeschlagen — bitte Logs prüfen")
+        sys.exit(1)
+
+    health_check(config)
+    print_summary(config, install_dir)
+
+
+if __name__ == "__main__":
+    main()

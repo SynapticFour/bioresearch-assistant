@@ -2,16 +2,18 @@
 
 import logging
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.isolation import _extract_team_id, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.audit_log import AuditLog
 from app.models.pseudonymization_mapping import PseudonymizationMapping
@@ -38,6 +40,13 @@ router = APIRouter(prefix="/pseudonymize", tags=["pseudonymization"])
 
 OPERATION_TYPE_PSEUDONYMIZE = "pseudonymize"
 OPERATION_TYPE_RESTORE = "restore"
+OPERATION_TYPE_DEPSEUDONYMIZE = "DEPSEUDONYMIZE"
+
+
+class ReversePseudonymizationRequest(BaseModel):
+    """Request body for POST /pseudonymize/reverse."""
+
+    mapping_id: str = Field(..., min_length=1, description="Mapping ID from pseudonymize")
 
 
 async def get_optional_user_id(
@@ -85,21 +94,24 @@ async def pseudonymize(
 
     operation_id = uuid.uuid4().hex
     mapping_id: str | None = None
+    scope_vals = get_scope_values(current_user)
     if encrypted_bytes is not None:
         mapping_id = uuid.uuid4().hex
         mapping_row = PseudonymizationMapping(
             mapping_id=mapping_id,
             encrypted_mapping=encrypted_bytes,
+            pseudonymized_text=pseudonymized_text,
+            user_id=scope_vals.get("user_id"),
+            team_id=scope_vals.get("team_id"),
         )
         db.add(mapping_row)
 
-    scope_values = get_scope_values(current_user)
-    audit_user_id = user_id or scope_values.get("user_id")
+    audit_user_id = user_id or scope_vals.get("user_id")
     input_hash = input_hash_for_audit(body.text)
     audit_row = AuditLog(
         operation_id=operation_id,
         user_id=audit_user_id,
-        team_id=scope_values.get("team_id"),
+        team_id=scope_vals.get("team_id"),
         entities_count=len(entities_found),
         input_hash=input_hash,
         operation_type=OPERATION_TYPE_PSEUDONYMIZE,
@@ -156,6 +168,95 @@ async def restore(
     await db.flush()
 
     return RestoreResult(restored_text=restored_text)
+
+
+@router.post(
+    "/reverse",
+    status_code=status.HTTP_200_OK,
+    summary="De-Pseudonymisierung",
+    description="De-Pseudonymisierung. Zugriff via DEPSEUDO_ACCESS. Im Audit Log.",
+    response_description="Original Text und Metadaten (accessed_by, access_time)",
+)
+@limiter.limit("10/minute")
+async def reverse_pseudonymization(
+    request: Request,
+    body: ReversePseudonymizationRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """De-Pseudonymisierung — nur für berechtigte User.
+
+    Berechtigung (konfigurierbar via DEPSEUDO_ACCESS):
+    - owner: nur der User der pseudonymisiert hat
+    - team: alle User des gleichen Teams
+    - admin: nur Admins
+    """
+    settings = get_settings()
+    stmt = select(PseudonymizationMapping).where(
+        PseudonymizationMapping.mapping_id == body.mapping_id
+    )
+    r = await db.execute(stmt)
+    mapping = r.scalars().first()
+    if not mapping:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mapping nicht gefunden",
+        )
+    if not mapping.pseudonymized_text:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Mapping unterstützt keine De-Pseudonymisierung (kein gespeicherter Text)",
+        )
+
+    depseudo_access = getattr(settings, "depseudo_access", "owner")
+    sub = current_user.get("sub") or ""
+
+    if depseudo_access == "owner":
+        if (mapping.user_id or "") != sub:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Nur der ursprüngliche User darf de-pseudonymisieren",
+            )
+    elif depseudo_access == "team":
+        team_id = _extract_team_id(current_user)
+        if (mapping.team_id or "") != team_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Nur Team-Mitglieder dürfen de-pseudonymisieren",
+            )
+    elif depseudo_access == "admin":
+        if "admin" not in (current_user.get("roles") or []):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Nur Admins dürfen de-pseudonymisieren",
+            )
+
+    operation_id = uuid.uuid4().hex
+    audit_row = AuditLog(
+        operation_id=operation_id,
+        user_id=sub,
+        team_id=_extract_team_id(current_user),
+        entities_count=0,
+        input_hash=input_hash_for_audit(body.mapping_id),
+        operation_type=OPERATION_TYPE_DEPSEUDONYMIZE,
+        language=None,
+        mapping_id=body.mapping_id,
+    )
+    db.add(audit_row)
+    await db.flush()
+
+    original_text = restore_service(
+        mapping.pseudonymized_text,
+        mapping.encrypted_mapping,
+    )
+    now = datetime.now(UTC)
+    return {
+        "mapping_id": body.mapping_id,
+        "original_text": original_text,
+        "pseudonymized_text": mapping.pseudonymized_text,
+        "accessed_by": sub,
+        "access_time": now.isoformat(),
+    }
 
 
 @router.get("/audit-log", response_model=list[AuditLogEntry], status_code=status.HTTP_200_OK)

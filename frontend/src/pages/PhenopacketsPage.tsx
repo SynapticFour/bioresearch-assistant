@@ -1,13 +1,7 @@
 import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import {
-  Dna,
-  Plus,
-  Search,
-  Trash2,
-  ExternalLink,
-} from "lucide-react";
+import { Dna, Plus, Search, Trash2 } from "lucide-react";
 import { phenopackets, type PhenopacketCreate, type PhenopacketItem } from "@/api/endpoints";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/button";
@@ -109,6 +103,8 @@ export function PhenopacketsPage() {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
   const [createOpen, setCreateOpen] = useState(false);
+  const [createStep, setCreateStep] = useState<1 | 2 | 3>(1);
+  const [clinicalText, setClinicalText] = useState("");
   const [detailItem, setDetailItem] = useState<PhenopacketItem | null>(null);
   const [form, setForm] = useState<PhenopacketCreate>({
     pseudonym_id: "",
@@ -128,6 +124,8 @@ export function PhenopacketsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["phenopackets"] });
       setCreateOpen(false);
+      setCreateStep(1);
+      setClinicalText("");
       setForm({
         pseudonym_id: "",
         phenotypes: [],
@@ -138,6 +136,21 @@ export function PhenopacketsPage() {
       showSuccess("Phenopacket erstellt");
     },
     onError: (err: Error) => showError(err?.message ?? "Fehler beim Erstellen"),
+  });
+
+  const extractMutation = useMutation({
+    mutationFn: (text: string) => phenopackets.extractFromText(text),
+    onSuccess: (data) => {
+      const phenotypes = (data.terms ?? []).map((t) => t.hpo_id || t.name);
+      const genes = data.genes ?? [];
+      setForm((f) => ({
+        ...f,
+        phenotypes: [...new Set([...(f.phenotypes ?? []), ...phenotypes])],
+        genes_of_interest: [...new Set([...(f.genes_of_interest ?? []), ...genes])],
+      }));
+      setCreateStep(2);
+    },
+    onError: (err: Error) => showError(err?.message ?? "Extraktion fehlgeschlagen"),
   });
 
   const deleteMutation = useMutation({
@@ -223,6 +236,19 @@ export function PhenopacketsPage() {
                   </div>
                 </div>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate("/literature", {
+                      state: { searchQuery: genes.join(" ") },
+                    });
+                  }}
+                >
+                  <Search className="h-4 w-4" />
+                  In Literature Mining suchen
+                </Button>
+                <Button
                   variant="ghost"
                   size="sm"
                   onClick={(e) => {
@@ -238,88 +264,118 @@ export function PhenopacketsPage() {
         </div>
       )}
 
-      {/* Create modal */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      {/* Create modal — 3 steps */}
+      <Dialog
+        open={createOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateStep(1);
+            setClinicalText("");
+          }
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Neues Phenopacket</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">
-                Pseudonym ID (Pflichtfeld) *
-              </label>
-              <input
-                type="text"
-                value={form.pseudonym_id}
-                onChange={(e) => setForm((f) => ({ ...f, pseudonym_id: e.target.value }))}
-                placeholder="z.B. PATIENT-001"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <p className="mt-1 text-xs text-amber-700">
-                Niemals echte Patientennamen eingeben!
-              </p>
-            </div>
-            <TagsInput
-              label="Gene of Interest"
-              value={form.genes_of_interest ?? []}
-              onChange={(tags) => setForm((f) => ({ ...f, genes_of_interest: tags }))}
-              placeholder="z.B. BRCA1, TP53"
-            />
-            <div>
-              <TagsInput
-                label="HPO Phänotypen"
-                value={form.phenotypes ?? []}
-                onChange={(tags) => setForm((f) => ({ ...f, phenotypes: tags }))}
-                placeholder="z.B. HP:0001250"
-              />
-              <a
-                href="https://hpo.jax.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                HPO Terme suchen: hpo.jax.org <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            <div>
-              <TagsInput
-                label="OMIM Erkrankungen"
-                value={form.diseases ?? []}
-                onChange={(tags) => setForm((f) => ({ ...f, diseases: tags }))}
-                placeholder="z.B. OMIM:143100"
-              />
-              <a
-                href="https://omim.org"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-              >
-                OMIM suchen: omim.org <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-slate-700">Notizen</label>
-              <textarea
-                value={form.notes ?? ""}
-                onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                placeholder="Optionale Notizen"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              Abbrechen
-            </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={!form.pseudonym_id.trim() || createMutation.isPending}
+          <div className="mb-3 flex gap-2 rounded-lg border border-slate-200 p-1">
+            <button
+              type="button"
+              onClick={() => setCreateStep(1)}
+              className={`flex-1 rounded px-2 py-1.5 text-sm font-medium ${createStep === 1 ? "bg-primary text-primary-foreground" : "text-slate-600"}`}
             >
-              {createMutation.isPending ? "Speichern…" : "Speichern"}
-            </Button>
-          </DialogFooter>
+              1. Text
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateStep(2)}
+              className={`flex-1 rounded px-2 py-1.5 text-sm font-medium ${createStep === 2 ? "bg-primary text-primary-foreground" : "text-slate-600"}`}
+            >
+              2. Prüfen
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateStep(3)}
+              className={`flex-1 rounded px-2 py-1.5 text-sm font-medium ${createStep === 3 ? "bg-primary text-primary-foreground" : "text-slate-600"}`}
+            >
+              3. Speichern
+            </button>
+          </div>
+          <div className="space-y-4">
+            {createStep === 1 && (
+              <>
+                <p className="text-sm text-slate-600">
+                  Geben Sie eine klinische Beschreibung ein (nur pseudonymisierte Daten). Das System extrahiert Phänotypen und Gene.
+                </p>
+                <textarea
+                  value={clinicalText}
+                  onChange={(e) => setClinicalText(e.target.value)}
+                  placeholder="z.B. Patient zeigt rezidivierende Krampfanfälle seit dem 3. Lebensjahr. Familienanamnese positiv für BRCA1-Mutation..."
+                  rows={6}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <Button
+                  onClick={() => extractMutation.mutate(clinicalText)}
+                  disabled={!clinicalText.trim() || extractMutation.isPending}
+                >
+                  {extractMutation.isPending ? "…" : "🧬 Automatisch analysieren"}
+                </Button>
+              </>
+            )}
+            {createStep === 2 && (
+              <>
+                <TagsInput
+                  label="Gene of Interest"
+                  value={form.genes_of_interest ?? []}
+                  onChange={(tags) => setForm((f) => ({ ...f, genes_of_interest: tags }))}
+                  placeholder="z.B. BRCA1"
+                />
+                <TagsInput
+                  label="HPO Phänotypen"
+                  value={form.phenotypes ?? []}
+                  onChange={(tags) => setForm((f) => ({ ...f, phenotypes: tags }))}
+                  placeholder="z.B. HP:0001250"
+                />
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setCreateStep(1)}>Zurück</Button>
+                  <Button onClick={() => setCreateStep(3)}>Weiter → Speichern</Button>
+                </div>
+              </>
+            )}
+            {createStep === 3 && (
+              <>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-slate-700">
+                    Pseudonym ID (Pflichtfeld) *
+                  </label>
+                  <input
+                    type="text"
+                    value={form.pseudonym_id}
+                    onChange={(e) => setForm((f) => ({ ...f, pseudonym_id: e.target.value }))}
+                    placeholder="z.B. PATIENT-2024-001"
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  />
+                  <p className="mt-1 text-xs text-amber-700">
+                    🔒 Vergeben Sie eine nicht-identifizierende ID. Niemals echte Namen!
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCreateStep(2)}>Zurück</Button>
+                  <Button
+                    onClick={() => handleCreate()}
+                    disabled={!form.pseudonym_id.trim() || (form.phenotypes?.length ?? 0) === 0 || createMutation.isPending}
+                  >
+                    {createMutation.isPending ? "…" : "💾 Phenopacket speichern"}
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </div>
+          {createStep !== 3 && (
+            <div className="flex gap-2 border-t pt-3">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Abbrechen</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

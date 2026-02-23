@@ -16,6 +16,7 @@ from app.schemas.pubmed import (
     PubMedArticle,
     PubMedSearchRequest,
     PubMedSearchResponse,
+    QueryValidationRequest,
 )
 from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
 from app.services.pubmed_service import PubMedService, PubMedServiceError
@@ -26,23 +27,51 @@ router = APIRouter(prefix="/literature", tags=["Literature Mining"])
 
 
 def _article_to_response(article: PubMedArticle) -> PubMedSearchResponse:
-    """Map PubMedArticle to PubMedSearchResponse (year str -> int when possible)."""
-    year_int: int | None = None
-    if article.year is not None:
-        try:
-            year_int = int(article.year.strip())
-        except ValueError:
-            pass
+    """Map PubMedArticle to PubMedSearchResponse."""
     return PubMedSearchResponse(
         pmid=article.pmid,
         title=article.title,
         abstract=article.abstract or None,
         authors=article.authors,
-        year=year_int,
+        year=article.year,
         journal=article.journal or None,
         doi=article.doi,
         summary=None,
     )
+
+
+@router.post(
+    "/search/validate-query",
+    status_code=status.HTTP_200_OK,
+    summary="Suchanfrage auf sensitive Daten prüfen",
+    description="Prüft ob die Suchanfrage sensitive Daten enthält (Presidio).",
+)
+@limiter.limit("60/minute")
+async def validate_search_query(
+    request: Request,
+    body: QueryValidationRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Prüfe ob eine Suchanfrage sensitive Daten enthält. Gibt Warnung wenn ja."""
+    from app.services.pseudonymization_service import PseudonymizationService
+
+    service = PseudonymizationService()
+    analysis = await service.analyze(
+        body.query,
+        language=body.language or "de",
+    )
+    sensitive_types = [r.entity_type for r in analysis if r.score >= 0.7]
+    if sensitive_types:
+        return {
+            "safe": False,
+            "warning": "Die Suchanfrage enthält möglicherweise sensitive Daten.",
+            "detected_types": sensitive_types,
+            "recommendation": (
+                "Bitte pseudonymisieren Sie die Anfrage bevor Sie suchen, "
+                "oder entfernen Sie personenbezogene Daten."
+            ),
+        }
+    return {"safe": True, "detected_types": []}
 
 
 @router.post("/search", response_model=list[PubMedSearchResponse], status_code=status.HTTP_200_OK)

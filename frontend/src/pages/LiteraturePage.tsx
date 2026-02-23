@@ -511,6 +511,11 @@ export function LiteraturePage() {
   const [history, setHistory] = useState<string[]>(loadSearchHistory);
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [queryWarning, setQueryWarning] = useState<{
+    show: boolean;
+    types: string[];
+    message: string;
+  }>({ show: false, types: [], message: "" });
   const { showSuccess, showError } = useToast();
 
   const mutation = useMutation({
@@ -544,6 +549,25 @@ export function LiteraturePage() {
     setHistory(loadSearchHistory());
     mutation.mutate({ q, max: maxResults, lang: language });
   }, [query, maxResults, language, mutation]);
+
+  const handleSearch = useCallback(async () => {
+    const q = query.trim();
+    if (!q) return;
+    try {
+      const validation = await literature.validateQuery(q, language);
+      if (!validation.safe && validation.detected_types?.length) {
+        setQueryWarning({
+          show: true,
+          types: validation.detected_types ?? [],
+          message: validation.warning ?? "Mögliche sensitive Daten erkannt.",
+        });
+        return;
+      }
+    } catch {
+      // Bei Fehler der Validierung trotzdem suchen lassen
+    }
+    runSearch();
+  }, [query, language, runSearch]);
 
   useEffect(() => {
     const searchQuery = (location.state as { searchQuery?: string } | null)?.searchQuery;
@@ -592,7 +616,7 @@ export function LiteraturePage() {
           setMaxResults={setMaxResults}
           language={language}
           setLanguage={setLanguage}
-          onSearch={runSearch}
+          onSearch={handleSearch}
           isSearching={isLoading}
           history={history}
           onHistoryClick={handleHistoryClick}
@@ -661,6 +685,42 @@ export function LiteraturePage() {
         isSaving={saveMutation.isPending}
         saveLabel={t("literature", "save")}
       />
+
+      {queryWarning.show && (
+        <Dialog open={queryWarning.show} onOpenChange={(open) => !open && setQueryWarning((w) => ({ ...w, show: false }))}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-amber-700">
+                ⚠️ Mögliche sensitive Daten erkannt
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-slate-700">{queryWarning.message}</p>
+            <p className="text-xs text-slate-600">
+              Erkannte Typen: {queryWarning.types.join(", ")}
+            </p>
+            <p className="text-xs text-slate-600">
+              Suchanfragen werden an PubMed (extern) gesendet. Bitte stellen Sie sicher, dass keine Patientendaten enthalten sind.
+            </p>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setQueryWarning((w) => ({ ...w, show: false }))}
+              >
+                Anfrage überarbeiten
+              </Button>
+              <Button
+                className="bg-amber-600 hover:bg-amber-700"
+                onClick={() => {
+                  setQueryWarning((w) => ({ ...w, show: false }));
+                  runSearch();
+                }}
+              >
+                Trotzdem suchen
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

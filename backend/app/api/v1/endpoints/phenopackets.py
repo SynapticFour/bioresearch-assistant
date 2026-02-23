@@ -1,13 +1,14 @@
 """GA4GH Phenopackets v2 API endpoints.
 
-All patient identifiers are pseudonym IDs only (no real PII).
+All patient identifiers are pseudonym ID only (no real PII).
 Reference: https://phenopacket-schema.readthedocs.io/
 """
 
 import logging
-from typing import Any
+import re
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.limiter import limiter
 from app.models.patient_record import PatientRecordModel
 from app.schemas.phenopackets import (
     DiseaseTerm,
@@ -24,6 +26,7 @@ from app.schemas.phenopackets import (
     PatientData,
     ValidationResult,
 )
+from app.services.hpo_service import HPOService
 from app.services.phenopacket_service import (
     create_phenopacket,
     export_phenopacket,
@@ -78,6 +81,51 @@ def _normalize_to_patient_data(body: PatientDataCreate) -> PatientData:
         diseases=diseases,
         genes_of_interest=genes,
     )
+
+
+class ExtractPhenotypesRequest(BaseModel):
+    """Request body for POST /phenopackets/extract."""
+
+    text: str = Field(..., min_length=1, description="Clinical free text to analyze")
+
+
+@router.get(
+    "/hpo/search",
+    status_code=status.HTTP_200_OK,
+    summary="HPO-Terme suchen",
+    description="Sucht HPO-Terme (Human Phenotype Ontology) nach Freitext.",
+)
+@limiter.limit("30/minute")
+async def hpo_search(
+    request: Request,
+    q: Annotated[str, Query(max_length=100)] = "",
+    current_user: dict = Depends(get_current_user),
+) -> list[dict]:
+    """Search HPO terms (e.g. ?q=seizure)."""
+    service = HPOService()
+    return await service.search_terms(q)
+
+
+@router.post(
+    "/extract",
+    status_code=status.HTTP_200_OK,
+    summary="Phänotypen aus Text extrahieren",
+    description="Extrahiert HPO-Terme und Gene aus klinischem Freitext.",
+)
+@limiter.limit("20/minute")
+async def extract_phenotypes(
+    request: Request,
+    body: ExtractPhenotypesRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict[str, Any]:
+    """Extract HPO terms and genes from clinical text."""
+    service = HPOService()
+    terms = await service.extract_from_text(body.text)
+    # Simple gene extraction: look for common genes in text
+    gene_pattern = re.compile(rb"\b(BRCA1|BRCA2|TP53|EGFR|KRAS|BRAF)\b", re.I)
+    text_bytes = body.text.encode("utf-8", errors="ignore")
+    genes = list({m.decode("utf-8").upper() for m in gene_pattern.findall(text_bytes)})
+    return {"terms": terms, "genes": genes}
 
 
 @router.get("", response_model=list[dict[str, Any]])

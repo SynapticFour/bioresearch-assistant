@@ -22,6 +22,11 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
+    version: str = Field(
+        default="1.3.0",
+        description="Application version (e.g. for /health and UI)",
+        validation_alias="APP_VERSION",
+    )
     debug: bool = Field(default=False, description="Enable debug mode")
     environment: str = Field(default="development", description="Environment name")
     deployment: str = Field(
@@ -79,6 +84,11 @@ class Settings(BaseSettings):
     restore_api_key: str | None = Field(
         default=None,
         description="Optional API key for restore (X-Restore-API-Key). If unset, restore disabled.",
+    )
+    depseudo_access: str = Field(
+        default="owner",
+        description="Who may de-pseudonymize: owner (only pseudonymizing user), team, admin",
+        validation_alias="DEPSEUDO_ACCESS",
     )
 
     # GA4GH WES (Phase 3)

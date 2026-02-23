@@ -9,6 +9,7 @@ import {
   Plus,
   Trash2,
   Search,
+  Package,
 } from "lucide-react";
 import { library as libraryApi } from "@/api/endpoints";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
@@ -131,6 +132,13 @@ export function LibraryPage() {
 
   const [addPaperOpen, setAddPaperOpen] = useState(false);
   const [paperForm, setPaperForm] = useState(initialPaperForm);
+  const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState<File | null>(null);
+  const [bulkResult, setBulkResult] = useState<{
+    imported: number;
+    skipped: number;
+    errors: string[];
+  } | null>(null);
 
   const [semanticQuery, setSemanticQuery] = useState("");
   const [yearFilter, setYearFilter] = useState<string>("");
@@ -162,6 +170,16 @@ export function LibraryPage() {
     },
   });
 
+  const bulkImportMutation = useMutation({
+    mutationFn: (file: File) => libraryApi.bulkImport(file),
+    onSuccess: (data) => {
+      setBulkResult(data);
+      queryClient.invalidateQueries({ queryKey: ["library-papers"] });
+      if (data.errors.length === 0) showSuccess(`${data.imported} Papers importiert.`);
+    },
+    onError: (err: Error) => showError(err?.message ?? "Bulk-Import fehlgeschlagen."),
+  });
+
   const addPaperMutation = useMutation({
     mutationFn: (paper: {
       pmid: string;
@@ -182,6 +200,44 @@ export function LibraryPage() {
     onError: (err: Error) =>
       showError(err?.message ?? "Fehler beim Speichern"),
   });
+
+  const [autoFillMessage, setAutoFillMessage] = useState<string | null>(null);
+  const extractMetadataMutation = useMutation({
+    mutationFn: (params: { doi?: string; pmid?: string }) =>
+      libraryApi.extractMetadata({
+        doi: params.doi || undefined,
+        pmid: params.pmid || undefined,
+      }),
+    onSuccess: (data) => {
+      setPaperForm((f) => ({
+        ...f,
+        title: data.title ?? f.title,
+        authors: Array.isArray(data.authors)
+          ? data.authors.join(", ")
+          : f.authors,
+        year: data.year != null ? String(data.year) : f.year,
+        journal: data.journal ?? f.journal,
+        doi: data.doi ?? f.doi,
+        pmid: data.pmid ?? f.pmid,
+        abstract: data.abstract ?? f.abstract,
+      }));
+      setAutoFillMessage("Metadaten gefunden — bitte prüfen.");
+    },
+    onError: (err: Error) => {
+      showError(err?.message ?? "Keine Metadaten gefunden.");
+    },
+  });
+
+  const handleAutoFill = useCallback(() => {
+    const doi = paperForm.doi?.trim();
+    const pmid = paperForm.pmid?.trim();
+    if (!doi && !pmid) {
+      showError("Bitte DOI oder PubMed ID eingeben.");
+      return;
+    }
+    setAutoFillMessage(null);
+    extractMetadataMutation.mutate({ doi: doi || undefined, pmid: pmid || undefined });
+  }, [paperForm.doi, paperForm.pmid, showError, extractMetadataMutation]);
 
   const handleSemanticSearch = useCallback(() => {
     const q = semanticQuery.trim();
@@ -274,10 +330,16 @@ export function LibraryPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-slate-800">Bibliothek</h1>
-        <Button onClick={() => setAddPaperOpen(true)}>
-          <Plus className="h-5 w-5" />
-          Paper hinzufügen
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setAddPaperOpen(true)}>
+            <Plus className="h-5 w-5" />
+            Paper hinzufügen
+          </Button>
+          <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
+            <Package className="h-5 w-5" />
+            Bulk Import
+          </Button>
+        </div>
       </div>
 
       {/* Semantic search */}
@@ -414,12 +476,56 @@ export function LibraryPage() {
       )}
 
       {/* Add paper modal */}
-      <Dialog open={addPaperOpen} onOpenChange={setAddPaperOpen}>
+      <Dialog
+        open={addPaperOpen}
+        onOpenChange={(open) => {
+          setAddPaperOpen(open);
+          if (!open) setAutoFillMessage(null);
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Paper manuell hinzufügen</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <h4 className="mb-2 text-sm font-medium text-slate-800">
+                Automatisch ausfüllen
+              </h4>
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="DOI (z.B. 10.1038/...)"
+                  value={paperForm.doi}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, doi: e.target.value }))
+                  }
+                  className="flex-1 min-w-[140px] rounded border border-slate-300 px-3 py-2 text-sm"
+                />
+                <span className="text-slate-500 text-sm">oder</span>
+                <input
+                  type="text"
+                  placeholder="PubMed ID"
+                  value={paperForm.pmid}
+                  onChange={(e) =>
+                    setPaperForm((f) => ({ ...f, pmid: e.target.value }))
+                  }
+                  className="flex-1 min-w-[120px] rounded border border-slate-300 px-3 py-2 text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleAutoFill}
+                  disabled={extractMetadataMutation.isPending}
+                >
+                  {extractMetadataMutation.isPending ? "…" : "🔍 Automatisch ausfüllen"}
+                </Button>
+              </div>
+              {autoFillMessage && (
+                <p className="mt-2 text-sm text-green-700">{autoFillMessage}</p>
+              )}
+            </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
                 Titel *
@@ -553,6 +659,91 @@ export function LibraryPage() {
               }
             >
               {addPaperMutation.isPending ? "Speichern…" : "Speichern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import modal */}
+      <Dialog
+        open={bulkImportOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setBulkImportOpen(false);
+            setBulkFile(null);
+            setBulkResult(null);
+          }
+        }}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Import</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-slate-600">
+            Importiere mehrere Papers auf einmal.
+          </p>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+            <h4 className="font-medium text-slate-700">Unterstützte Formate:</h4>
+            <ul className="mt-1 list-inside list-disc text-slate-600">
+              <li>ZIP mit papers.json (oder einzelnen JSON-Dateien)</li>
+              <li>JSON (Array von Papers)</li>
+              <li>CSV (Spalten: pmid, title, abstract, authors, year, journal)</li>
+            </ul>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">
+              Datei
+            </label>
+            <input
+              type="file"
+              accept=".zip,.json,.csv"
+              className="w-full text-sm"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                setBulkFile(f ?? null);
+                if (!f) setBulkResult(null);
+              }}
+            />
+          </div>
+          {bulkResult && (
+            <div
+              className={`rounded-lg border p-3 text-sm ${
+                bulkResult.errors.length > 0
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-green-200 bg-green-50 text-green-900"
+              }`}
+            >
+              <p>✅ {bulkResult.imported} Papers importiert</p>
+              {bulkResult.skipped > 0 && (
+                <p className="mt-1">⚠️ {bulkResult.skipped} übersprungen</p>
+              )}
+              {bulkResult.errors.length > 0 && (
+                <div className="mt-2">
+                  {bulkResult.errors.map((err, i) => (
+                    <div key={i} className="text-red-700">
+                      {err}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBulkImportOpen(false);
+                setBulkFile(null);
+                setBulkResult(null);
+              }}
+            >
+              Schließen
+            </Button>
+            <Button
+              onClick={() => bulkFile && bulkImportMutation.mutate(bulkFile)}
+              disabled={!bulkFile || bulkImportMutation.isPending}
+            >
+              {bulkImportMutation.isPending ? "⏳ Importiere…" : "📥 Importieren"}
             </Button>
           </DialogFooter>
         </DialogContent>

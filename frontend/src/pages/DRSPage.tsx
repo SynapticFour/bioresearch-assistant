@@ -74,7 +74,11 @@ export function DRSPage() {
   const [registerDesc, setRegisterDesc] = useState("");
   const [registerFileType, setRegisterFileType] = useState("VCF");
   const [registerPath, setRegisterPath] = useState("");
+  const [registerServerPath, setRegisterServerPath] = useState("");
   const [registerFile, setRegisterFile] = useState<File | null>(null);
+  const [uploads, setUploads] = useState<
+    { name: string; status: "uploading" | "success" | "error"; drsId?: string; error?: string }[]
+  >([]);
 
   const { data: objects = [], isLoading } = useQuery({
     queryKey: ["drs-objects"],
@@ -89,6 +93,7 @@ export function DRSPage() {
       setRegisterName("");
       setRegisterDesc("");
       setRegisterPath("");
+      setRegisterServerPath("");
       setRegisterFile(null);
       showSuccess("Datei registriert. DRS ID und Zugriffs-URL sind verfügbar.");
     },
@@ -100,6 +105,35 @@ export function DRSPage() {
     ? objects
     : objects.filter((o) => getFileType(o) === typeFilter);
 
+  const registerFileDirect = useCallback(
+    async (file: File) => {
+      setUploads((prev) => [...prev, { name: file.name, status: "uploading" }]);
+      const form = new FormData();
+      form.append("name", file.name);
+      form.append("description", "");
+      form.append("file", file);
+      try {
+        const drsObject = await drs.registerObject(form);
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.name === file.name
+              ? { ...u, status: "success" as const, drsId: drsObject.id }
+              : u
+          )
+        );
+        await queryClient.invalidateQueries({ queryKey: ["drs-objects"] });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
+        setUploads((prev) =>
+          prev.map((u) =>
+            u.name === file.name ? { ...u, status: "error" as const, error: message } : u
+          )
+        );
+      }
+    },
+    [queryClient]
+  );
+
   const handleRegister = () => {
     const name = registerName.trim();
     if (!name) {
@@ -109,7 +143,9 @@ export function DRSPage() {
     const form = new FormData();
     form.append("name", name);
     if (registerDesc.trim()) form.append("description", registerDesc.trim());
-    if (registerPath.trim()) {
+    if (registerServerPath.trim()) {
+      form.append("server_path", registerServerPath.trim());
+    } else if (registerPath.trim()) {
       form.append("path", registerPath.trim());
     } else if (registerFile) {
       form.append("file", registerFile);
@@ -165,9 +201,9 @@ export function DRSPage() {
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
-          if (e.dataTransfer.files.length) {
-            setRegisterFile(e.dataTransfer.files[0]);
-            setRegisterOpen(true);
+          const files = Array.from(e.dataTransfer.files);
+          if (files.length) {
+            files.forEach((file) => void registerFileDirect(file));
           }
         }}
         onClick={() => fileInputRef.current?.click()}
@@ -178,11 +214,10 @@ export function DRSPage() {
           accept={ACCEPT_FILES}
           className="hidden"
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) {
-              setRegisterFile(f);
-              setRegisterName(f.name);
-              setRegisterOpen(true);
+            const fileList = e.target.files;
+            if (fileList?.length) {
+              Array.from(fileList).forEach((f) => void registerFileDirect(f));
+              e.target.value = "";
             }
           }}
         />
@@ -190,7 +225,36 @@ export function DRSPage() {
         <p className="text-sm text-slate-600">
           Dateien hier ablegen oder klicken zum Hochladen
         </p>
+        <p className="text-xs text-slate-500">
+          VCF, FASTA, BAM, FASTQ, BED — auch .gz
+        </p>
       </div>
+
+      {uploads.length > 0 && (
+        <div className="space-y-2">
+          {uploads.map((u) => (
+            <div
+              key={u.name}
+              className={`flex items-center justify-between rounded-lg border px-3 py-2 text-sm ${
+                u.status === "success"
+                  ? "border-green-200 bg-green-50"
+                  : u.status === "error"
+                    ? "border-red-200 bg-red-50"
+                    : "border-slate-200 bg-slate-50"
+              }`}
+            >
+              <span className="font-medium">{u.name}</span>
+              {u.status === "uploading" && <span className="text-slate-500">⏳ Lädt…</span>}
+              {u.status === "success" && (
+                <span className="text-green-700">✅ {u.drsId}</span>
+              )}
+              {u.status === "error" && (
+                <span className="text-red-700">❌ {u.error}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-4">
         <label className="text-sm font-medium text-slate-700">Filter:</label>
@@ -343,17 +407,29 @@ export function DRSPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-700">
-                Oder: Pfad (Server)
+                Oder: Relativer Pfad (unter DRS-Speicher)
               </label>
               <input
                 type="text"
                 value={registerPath}
                 onChange={(e) => setRegisterPath(e.target.value)}
-                placeholder="Relativer Pfad unter DRS-Speicher"
+                placeholder="z.B. data/sample.vcf"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Oder: Server-Pfad (große Dateien &gt;500MB)
+              </label>
+              <input
+                type="text"
+                value={registerServerPath}
+                onChange={(e) => setRegisterServerPath(e.target.value)}
+                placeholder="/data/genomics/meine-datei.bam"
                 className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
               <p className="mt-1 text-xs text-slate-500">
-                Für Dateien, die bereits auf dem Server liegen.
+                Datei muss unter DRS-Speicher liegen. Max. Upload direkt: 500MB.
               </p>
             </div>
           </div>
@@ -365,7 +441,7 @@ export function DRSPage() {
               onClick={handleRegister}
               disabled={
                 !registerName.trim() ||
-                (!registerFile && !registerPath.trim()) ||
+                (!registerFile && !registerPath.trim() && !registerServerPath.trim()) ||
                 registerMutation.isPending
               }
             >

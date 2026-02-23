@@ -13,12 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import (
-    AsyncSession,
-    async_sessionmaker,
-    create_async_engine,
-)
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 # Set env before any app import (so get_settings() and Paper model use test config)
 os.environ["TESTING"] = "1"
@@ -34,7 +29,7 @@ os.environ.setdefault("ISOLATION_MODE", "open")
 os.environ.setdefault("DEPLOYMENT", "test")
 
 from app.core.auth import get_current_user
-from app.core.database import Base, get_db
+from app.core.database import Base, get_db, get_engine
 from app.main import app
 
 
@@ -53,15 +48,10 @@ def event_loop() -> asyncio.AbstractEventLoop:
 @pytest.fixture(scope="session")
 def engine():
     """
-    SQLite In-Memory Engine für Tests.
+    SQLite In-Memory Engine für Tests (app.core.database.get_engine).
     Kein PostgreSQL nötig — läuft überall.
     """
-    return create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False,
-    )
+    return get_engine("sqlite+aiosqlite:///:memory:")
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -78,19 +68,19 @@ async def create_tables(engine):
 async def db_session(engine, create_tables) -> AsyncGenerator[AsyncSession, None]:
     """
     Isolierte DB-Session pro Test.
-    Jeder Test bekommt eine eigene Transaction, die am Ende zurückgerollt wird.
+    Nutzt Savepoints statt Rollback auf bereits geschlossener Transaktion.
     """
-    async_session_factory = async_sessionmaker(
-        engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    async with async_session_factory() as session:
-        trans = await session.begin()
-        try:
+    async with engine.connect() as conn:
+        await conn.begin()
+        async_session_factory = async_sessionmaker(
+            bind=conn,
+            class_=AsyncSession,
+            expire_on_commit=False,
+            join_transaction_mode="create_savepoint",
+        )
+        async with async_session_factory() as session:
             yield session
-        finally:
-            await trans.rollback()
+        await conn.rollback()
 
 
 # ── Dev User Mock ─────────────────────────────────────────────────────────
@@ -132,6 +122,30 @@ async def async_client(
 
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = override_get_current_user
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        yield client
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def unauthed_client(
+    db_session: AsyncSession,
+) -> AsyncGenerator[AsyncClient, None]:
+    """
+    Async HTTP Client OHNE Auth-Override.
+    Für Tests die echte Auth-Logik (z. B. 401) prüfen.
+    """
+
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    # Kein get_current_user Override
 
     async with AsyncClient(
         transport=ASGITransport(app=app),

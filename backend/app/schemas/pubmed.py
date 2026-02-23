@@ -3,6 +3,13 @@
 from pydantic import BaseModel, Field
 
 
+class QueryValidationRequest(BaseModel):
+    """Request body for POST /literature/search/validate-query."""
+
+    query: str = Field(..., max_length=500, description="Search query to check for sensitive data")
+    language: str | None = Field(default="de", description="Language code for Presidio (de, en)")
+
+
 class PubMedSearchRequest(BaseModel):
     """Request body for POST /literature/search."""
 
@@ -54,7 +61,7 @@ class PubMedArticle(BaseModel):
         default_factory=list, description="Author names (e.g. 'LastName ForeName')"
     )
     journal: str = Field(default="", description="Journal title")
-    year: str | None = Field(default=None, description="Publication year")
+    year: int | None = Field(default=None, description="Publication year")
     doi: str | None = Field(default=None, description="Digital Object Identifier")
     keywords: list[str] = Field(default_factory=list, description="Keywords or MeSH terms")
 

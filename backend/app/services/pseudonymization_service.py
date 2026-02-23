@@ -1,5 +1,6 @@
 """DSGVO-compliant pseudonymization service using Microsoft Presidio."""
 
+import asyncio
 import hashlib
 import logging
 from typing import Any
@@ -202,3 +203,11 @@ def restore(
 def input_hash_for_audit(text: str) -> str:
     """SHA256 hash of input text for audit log (never store raw text)."""
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+class PseudonymizationService:
+    """Thin wrapper for async use of module-level Presidio functions."""
+
+    async def analyze(self, text: str, language: str = "de") -> list[RecognizerResult]:
+        """Run PII analysis in a thread (sync Presidio call)."""
+        return await asyncio.to_thread(analyze, text, language)

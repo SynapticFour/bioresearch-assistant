@@ -17,7 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.database import async_session_maker
+from app.core.database import get_async_session_maker
 from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import Log, RunLog, RunRequest, RunStatus, RunSummary, State, TaskLog
 
@@ -87,7 +87,7 @@ async def _execute_nextflow(
         task_logs: list | None = None,
         outputs: dict | None = None,
     ) -> None:
-        async with async_session_maker() as session:
+        async with get_async_session_maker()() as session:
             stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
             r = await session.execute(stmt)
             row = r.scalars().first()
