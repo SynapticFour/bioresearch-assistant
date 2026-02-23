@@ -19,7 +19,6 @@ from app.schemas.pubmed import (
     QueryValidationRequest,
 )
 from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
-from app.services.pseudonymization_service import PseudonymizationService
 from app.services.pubmed_service import PubMedService, PubMedServiceError
 
 logger = logging.getLogger(__name__)
@@ -54,6 +53,8 @@ async def validate_search_query(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Prüfe ob eine Suchanfrage sensitive Daten enthält. Gibt Warnung wenn ja."""
+    from app.services.pseudonymization_service import PseudonymizationService
+
     service = PseudonymizationService()
     analysis = await service.analyze(
         body.query,
