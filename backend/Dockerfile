@@ -1,8 +1,17 @@
 FROM python:3.11-slim
 WORKDIR /app
 RUN apt-get update && apt-get install -y \
-    gcc g++ && \
+    gcc g++ \
+    ncbi-blast+ \
+    curl \
+    default-jre-headless && \
     rm -rf /var/lib/apt/lists/*
+
+# Nextflow als Binary installieren (für WES-Pipelines)
+RUN curl -s https://get.nextflow.io | bash && \
+    mv nextflow /usr/local/bin/ && \
+    chmod +x /usr/local/bin/nextflow
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
