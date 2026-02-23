@@ -48,10 +48,18 @@ async def check_features() -> dict[str, bool]:
     else:
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
-                resp = await client.get(f"{settings.ollama_base_url.rstrip('/')}/api/tags")
-                features["llm_summaries"] = resp.status_code == 200
+                resp = await client.get(
+                    f"{settings.ollama_base_url.rstrip('/')}/api/tags",
+                    timeout=5.0,  # Mehr Zeit für lokales Ollama
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    models = data.get("models", [])
+                    features["llm_summaries"] = len(models) > 0
+                else:
+                    features["llm_summaries"] = False
         except Exception:
-            pass
+            features["llm_summaries"] = False
 
     # spaCy NER verfügbar? (Presidio mit de_core_news_sm)
     try:

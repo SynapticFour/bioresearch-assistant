@@ -22,6 +22,7 @@ from app.core.limiter import limiter
 from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle, PubMedSearchResponse
 from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
+from app.services.llm_service import LLMService, LLMServiceError
 from app.services.metadata_service import MetadataService
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,12 @@ class SemanticSearchRequest(BaseModel):
 
 
 DOI_REGEX = re.compile(r"^10\.\d{4,}/\S+$")
+
+
+class SummarizeRequest(BaseModel):
+    """Request body for POST /library/summarize."""
+
+    pmid: str = Field(..., min_length=1, description="PubMed ID of the paper to summarize")
 
 
 class MetadataExtractionRequest(BaseModel):
@@ -77,6 +84,51 @@ def _paper_to_response(p: Paper) -> PubMedSearchResponse:
         doi=p.doi,
         summary=None,
     )
+
+
+@router.post(
+    "/summarize",
+    status_code=status.HTTP_200_OK,
+    summary="KI-Zusammenfassung generieren",
+    description="Generiert eine KI-Zusammenfassung für ein gespeichertes Paper (Abstract).",
+)
+@limiter.limit("30/minute")
+async def summarize_paper(
+    request: Request,
+    body: SummarizeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Generiere KI-Zusammenfassung für ein Paper aus der Bibliothek."""
+    scope = get_scope_filter(current_user)
+    stmt = select(Paper).where(Paper.pmid == body.pmid.strip())
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(Paper.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(Paper.team_id == scope["team_id"])
+    r = await db.execute(stmt)
+    paper = r.scalars().first()
+    if paper is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Paper nicht gefunden",
+        )
+    abstract = (paper.abstract or "").strip()
+    if not abstract:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Paper hat keinen Abstract",
+        )
+    try:
+        llm = LLMService()
+        result = await llm.summarize_paper(abstract=abstract, language="de")
+        return {"summary": result.summary}
+    except LLMServiceError as e:
+        logger.warning("Summarize failed for pmid=%s: %s", body.pmid, e)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="KI-Zusammenfassung fehlgeschlagen. Prüfen Sie Ollama/Anthropic.",
+        ) from e
 
 
 @router.post(

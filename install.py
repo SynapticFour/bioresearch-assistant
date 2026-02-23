@@ -348,25 +348,19 @@ def generate_docker_compose(config: dict, install_dir: Path):
     if config.get("install_blast"):
         optional_services += """
   blast:
-    image: ncbi/blast:latest
+    image: ncbi/blast:2.15.0
     volumes:
       - blast_data:/blast/db
     restart: unless-stopped
 """
     if config.get("install_nextflow"):
-        optional_services += """
-  nextflow:
-    image: nextflow/nextflow:latest
-    volumes:
-      - nextflow_data:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
-    restart: unless-stopped
-"""
+        # Nextflow existiert nicht als öffentliches Docker Image —
+        # wird als Binary im Backend-Container installiert via requirements.
+        # Kein separater Service nötig.
+        pass
 
     compose = f"""# BioResearch Assistant — Docker Compose (Vollinstallation)
 # Generiert von install.py v1.3.0
-
-version: "3.9"
 
 services:
 
@@ -421,7 +415,6 @@ volumes:
   postgres_data:
   drs_data:
   blast_data:
-  nextflow_data:
   ollama_data:
 """
 
@@ -533,8 +526,22 @@ def install(config: dict, install_dir: Path) -> bool:
     )
     ok("Migrationen abgeschlossen")
 
-    # Alle Services starten
-    info("Starte alle Services...")
+    # Erst alle Services versuchen
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            "docker-compose.full.yml",
+            "up",
+            "-d",
+        ],
+        cwd=install_dir,
+        capture_output=True,
+    )
+
+    # Backend und Frontend explizit sicherstellen
+    # (falls optionale Services wie Nextflow fehlen)
     subprocess.run(
         [
             "docker",
@@ -543,6 +550,8 @@ def install(config: dict, install_dir: Path) -> bool:
             "docker-compose.full.yml",
             "up",
             "-d",
+            "backend",
+            "frontend",
         ],
         cwd=install_dir,
     )
@@ -723,6 +732,9 @@ def print_summary(config: dict, install_dir: Path):
   Isolation:  {config["isolation_mode"]}
   De-Pseudo:  {config["depseudo_access"]}
   LLM:        {llm}
+
+{Colors.YELLOW}Auth-Modus: Dev (kein Login erforderlich)
+Für Produktion: OIDC_ISSUER in .env setzen{Colors.RESET}
 
 {Colors.YELLOW}⚠ WICHTIG: .env enthält Secrets —
   niemals in Git committen!{Colors.RESET}
