@@ -25,7 +25,10 @@ from app.core.config import get_settings
 from app.core.encryption import decrypt_mapping, encrypt_mapping
 from app.services.pseudonymization_recognizers import (
     GERMAN_PERSON_DENY_SET,
+    GermanDateRecognizer,
+    GermanMedicalLicenseRecognizer,
     GermanPatientIDRecognizer,
+    GermanPhoneRecognizer,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,6 +55,9 @@ def _get_analyzer() -> AnalyzerEngine:
     registry = RecognizerRegistry(supported_languages=supported_languages)
     registry.load_predefined_recognizers(languages=supported_languages)
     registry.add_recognizer(GermanPatientIDRecognizer())
+    registry.add_recognizer(GermanDateRecognizer())
+    registry.add_recognizer(GermanPhoneRecognizer())
+    registry.add_recognizer(GermanMedicalLicenseRecognizer())
     # Pattern-basierte Recognizer explizit (Telefon, E-Mail, Datum, IBAN, Kreditkarte)
     if _PREDEFINED_AVAILABLE:
         registry.add_recognizer(PhoneRecognizer(supported_language="de"))

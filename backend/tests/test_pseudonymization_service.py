@@ -52,6 +52,30 @@ class TestAnalyze:
         results = analyze("", language="de")
         assert results == []
 
+    def test_german_date_recognized(self) -> None:
+        results = analyze(
+            "Patient geb. 15.03.1970, Termin 22.01.2024",
+            language="de",
+        )
+        entity_types = [r.entity_type for r in results]
+        assert "DATE_TIME" in entity_types, (
+            f"DATE_TIME nicht erkannt. Gefunden: {entity_types}"
+        )
+
+    def test_german_phone_recognized(self) -> None:
+        results = analyze("Tel. 0711-123456", language="de")
+        entity_types = [r.entity_type for r in results]
+        assert "PHONE_NUMBER" in entity_types, (
+            f"PHONE_NUMBER nicht erkannt. Gefunden: {entity_types}"
+        )
+
+    def test_german_medical_license_recognized(self) -> None:
+        results = analyze("Ärztin 4711", language="de")
+        entity_types = [r.entity_type for r in results]
+        assert "MEDICAL_LICENSE" in entity_types, (
+            f"MEDICAL_LICENSE nicht erkannt. Gefunden: {entity_types}"
+        )
+
 
 class TestPseudonymize:
     """Tests for pseudonymize() and restore() roundtrip."""
