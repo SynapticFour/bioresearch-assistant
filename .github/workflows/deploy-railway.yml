@@ -1,24 +1,30 @@
 name: Deploy to Railway (Manual)
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        default: ""
       environment:
-        description: 'Environment'
+        description: "Environment"
         required: true
         default: production
         type: choice
         options:
           - production
           - staging
-      confirm:
-        description: 'Type DEPLOY to confirm'
-        required: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.event.inputs.confirm == 'DEPLOY'
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.confirm == 'DEPLOY'
     steps:
       - uses: actions/checkout@v4
 

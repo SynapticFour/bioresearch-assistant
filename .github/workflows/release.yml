@@ -2,12 +2,23 @@ name: Create Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        default: ""
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.confirm == 'DEPLOY'
     permissions:
       contents: write
 
