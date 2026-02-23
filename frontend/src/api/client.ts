@@ -10,7 +10,7 @@ const TOKEN_KEY = "bioresearch_token";
 
 export const apiClient = axios.create({
   baseURL,
-  timeout: 30_000,
+  timeout: 120_000, // 2 Minuten für Mistral 7B
   headers: {
     "Content-Type": "application/json",
   },
