@@ -1,0 +1,195 @@
+"""FAIR Data Export API endpoints."""
+
+import logging
+from io import BytesIO
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel, Field
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql import Select
+
+from app.core.auth import get_current_user
+from app.core.config import get_settings
+from app.core.database import get_db
+from app.core.isolation import get_scope_filter
+from app.models.notebook import Notebook
+from app.models.paper import Paper
+from app.models.patient_record import PatientRecordModel
+from app.schemas.fair_export import FAIRComplianceReport, FAIRExportOptions
+from app.services.fair_export_service import FAIRExportService
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/fair-export", tags=["fair-export"])
+
+
+def _apply_scope_notebook(stmt: Select[Any], scope: dict) -> Select[Any]:
+    if "user_id" in scope and scope["user_id"]:
+        return stmt.where(Notebook.user_id == scope["user_id"])
+    if "team_id" in scope and scope["team_id"]:
+        return stmt.where(Notebook.team_id == scope["team_id"])
+    return stmt
+
+
+def _apply_scope_paper(stmt: Select[Any], scope: dict) -> Select[Any]:
+    if "user_id" in scope and scope["user_id"]:
+        return stmt.where(Paper.user_id == scope["user_id"])
+    if "team_id" in scope and scope["team_id"]:
+        return stmt.where(Paper.team_id == scope["team_id"])
+    return stmt
+
+
+def _apply_scope_patient(stmt: Select[Any], scope: dict) -> Select[Any]:
+    if "user_id" in scope and scope["user_id"]:
+        return stmt.where(PatientRecordModel.user_id == scope["user_id"])
+    if "team_id" in scope and scope["team_id"]:
+        return stmt.where(PatientRecordModel.team_id == scope["team_id"])
+    return stmt
+
+
+class ZenodoUploadRequest(BaseModel):
+    """Body for POST /fair-export/zenodo: options + token override."""
+
+    zenodo_token: str | None = Field(default=None, description="Override env ZENODO_TOKEN")
+    options: FAIRExportOptions
+
+
+@router.post("/preview", status_code=status.HTTP_200_OK)
+async def fair_export_preview(
+    body: FAIRExportOptions,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Preview what would be included in the export."""
+    scope = get_scope_filter(current_user)
+    papers_stmt = select(func.count()).select_from(Paper)
+    papers_stmt = _apply_scope_paper(papers_stmt, scope)
+    papers_count = await db.scalar(papers_stmt) or 0
+    pp_stmt = select(func.count()).select_from(PatientRecordModel)
+    pp_stmt = _apply_scope_patient(pp_stmt, scope)
+    pheno_count = await db.scalar(pp_stmt) or 0
+    nb_stmt = select(func.count()).select_from(Notebook)
+    nb_stmt = _apply_scope_notebook(nb_stmt, scope)
+    notebooks_count = await db.scalar(nb_stmt) or 0
+    return {
+        "papers_count": papers_count,
+        "phenopackets_count": pheno_count,
+        "notebooks_count": notebooks_count,
+        "include_papers": body.include_papers,
+        "include_phenopackets": body.include_phenopackets,
+        "include_notebooks": body.include_notebooks,
+        "include_drs": body.include_drs,
+    }
+
+
+@router.post("/compliance-check", status_code=status.HTTP_200_OK)
+async def fair_compliance_check(
+    body: FAIRExportOptions,
+    current_user: dict = Depends(get_current_user),
+) -> FAIRComplianceReport:
+    """Compute FAIR compliance score for the given options."""
+    service = FAIRExportService()
+    package = {
+        "title": body.title,
+        "license": body.license,
+        "funding": body.funding,
+    }
+    return await service.check_fair_compliance(package)
+
+
+@router.post("/download", status_code=status.HTTP_200_OK)
+async def fair_export_download(
+    body: FAIRExportOptions,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> StreamingResponse:
+    """Generate and download FAIR export as ZIP."""
+    service = FAIRExportService()
+    zip_bytes = await service.create_export_package(db, current_user, body)
+    filename = "".join(c for c in body.title if c.isalnum() or c in " ._-").strip() or "fair_export"
+    filename = f"{filename}.zip"
+    return StreamingResponse(
+        BytesIO(zip_bytes),
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/zenodo", status_code=status.HTTP_200_OK)
+async def fair_export_zenodo(
+    body: ZenodoUploadRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Upload FAIR package to Zenodo (optional; requires ZENODO_TOKEN in .env or in body)."""
+    settings = get_settings()
+    token = body.zenodo_token or settings.zenodo_token
+    if not token or not token.strip():
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Zenodo upload not configured. Set ZENODO_TOKEN in .env or pass zenodo_token.",
+        )
+    service = FAIRExportService()
+    zip_bytes = await service.create_export_package(db, current_user, body.options)
+    # Zenodo API: create deposition, upload file, publish (optional)
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            r = await client.post(
+                "https://zenodo.org/api/deposit/depositions",
+                params={"access_token": token.strip()},
+                json={},
+            )
+            r.raise_for_status()
+            dep = r.json()
+            dep_id = dep.get("id")
+            if not dep_id:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Zenodo: no deposition ID",
+                )
+            upload_url = dep.get("links", {}).get("bucket")
+            if not upload_url:
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="Zenodo: no bucket URL",
+                )
+            safe_title = (
+                "".join(c for c in body.options.title if c.isalnum() or c in " ._-").strip()
+                or "fair_export"
+            )
+            filename = f"{safe_title}.zip"
+            up = await client.put(
+                f"{upload_url}/{filename}",
+                params={"access_token": token.strip()},
+                content=zip_bytes,
+            )
+            up.raise_for_status()
+            metadata = await service.generate_datacite_metadata(body.options)
+            patch = await client.patch(
+                f"https://zenodo.org/api/deposit/depositions/{dep_id}",
+                params={"access_token": token.strip()},
+                json={"metadata": metadata},
+            )
+            patch.raise_for_status()
+            return {
+                "deposition_id": dep_id,
+                "doi": dep.get("doi"),
+                "record_url": dep.get("links", {}).get("record"),
+                "message": "Upload successful. Publish from Zenodo dashboard to get DOI.",
+            }
+    except httpx.HTTPStatusError as e:
+        logger.warning("Zenodo API error: %s %s", e.response.status_code, e.response.text)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Zenodo API error: {e.response.text}",
+        ) from e
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Zenodo request failed: {e}",
+        ) from e

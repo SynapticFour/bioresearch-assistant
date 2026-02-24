@@ -5,10 +5,12 @@ import {
   ClipboardList,
   Dna,
   FileSearch,
+  FileText,
   FolderOpen,
   Home,
   Settings,
   Shield,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHealth } from "@/hooks/useHealth";
@@ -22,11 +24,13 @@ const navItems: { to: string; labelKey: string; icon: typeof Home }[] = [
   { to: "/", labelKey: "dashboard", icon: Home },
   { to: "/literature", labelKey: "literature", icon: BookOpen },
   { to: "/library", labelKey: "library", icon: Bookmark },
+  { to: "/notebooks", labelKey: "notebooks", icon: FileText },
   { to: "/pseudonymize", labelKey: "pseudonymize", icon: Shield },
   { to: "/pipelines", labelKey: "pipelines", icon: Settings },
   { to: "/blast", labelKey: "blast", icon: FileSearch },
   { to: "/drs", labelKey: "drs", icon: FolderOpen },
   { to: "/phenopackets", labelKey: "phenopackets", icon: Dna },
+  { to: "/fair-export", labelKey: "fairExport", icon: Upload },
   { to: "/audit", labelKey: "audit", icon: ClipboardList },
 ];
 

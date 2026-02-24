@@ -62,6 +62,8 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 
 ## Features
 
+- 📓 **Research Notebook** — Elektronisches Laborbuch (Markdown) mit KI-Assistent und Verknüpfungen zu Papers, Phenopackets, DRS
+- 📦 **FAIR Export** — FAIR-konforme Publikationsvorbereitung mit DataCite, DMP und optionalem Zenodo-Upload
 - 📚 **Literature Mining** — PubMed-Suche mit KI-Zusammenfassung (DE/EN)
 - 🔒 **DSGVO-konforme Pseudonymisierung** — Presidio-basiert (DE + EN)
 - ↩️ **De-Pseudonymisierung** — Mit Audit Trail und konfigurierbarer Zugriffskontrolle (DEPSEUDO_ACCESS)

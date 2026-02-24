@@ -341,3 +341,48 @@ class LLMService:
         user = f"Paper summaries:\n\n{combined}\n\nWrite a research overview."
 
         return (await self._complete(system=system, user=user)).strip()
+
+    async def notebook_ai_assist(
+        self,
+        content: str,
+        mode: str = "both",
+    ) -> tuple[str | None, str | None]:
+        """Generate summary and/or next steps for notebook content.
+
+        Args:
+            content: Markdown notebook content.
+            mode: One of 'summary', 'next_steps', 'both'.
+
+        Returns:
+            (summary, next_steps) — one or both may be None depending on mode.
+
+        Raises:
+            LLMServiceError: On API or parsing errors.
+        """
+        content = (content or "").strip()
+        if not content:
+            return (None, None)
+
+        summary: str | None = None
+        next_steps: str | None = None
+
+        if mode in ("summary", "both"):
+            system = (
+                "You are a biomedical research assistant. "
+                "Summarize the following lab notebook entry in 2-4 concise sentences. "
+                "Output plain text only, no markdown."
+            )
+            user = f"Notebook content:\n\n{content}"
+            summary = (await self._complete(system=system, user=user)).strip()
+
+        if mode in ("next_steps", "both"):
+            system = (
+                "You are a biomedical research assistant. "
+                "Based on the following lab notebook entry, suggest 3-5 concrete "
+                "next research steps. Output a short bullet list as plain text "
+                "(one line per step)."
+            )
+            user = f"Notebook content:\n\n{content}"
+            next_steps = (await self._complete(system=system, user=user)).strip()
+
+        return (summary, next_steps)

@@ -12,11 +12,14 @@ function getRouteLabelKey(pathname: string): string {
   const keyMap: Record<string, string> = {
     literature: "literature",
     library: "library",
+    notebooks: "notebooks",
     pseudonymize: "pseudonymize",
     pipelines: "pipelines",
     blast: "blast",
     workflows: "workflows",
     drs: "drs",
+    phenopackets: "phenopackets",
+    "fair-export": "fairExport",
     audit: "audit",
   };
   return keyMap[segment] ?? "dashboard";

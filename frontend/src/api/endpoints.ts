@@ -541,6 +541,170 @@ export const phenopackets = {
   },
 };
 
+// ----- Notebooks (Research Notebook / ELN) -----
+
+export interface NotebookItem {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  linked_pmids: string[];
+  linked_drs_ids: string[];
+  linked_phenopacket_ids: string[];
+  ai_summary: string | null;
+  ai_next_steps: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface NotebookListResponse {
+  items: NotebookItem[];
+  total: number;
+  skip: number;
+  limit: number;
+}
+
+export const notebooks = {
+  async list(params?: {
+    skip?: number;
+    limit?: number;
+    search?: string;
+    tag?: string;
+  }): Promise<NotebookListResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.skip != null) searchParams.set("skip", String(params.skip));
+    if (params?.limit != null) searchParams.set("limit", String(params.limit));
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.tag) searchParams.set("tag", params.tag);
+    const qs = searchParams.toString();
+    const { data } = await apiClient.get<NotebookListResponse>(
+      `${API_V1}/notebooks${qs ? `?${qs}` : ""}`
+    );
+    return data;
+  },
+  async get(id: string): Promise<NotebookItem> {
+    const { data } = await apiClient.get<NotebookItem>(
+      `${API_V1}/notebooks/${encodeURIComponent(id)}`
+    );
+    return data;
+  },
+  async create(payload: { title?: string; content?: string; tags?: string[] }): Promise<NotebookItem> {
+    const { data } = await apiClient.post<NotebookItem>(`${API_V1}/notebooks`, {
+      title: payload.title ?? "",
+      content: payload.content ?? "",
+      tags: payload.tags ?? [],
+    });
+    return data;
+  },
+  async update(
+    id: string,
+    payload: { title?: string; content?: string; tags?: string[] }
+  ): Promise<NotebookItem> {
+    const { data } = await apiClient.put<NotebookItem>(
+      `${API_V1}/notebooks/${encodeURIComponent(id)}`,
+      payload
+    );
+    return data;
+  },
+  async delete(id: string): Promise<void> {
+    await apiClient.delete(`${API_V1}/notebooks/${encodeURIComponent(id)}`);
+  },
+  async aiAssist(id: string, mode: "summary" | "next_steps" | "both" = "both"): Promise<NotebookItem> {
+    const { data } = await apiClient.post<NotebookItem>(
+      `${API_V1}/notebooks/${encodeURIComponent(id)}/ai-assist`,
+      { mode }
+    );
+    return data;
+  },
+  async link(id: string, type: "paper" | "drs" | "phenopacket", resourceId: string): Promise<NotebookItem> {
+    const { data } = await apiClient.post<NotebookItem>(
+      `${API_V1}/notebooks/${encodeURIComponent(id)}/link`,
+      { type, id: resourceId }
+    );
+    return data;
+  },
+  async export(id: string, format: "md" | "pdf"): Promise<Blob> {
+    const { data } = await apiClient.get<Blob>(
+      `${API_V1}/notebooks/${encodeURIComponent(id)}/export`,
+      { params: { format }, responseType: "blob" }
+    );
+    return data;
+  },
+};
+
+// ----- FAIR Export -----
+
+export interface FAIRExportOptions {
+  title: string;
+  description?: string;
+  authors?: string[];
+  license?: string;
+  include_papers?: boolean;
+  include_phenopackets?: boolean;
+  include_notebooks?: boolean;
+  include_drs?: boolean;
+  keywords?: string[];
+  funding?: string | null;
+}
+
+export interface FAIRComplianceReport {
+  findable: boolean;
+  accessible: boolean;
+  interoperable: boolean;
+  reusable: boolean;
+  score: number;
+  recommendations: string[];
+}
+
+export interface FAIRPreviewResponse {
+  papers_count: number;
+  phenopackets_count: number;
+  notebooks_count: number;
+  include_papers: boolean;
+  include_phenopackets: boolean;
+  include_notebooks: boolean;
+  include_drs: boolean;
+}
+
+export const fairExport = {
+  async preview(options: FAIRExportOptions): Promise<FAIRPreviewResponse> {
+    const { data } = await apiClient.post<FAIRPreviewResponse>(
+      `${API_V1}/fair-export/preview`,
+      options
+    );
+    return data;
+  },
+  async complianceCheck(options: FAIRExportOptions): Promise<FAIRComplianceReport> {
+    const { data } = await apiClient.post<FAIRComplianceReport>(
+      `${API_V1}/fair-export/compliance-check`,
+      options
+    );
+    return data;
+  },
+  async download(options: FAIRExportOptions): Promise<Blob> {
+    const { data } = await apiClient.post<Blob>(
+      `${API_V1}/fair-export/download`,
+      options,
+      { responseType: "blob" }
+    );
+    return data;
+  },
+  async zenodo(options: FAIRExportOptions, zenodoToken?: string): Promise<{
+    deposition_id: string;
+    doi?: string;
+    record_url?: string;
+    message: string;
+  }> {
+    const { data } = await apiClient.post<{
+      deposition_id: string;
+      doi?: string;
+      record_url?: string;
+      message: string;
+    }>(`${API_V1}/fair-export/zenodo`, { options, zenodo_token: zenodoToken });
+    return data;
+  },
+};
+
 // ----- Health -----
 
 export const health = {

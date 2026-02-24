@@ -4,6 +4,16 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.4.0] — 2026-02-24
+
+### Neu
+- **Research Notebook (ELN):** Markdown-basiertes elektronisches Laborbuch mit KI-Assistent, Auto-Save (2s Debounce) und Verknüpfungen zu Papers, Phenopackets und DRS-Dateien
+- **FAIR Data Export:** Publikationsvorbereitung mit FAIR Compliance Score, DataCite-Metadaten, Data Management Plan und optionalem Zenodo-Upload
+- **FAIR Compliance Check:** Automatische Prüfung der FAIR-Prinzipien (Findable, Accessible, Interoperable, Reusable)
+
+### Verbessert
+- Sidebar: Neue Navigation für Notizbuch und FAIR Export
+
 ## [1.3.0] — 2026-02-23
 
 ### Neu

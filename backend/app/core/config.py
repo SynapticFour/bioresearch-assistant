@@ -138,6 +138,12 @@ class Settings(BaseSettings):
         description="Microsoft Entra ID / Azure AD tenant ID (e.g. for institution-specific login)",
     )
 
+    # FAIR Export: optional Zenodo upload
+    zenodo_token: str | None = Field(
+        default=None,
+        description="Zenodo API token for FAIR export upload (optional)",
+    )
+
     # Isolation: user = per-user, team = by institution, open = all (dev/demo)
     isolation_mode: str = Field(
         default="user",
