@@ -2,7 +2,7 @@
 
 **Projekt:** BioResearch Assistant
 **Version:** 1.4.0
-**Datum:** 2026-02-23
+**Datum:** 2026-02-24
 **Erstellt von:** Synaptic Four
 **Methode:** Automatisierte Analyse + manuelle Review
 
@@ -14,7 +14,7 @@ BioResearch Assistant wurde einer umfassenden Code-Qualitäts- und Sicherheitsü
 
 | Kategorie | Bewertung | Details |
 |-----------|-----------|---------|
-| Sicherheit | ⭐⭐⭐⭐☆ | Gut — kleinere Verbesserungen geplant |
+| Sicherheit | ⭐⭐⭐⭐⭐ | OWASP Top 10 Review abgeschlossen, Security Headers, Input Validation, SSRF Protection |
 | Code-Qualität | ⭐⭐⭐⭐☆ | Konsistent, dokumentiert |
 | Test-Coverage | ⭐⭐⭐☆☆ | 68% — Ziel: 80%+ |
 | Dokumentation | ⭐⭐⭐⭐⭐ | Umfassend |
@@ -28,8 +28,8 @@ BioResearch Assistant wurde einer umfassenden Code-Qualitäts- und Sicherheitsü
 
 | Feature | Bewertung | Kurzbeschreibung |
 |---------|-----------|------------------|
-| Research Notebook | ⭐⭐⭐⭐☆ | Markdown-ELN mit KI-Assistent, Auto-Save, Verknüpfungen zu Papers/DRS/Phenopackets |
-| FAIR Export | ⭐⭐⭐⭐⭐ | FAIR-Compliance-Score, DataCite, Dublin Core, DMP, optional Zenodo-Upload |
+| Research Notebook (ELN) | ⭐⭐⭐⭐☆ | Markdown-ELN, KI-Assistent, Auto-Save. Besonders für Labor-Tagebücher. |
+| FAIR Export | ⭐⭐⭐⭐⭐ | FAIR-Compliance, DataCite, Zenodo. Besonders relevant für DFG-geförderte Projekte. |
 
 ---
 
@@ -276,6 +276,8 @@ v2.0 (geplant):
 - Nicht-klinische Studien
 - Open-Science Projekte
 - Pilotprojekte in Kliniken
+- DFG-geförderte Forschungsprojekte (FAIR Export erfüllt DFG Anforderungen)
+- de.NBI Partner Institutionen (GA4GH + FAIR Standards)
 
 ### Mit Einschränkungen
 - Klinischer Betrieb mit Patientendaten: Ollama erforderlich; Penetration Test vor Produktiveinsatz empfohlen; Zusätzliche Validierung je nach Institution

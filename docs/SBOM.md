@@ -1,5 +1,5 @@
 # Software Bill of Materials (SBOM)
-Stand: 2026-02-23 — BioResearch Assistant v1.3.0
+Stand: 2026-02-24, Version: 1.4.0
 
 ## Backend Dependencies (Python)
 
@@ -13,6 +13,7 @@ Stand: 2026-02-23 — BioResearch Assistant v1.3.0
 | presidio-anonymizer | ≥2.2 | MIT | Text Anonymisierung |
 | spacy | ≥3.7 | MIT | NLP (optional) |
 | sentence-transformers | ≥2.2 | Apache 2.0 | Embeddings (optional) |
+| paraphrase-multilingual-mpnet-base-v2 | (Modell) | Apache 2.0 | Multilingual Embeddings DE+EN |
 | anthropic | ≥0.20 | MIT | LLM API (optional) |
 | python-jose | ≥3.3 | MIT | JWT |
 | authlib | ≥1.3 | BSD | OAuth2/OIDC |
@@ -53,4 +54,4 @@ cd backend && pip-audit
 cd frontend && npm audit
 ```
 
-Stand: 2026-02-23 — Keine bekannten kritischen CVEs.
+Stand: 2026-02-24 — Keine bekannten kritischen CVEs.
