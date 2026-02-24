@@ -1,6 +1,9 @@
 """BLAST search API: WES-backed Nextflow workflow and result parsing."""
 
 import logging
+import os
+import shutil
+import subprocess
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +26,50 @@ from app.services.blast_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/blast", tags=["blast"])
+
+
+@router.get("/db-status")
+async def blast_db_status(
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Check if BLAST database is available."""
+    if not shutil.which("blastn"):
+        return {
+            "available": False,
+            "reason": "BLAST not installed",
+        }
+
+    # Prüfe ob nt Datenbank existiert
+    db_path = "/blast/db/nt"
+    result = subprocess.run(
+        ["blastdbcmd", "-db", db_path, "-info"],
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode == 0:
+        return {
+            "available": True,
+            "database": db_path,
+            "info": (result.stdout or "")[:200],
+        }
+
+    # Prüfe ob andere DBs vorhanden
+    db_dir = "/blast/db"
+    if os.path.exists(db_dir):
+        dbs = [f[:-4] for f in os.listdir(db_dir) if f.endswith(".nsi")]
+        if dbs:
+            return {
+                "available": True,
+                "database": db_dir,
+                "databases": dbs[:20],
+            }
+
+    return {
+        "available": False,
+        "reason": "No BLAST database found",
+        "setup": "Run ./setup-blast-db.sh",
+    }
 
 
 @router.post("/search", response_model=BLASTSearchResponse, status_code=status.HTTP_202_ACCEPTED)

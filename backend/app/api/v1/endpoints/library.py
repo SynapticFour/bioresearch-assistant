@@ -313,7 +313,7 @@ async def semantic_search(
             limit=limit,
             user_id=user_id,
             team_id=team_id,
-            threshold=body.threshold if body.threshold is not None else 1.5,
+            threshold=body.threshold if body.threshold is not None else 1.0,
         )
         return [_paper_to_response(p) for p in papers]
     except EmbeddingServiceError as e:

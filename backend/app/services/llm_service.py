@@ -11,7 +11,7 @@ from app.schemas.llm import BiologicalEntities, PaperSummary
 logger = logging.getLogger(__name__)
 
 # Default timeout for LLM API calls (Mistral 7B etc. need time)
-LLM_TIMEOUT = 120.0
+LLM_TIMEOUT = 180.0
 
 
 class LLMServiceError(Exception):

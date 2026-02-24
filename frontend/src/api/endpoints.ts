@@ -147,10 +147,14 @@ export const library = {
   async deletePaper(pmid: string): Promise<void> {
     await apiClient.delete(`${API_V1}/library/papers/${encodeURIComponent(pmid)}`);
   },
-  async semanticSearch(query: string, limit: number = 10): Promise<Paper[]> {
+  async semanticSearch(
+    query: string,
+    limit: number = 10,
+    threshold: number = 1.0
+  ): Promise<Paper[]> {
     const { data } = await apiClient.post<Paper[]>(
       `${API_V1}/library/search/semantic`,
-      { query, limit }
+      { query, limit, threshold }
     );
     return data;
   },
@@ -375,6 +379,24 @@ export interface BlastSearchParams {
 }
 
 export const blast = {
+  async getDbStatus(): Promise<{
+    available: boolean;
+    reason?: string;
+    database?: string;
+    info?: string;
+    databases?: string[];
+    setup?: string;
+  }> {
+    const { data } = await apiClient.get<{
+      available: boolean;
+      reason?: string;
+      database?: string;
+      info?: string;
+      databases?: string[];
+      setup?: string;
+    }>(`${API_V1}/blast/db-status`);
+    return data;
+  },
   async search(
     query: string,
     database: string = "nt",
