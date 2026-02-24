@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
@@ -7,7 +8,6 @@ import type { NotebookItem } from "@/api/endpoints";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const DEBOUNCE_MS = 2000;
@@ -48,11 +48,11 @@ export default function NotebookPage() {
         {/* Left: list */}
         <div className="col-span-3 flex flex-col gap-2 overflow-hidden rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex gap-2">
-            <Input
+            <input
               placeholder="Suchen..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-9"
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              className="h-9 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <Button
               size="icon"
@@ -64,6 +64,12 @@ export default function NotebookPage() {
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             </Button>
           </div>
+          <input
+            placeholder="Nach Tag filtern..."
+            value={tagFilter}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setTagFilter(e.target.value)}
+            className="w-full rounded border border-slate-300 px-2 py-1 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary/20"
+          />
           {listLoading ? (
             <div className="flex flex-1 items-center justify-center text-sm text-slate-500">
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -198,7 +204,7 @@ function NotebookEditor({
         <input
           type="text"
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
           className="min-w-0 flex-1 rounded border-0 bg-transparent text-lg font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-primary"
           placeholder="Titel"
         />
@@ -252,7 +258,7 @@ function NotebookEditor({
         ) : (
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
             className="h-full w-full resize-none rounded border border-slate-200 p-3 font-mono text-sm text-slate-800 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             placeholder="Markdown-Inhalt..."
             spellCheck="false"
@@ -329,7 +335,8 @@ function LinkedResources({
       <div className="mt-3 flex flex-wrap gap-2">
         <select
           value={linkType}
-          onChange={(e) => setLinkType(e.target.value as "paper" | "drs" | "phenopacket")}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setLinkType(e.target.value as "paper" | "drs" | "phenopacket")}
           className="rounded border border-slate-200 px-2 py-1 text-sm"
         >
           <option value="paper">Paper (PMID)</option>
@@ -339,7 +346,7 @@ function LinkedResources({
         <input
           type="text"
           value={linkId}
-          onChange={(e) => setLinkId(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setLinkId(e.target.value)}
           placeholder={linkType === "paper" ? "PMID" : "ID"}
           className="min-w-0 flex-1 rounded border border-slate-200 px-2 py-1 text-sm"
         />
@@ -379,7 +386,8 @@ function AIAssistPanel({
       <div className="space-y-2 text-sm">
         <select
           value={mode}
-          onChange={(e) => setMode(e.target.value as "summary" | "next_steps" | "both")}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setMode(e.target.value as "summary" | "next_steps" | "both")}
           className="w-full rounded border border-slate-200 px-2 py-1.5"
         >
           <option value="summary">Zusammenfassung</option>

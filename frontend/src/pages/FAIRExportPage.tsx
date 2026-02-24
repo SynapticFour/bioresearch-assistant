@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Download, Loader2, Upload } from "lucide-react";
@@ -6,7 +7,6 @@ import type { FAIRExportOptions, FAIRComplianceReport } from "@/api/endpoints";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 const LICENSES = ["CC-BY-4.0", "CC-BY-SA-4.0", "CC0-1.0", "MIT", "Apache-2.0"];
 
@@ -111,7 +111,8 @@ export default function FAIRExportPage() {
                 type="checkbox"
                 id="include_papers"
                 checked={options.include_papers}
-                onChange={(e) => setOptions((o) => ({ ...o, include_papers: e.target.checked }))}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setOptions((o) => ({ ...o, include_papers: e.target.checked }))}
                 className="h-4 w-4 rounded border-slate-300"
               />
               <label htmlFor="include_papers">Literatur (Papers)</label>
@@ -121,7 +122,7 @@ export default function FAIRExportPage() {
                 type="checkbox"
                 id="include_phenopackets"
                 checked={options.include_phenopackets}
-                onChange={(e) =>
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setOptions((o) => ({ ...o, include_phenopackets: e.target.checked }))
                 }
                 className="h-4 w-4 rounded border-slate-300"
@@ -133,7 +134,7 @@ export default function FAIRExportPage() {
                 type="checkbox"
                 id="include_notebooks"
                 checked={options.include_notebooks}
-                onChange={(e) =>
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setOptions((o) => ({ ...o, include_notebooks: e.target.checked }))
                 }
                 className="h-4 w-4 rounded border-slate-300"
@@ -145,7 +146,8 @@ export default function FAIRExportPage() {
                 type="checkbox"
                 id="include_drs"
                 checked={options.include_drs}
-                onChange={(e) => setOptions((o) => ({ ...o, include_drs: e.target.checked }))}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setOptions((o) => ({ ...o, include_drs: e.target.checked }))}
                 className="h-4 w-4 rounded border-slate-300"
               />
               <label htmlFor="include_drs">DRS-Dateien (optional, oft groß)</label>
@@ -166,12 +168,13 @@ export default function FAIRExportPage() {
               <label htmlFor="title" className="mb-1 block text-sm font-medium text-slate-600">
                 Titel
               </label>
-              <Input
+              <input
                 id="title"
                 value={options.title}
-                onChange={(e) => setOptions((o) => ({ ...o, title: e.target.value }))}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setOptions((o) => ({ ...o, title: e.target.value }))}
                 placeholder="Projekt- oder Datensatz-Titel"
-                className="w-full"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
@@ -181,7 +184,8 @@ export default function FAIRExportPage() {
               <select
                 id="license"
                 value={options.license}
-                onChange={(e) => setOptions((o) => ({ ...o, license: e.target.value }))}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                  setOptions((o) => ({ ...o, license: e.target.value }))}
                 className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
               >
                 {LICENSES.map((l) => (
@@ -198,7 +202,8 @@ export default function FAIRExportPage() {
               <textarea
                 id="description"
                 value={options.description ?? ""}
-                onChange={(e) => setOptions((o) => ({ ...o, description: e.target.value }))}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) =>
+                  setOptions((o) => ({ ...o, description: e.target.value }))}
                 placeholder="Kurze Beschreibung des Datensatzes"
                 className="w-full rounded border border-slate-200 px-3 py-2 text-sm"
                 rows={3}
@@ -208,38 +213,43 @@ export default function FAIRExportPage() {
               <label htmlFor="authors" className="mb-1 block text-sm font-medium text-slate-600">
                 Autoren (kommagetrennt)
               </label>
-              <Input
+              <input
                 id="authors"
                 value={authorsText}
-                onChange={(e) => setAuthorsText(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setAuthorsText(e.target.value)}
                 placeholder="Name 1, Name 2"
-                className="w-full"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
               <label htmlFor="funding" className="mb-1 block text-sm font-medium text-slate-600">
                 Förderung
               </label>
-              <Input
+              <input
                 id="funding"
                 value={options.funding ?? ""}
-                onChange={(e) =>
-                  setOptions((o) => ({ ...o, funding: e.target.value.trim() || undefined }))
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setOptions((o) => ({
+                    ...o,
+                    funding: e.target.value.trim() || undefined,
+                  }))
                 }
                 placeholder="z.B. DFG 123456"
-                className="w-full"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div className="md:col-span-2">
               <label htmlFor="keywords" className="mb-1 block text-sm font-medium text-slate-600">
                 Keywords (kommagetrennt)
               </label>
-              <Input
+              <input
                 id="keywords"
                 value={keywordsText}
-                onChange={(e) => setKeywordsText(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setKeywordsText(e.target.value)}
                 placeholder="keyword1, keyword2"
-                className="w-full"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
