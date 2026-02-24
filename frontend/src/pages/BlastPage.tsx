@@ -36,7 +36,7 @@ export function BlastPage() {
   const resultsQuery = useQuery({
     queryKey: ["blast-results", runId],
     queryFn: () => blast.getResults(runId!, { papers: true }),
-    enabled: !!runId,
+    enabled: !!runId && !!hasDatabase,
     refetchInterval: (query) => {
       const data = query.state.data;
       if (!data?.results?.hits?.length && runId) return POLL_MS;
@@ -46,8 +46,9 @@ export function BlastPage() {
 
   const handleStart = useCallback(() => {
     if (!sequence.trim()) return;
+    if (!hasDatabase) return;
     startMutation.mutate();
-  }, [sequence, startMutation]);
+  }, [sequence, startMutation, hasDatabase]);
 
   const hits = resultsQuery.data?.results?.hits ?? [];
   const isLoading = startMutation.isPending || (!!runId && resultsQuery.isLoading);
@@ -135,7 +136,11 @@ export function BlastPage() {
         </div>
         <Button
           onClick={handleStart}
-          disabled={!sequence.trim() || isLoading}
+          disabled={
+            !sequence.trim() ||
+            isLoading ||
+            !hasDatabase
+          }
           className="w-full"
         >
           <Play className="h-5 w-5" />
