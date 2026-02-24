@@ -91,6 +91,15 @@ class Settings(BaseSettings):
         description="Who may de-pseudonymize: owner (only pseudonymizing user), team, admin",
         validation_alias="DEPSEUDO_ACCESS",
     )
+    custom_patient_id_patterns: str = Field(
+        default="",
+        validation_alias="CUSTOM_PATIENT_ID_PATTERNS",
+        description=(
+            "Comma-separated regex patterns for custom "
+            "patient IDs. Example: "
+            r"L-\d{4}-\d{5},P-\d{4,8},\d{8}"
+        ),
+    )
 
     # GA4GH WES (Phase 3)
     wes_work_dir: str = Field(

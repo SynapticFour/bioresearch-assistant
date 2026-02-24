@@ -38,6 +38,7 @@ E-Mail: security@synapticfour.de
 - Microsoft Presidio Pseudonymisierung
 - Audit Trail für alle De-Pseudonymisierungen
 - Konfigurierbare Datenisolation (user/team/open)
+- Patienten-ID Erkennung ist konfigurierbar. Institutionsspezifische Formate können via CUSTOM_PATIENT_ID_PATTERNS konfiguriert werden. Siehe docs/USER-GUIDE.md für Details.
 - Vollständige Datensouveränität mit Ollama
 
 ### Netzwerk

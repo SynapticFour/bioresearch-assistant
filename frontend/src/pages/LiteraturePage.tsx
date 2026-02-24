@@ -112,9 +112,13 @@ function SearchForm({
         </small>
       </div>
       {semanticSearchAvailable ? (
-        <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
-          ✓ Semantische Suche aktiv — durchsucht PubMed und Ihre gespeicherte
-          Bibliothek.
+        <div className="flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-gray-100 px-2 py-1 text-gray-600">
+            🔍 PubMed: Keyword-Suche
+          </span>
+          <span className="rounded-full bg-green-100 px-2 py-1 text-green-700">
+            🧠 Bibliothek: Semantische Suche
+          </span>
         </div>
       ) : (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">

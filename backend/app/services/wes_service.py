@@ -390,7 +390,8 @@ async def create_run(
     db.add(row)
     await db.flush()
 
-    task = asyncio.create_task(
+    loop = asyncio.get_running_loop()
+    task = loop.create_task(
         _execute_nextflow(
             str(run_id),
             run_dir,

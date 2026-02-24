@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { library as libraryApi } from "@/api/endpoints";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/contexts/ToastContext";
 import type { Paper } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,8 @@ interface PaperCardProps {
   paper: Paper;
   summaryOverride?: string | null;
   summaryCached?: boolean;
+  isSummaryExpanded?: boolean;
+  onToggleSummary?: (pmid: string) => void;
   onRemove: (pmid: string) => void;
   onSummarize?: (pmid: string) => void;
   isRemoving: boolean;
@@ -42,6 +45,8 @@ function PaperCard({
   paper,
   summaryOverride,
   summaryCached,
+  isSummaryExpanded,
+  onToggleSummary,
   onRemove,
   onSummarize,
   isRemoving,
@@ -102,9 +107,28 @@ function PaperCard({
         </div>
       )}
       {displaySummary && (
-        <div className="mb-3 rounded-lg border border-teal-100 bg-teal-50 p-3 text-sm text-slate-800">
-          <h4 className="font-medium text-teal-800">KI-Zusammenfassung</h4>
-          <p className="mt-1">{displaySummary}</p>
+        <div className="mt-2 rounded bg-blue-50 p-3">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-xs font-medium text-blue-700">
+              🤖 KI Zusammenfassung
+            </span>
+            {onToggleSummary && (
+              <button
+                type="button"
+                onClick={() => onToggleSummary(paper.pmid)}
+                className="text-xs text-blue-500 hover:text-blue-700"
+              >
+                {isSummaryExpanded ? "▲ Weniger" : "▼ Mehr"}
+              </button>
+            )}
+          </div>
+          <p
+            className={`text-sm text-slate-700 ${
+              isSummaryExpanded ? "" : "line-clamp-2"
+            }`}
+          >
+            {displaySummary}
+          </p>
           {showCachedBadge && (
             <span className="mt-2 block text-xs text-gray-400">
               {isFromCache ? "📦 Gespeicherte Zusammenfassung" : "✨ Neu generiert"}
@@ -189,8 +213,21 @@ export function LibraryPage() {
     Record<string, { summary: string; cached: boolean }>
   >({});
   const [summarizingPmid, setSummarizingPmid] = useState<string | null>(null);
+  const [expandedSummaries, setExpandedSummaries] = useState<Set<string>>(
+    new Set()
+  );
 
-  const userLanguage = navigator.language.startsWith("de") ? "de" : "en";
+  const { language } = useTranslation();
+  const userLanguage = language === "de" ? "de" : "en";
+
+  const toggleSummary = useCallback((pmid: string) => {
+    setExpandedSummaries((prev) => {
+      const next = new Set(prev);
+      if (next.has(pmid)) next.delete(pmid);
+      else next.add(pmid);
+      return next;
+    });
+  }, []);
 
   const { data: papers = [], isLoading } = useQuery({
     queryKey: ["library-papers", yearFilter, journalFilter],
@@ -552,6 +589,8 @@ export function LibraryPage() {
                 paper={paper}
                 summaryOverride={summaryDataByPmid[paper.pmid]?.summary}
                 summaryCached={summaryDataByPmid[paper.pmid]?.cached}
+                isSummaryExpanded={expandedSummaries.has(paper.pmid)}
+                onToggleSummary={toggleSummary}
                 onRemove={(pmid) => deleteMutation.mutate(pmid)}
                 onSummarize={features.llm_summaries ? (pmid) => summarizeMutation.mutate(pmid) : undefined}
                 isRemoving={deleteMutation.isPending}

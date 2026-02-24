@@ -5,28 +5,46 @@ from presidio_analyzer import Pattern, PatternRecognizer
 # Entity type for German patient/case identifiers
 GERMAN_PATIENT_ID_ENTITY = "MEDICAL_RECORD_NUMBER"
 
+DEFAULT_PATIENT_ID_PATTERNS = [
+    Pattern(
+        name="PATIENTEN_ID",
+        regex=r"(?i)patienten?[-\s]?(?:id|nr|nummer)\s*:?\s*[\w-]{3,15}",
+        score=0.9,
+    ),
+    Pattern(
+        name="FALLNUMMER",
+        regex=r"(?i)fallnummer\s*:?\s*[\w-]{3,15}",
+        score=0.9,
+    ),
+    Pattern(
+        name="P_ID_SHORT",
+        regex=r"\b[Pp]-\d{4,8}\b",
+        score=0.85,
+    ),
+    Pattern(
+        name="LAB_ID",
+        # Format: L-2024-98765
+        regex=r"\b[A-Z]-\d{4}-\d{4,8}\b",
+        score=0.85,
+    ),
+    Pattern(
+        name="PATIENTENNUMMER_LABEL",
+        regex=r"(?i)patientennummer\s*:?\s*[\w-]{3,15}",
+        score=0.90,
+    ),
+]
+
 
 class GermanPatientIDRecognizer(PatternRecognizer):
-    """Recognizes German patient/case IDs as MEDICAL_RECORD_NUMBER."""
+    """Recognizes German patient/case IDs."""
 
-    def __init__(self) -> None:
-        patterns = [
-            Pattern(
-                name="PATIENTEN_ID",
-                regex=r"(?i)patienten?[-\s]?id\s*:?\s*\d{3,8}",
-                score=0.9,
-            ),
-            Pattern(
-                name="FALLNUMMER",
-                regex=r"(?i)fallnummer\s*:?\s*\d{3,8}",
-                score=0.9,
-            ),
-            Pattern(
-                name="P_ID_SHORT",
-                regex=r"\b[Pp]-\d{4,8}\b",
-                score=0.85,
-            ),
-        ]
+    def __init__(
+        self,
+        extra_patterns: list[Pattern] | None = None,
+    ) -> None:
+        patterns = list(DEFAULT_PATIENT_ID_PATTERNS)
+        if extra_patterns:
+            patterns.extend(extra_patterns)
         super().__init__(
             supported_entity="MEDICAL_RECORD_NUMBER",
             patterns=patterns,

@@ -2,6 +2,31 @@
 
 ## BLAST
 
+### BLAST Datenbank einrichten
+
+BLAST ist im System installiert, braucht aber eine lokale Datenbank zum Suchen.
+
+#### Schnellstart
+```bash
+./setup-blast-db.sh
+# Wähle 1 für 16S (~1 GB, gut für Tests)
+```
+
+#### Produktionsdatenbank
+```bash
+./setup-blast-db.sh
+# Wähle 2 für nt (~100 GB, Standard)
+# ⚠️ Benötigt ~100 GB Speicherplatz
+#    und mehrere Stunden Download
+```
+
+#### Speicherübersicht
+| Datenbank | Größe | Verwendung |
+|-----------|-------|------------|
+| 16S_ribosomal_RNA | ~1 GB | Bakterien-ID, Tests |
+| nt | ~100 GB | Standard Nukleotid |
+| nr | ~300 GB | Protein |
+
 ### Lokal (macOS)
 brew install blast
 # Verify:
