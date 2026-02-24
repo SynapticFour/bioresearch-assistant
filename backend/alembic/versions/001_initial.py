@@ -88,7 +88,12 @@ def upgrade() -> None:
             server_default=sa.func.now(),
             nullable=False,
         ),
-        sa.Column("entities_count", sa.Integer(), nullable=False),
+        sa.Column(
+            "entities_count",
+            sa.Integer(),
+            nullable=False,
+            server_default=sa.text("0"),
+        ),
         sa.Column("input_hash", sa.String(64), nullable=False),
         sa.Column("operation_type", sa.String(32), nullable=False),
         sa.Column("language", sa.String(8), nullable=True),
