@@ -100,9 +100,36 @@ Für viele Papers auf einmal:
 
 #### Semantische Suche 🧠
 
-- Versteht Bedeutung der Anfrage
-- Auch auf Deutsch möglich: "zeige mir alles über Brustkrebstherapie"
+- Versteht Bedeutung der Anfrage (KI-Embedding-Modell, multilingual)
 - Erfordert: pgvector aktiviert
+
+**Wie funktioniert semantische Suche?**
+
+Die semantische Suche verwendet ein KI-Embedding-Modell (sentence-transformers), das Text in mathematische Vektoren umwandelt und Ähnlichkeiten berechnet.
+
+**Was funktioniert gut:**
+
+- Englische Keywords: "BRCA1 breast cancer"
+- Kurze präzise Anfragen: "BRCA1"
+- Verwandte Begriffe: "cardiac" findet auch "heart disease" Papers
+
+**Was funktioniert weniger gut:**
+
+- Lange deutsche Befehlssätze wie: "Zeige mir alle Papers die mit BRCA1 zu tun haben" → Besser: "BRCA1 Brustkrebs"
+- Sehr allgemeine Anfragen
+
+**Empfohlene Suchstrategie:**
+
+1. Starte mit Schlüsselwörtern: "BRCA1"
+2. Falls zu viele Ergebnisse → Slider nach rechts (präziser)
+3. Falls zu wenige → Slider nach links (flexibler)
+4. Mische Englisch und Deutsch: "BRCA1 Brustkrebs mutation"
+
+**Similarity Score:**
+
+- 🟢 80–100%: Sehr ähnlich
+- 🟡 60–79%: Ähnlich
+- 🟠 40–59%: Entfernt verwandt
 
 ### KI Zusammenfassung pro Paper
 

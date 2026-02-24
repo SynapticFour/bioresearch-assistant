@@ -159,6 +159,20 @@ function PaperCard({
         </div>
       )}
       <footer className="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
+        {paper.similarity_score !== undefined &&
+          paper.similarity_score !== null && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                paper.similarity_score >= 80
+                  ? "bg-green-100 text-green-700"
+                  : paper.similarity_score >= 60
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-orange-100 text-orange-700"
+              }`}
+            >
+              {paper.similarity_score}% Übereinstimmung
+            </span>
+          )}
         <Badge variant="outline" className="font-mono text-xs">
           PMID {paper.pmid}
         </Badge>

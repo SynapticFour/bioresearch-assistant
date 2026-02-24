@@ -34,6 +34,10 @@ class PubMedSearchResponse(BaseModel):
     journal: str | None = Field(default=None, description="Journal title")
     doi: str | None = Field(default=None, description="Digital Object Identifier")
     summary: str | None = Field(default=None, description="KI-generated summary (if available)")
+    similarity_score: float | None = Field(
+        default=None,
+        description="Semantic similarity score (0-100%)",
+    )
 
 
 class LiteratureStatsResponse(BaseModel):

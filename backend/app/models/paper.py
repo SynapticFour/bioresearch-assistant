@@ -8,8 +8,8 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
-# all-MiniLM-L6-v2 produces 384-dim embeddings; use 1536 for OpenAI-compatible backends if needed
-EMBEDDING_DIM = 384
+# paraphrase-multilingual-mpnet-base-v2 produces 768-dim embeddings (DE/EN/50+ languages)
+EMBEDDING_DIM = 768
 
 # SQLite (tests) does not support pgvector/ARRAY — use JSON when TESTING=1
 if os.environ.get("TESTING"):

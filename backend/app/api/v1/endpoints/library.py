@@ -315,7 +315,13 @@ async def semantic_search(
             team_id=team_id,
             threshold=body.threshold if body.threshold is not None else 1.0,
         )
-        return [_paper_to_response(p) for p in papers]
+        responses = []
+        for p in papers:
+            r = _paper_to_response(p)
+            if hasattr(p, "_similarity_score"):
+                r = r.model_copy(update={"similarity_score": p._similarity_score})
+            responses.append(r)
+        return responses
     except EmbeddingServiceError as e:
         logger.warning("Semantic search failed: %s", e)
         return []

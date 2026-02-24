@@ -11,7 +11,44 @@ from app.schemas.pubmed import PubMedArticle
 
 logger = logging.getLogger(__name__)
 
-SENTENCE_TRANSFORMER_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+# Multilingual — versteht DE + EN + 50 andere Sprachen
+SENTENCE_TRANSFORMER_MODEL = (
+    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
+)
+
+GERMAN_STOPWORDS = frozenset([
+    "zeige", "mir", "alle", "papers", "für",
+    "über", "zu", "mit", "von", "und", "oder",
+    "die", "der", "das", "eine", "ein", "ist",
+    "sind", "hat", "haben", "zum", "zur", "im",
+    "in", "an", "auf", "bei", "nach", "ich",
+    "möchte", "suche", "finde", "liste", "zeig",
+    "bitte", "alles", "was", "related", "show",
+    "me", "find", "all", "about", "with",
+])
+
+
+def _preprocess_query(query: str) -> str:
+    """Extract keywords from natural language query.
+
+    Removes German/English stopwords and command
+    phrases to get clean keywords for embedding.
+
+    Example:
+        "Zeige mir alle Papers für BRCA1"
+        → "BRCA1"
+
+        "show me papers about breast cancer therapy"
+        → "breast cancer therapy"
+    """
+    words = (query or "").split()
+    keywords = [
+        w for w in words
+        if w.lower().strip(".,!?") not in GERMAN_STOPWORDS
+        and len(w) > 2
+    ]
+    result = " ".join(keywords).strip()
+    return result if result else (query or "")
 
 
 class EmbeddingServiceError(Exception):
@@ -35,7 +72,10 @@ class EmbeddingService:
                 from sentence_transformers import SentenceTransformer
 
                 self._model = SentenceTransformer(self._model_name)
-                logger.info("Loaded embedding model: %s", self._model_name)
+                logger.info(
+                    "Embedding model: %s — multilingual (DE/EN/50+ languages)",
+                    self._model_name,
+                )
             except ImportError as e:
                 raise EmbeddingServiceError(
                     "sentence-transformers not installed; pip install sentence-transformers"
@@ -45,7 +85,7 @@ class EmbeddingService:
     def embed_text(self, text: str) -> list[float]:
         """Compute embedding for a single text (blocking; run in executor from async code).
 
-        Uses all-MiniLM-L6-v2 by default; output dimension is EMBEDDING_DIM (384).
+        Uses paraphrase-multilingual-mpnet-base-v2; output dimension is EMBEDDING_DIM (768).
 
         Args:
             text: Input text (e.g. abstract or search query).
@@ -177,9 +217,12 @@ class EmbeddingService:
         """
         if limit <= 0:
             return []
-        query_embedding = await self.embed_text_async(query or "")
+        processed_query = _preprocess_query(query or "")
+        query_embedding = await self.embed_text_async(processed_query)
         distance_expr = Paper.embedding.cosine_distance(query_embedding)
-        stmt = select(Paper).where(Paper.embedding.isnot(None))
+        stmt = select(Paper, distance_expr.label("distance")).where(
+            Paper.embedding.isnot(None)
+        )
         if user_id is not None:
             stmt = stmt.where(Paper.user_id == user_id)
         if team_id is not None:
@@ -188,4 +231,10 @@ class EmbeddingService:
             stmt = stmt.where(distance_expr <= threshold)
         stmt = stmt.order_by(distance_expr).limit(limit)
         result = await db.execute(stmt)
-        return list(result.scalars().all())
+        rows = result.all()
+        papers_with_scores = []
+        for paper, distance in rows:
+            score = max(0.0, 1.0 - (float(distance) / 2.0))
+            paper._similarity_score = round(score * 100, 1)
+            papers_with_scores.append(paper)
+        return papers_with_scores
