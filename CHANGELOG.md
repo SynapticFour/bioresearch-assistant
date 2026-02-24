@@ -4,6 +4,13 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.4.2] - 2026-02-24
+
+### Behoben
+- Alembic: Fehlende Migration 011 für Notebooks Tabelle hinzugefügt
+- Alembic: Multiple heads Problem behoben
+- Git: Ambiguous 'main' Tag entfernt
+
 ## [1.4.1] - 2026-02-24
 
 ### Behoben
