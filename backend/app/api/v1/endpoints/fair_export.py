@@ -4,7 +4,7 @@ import logging
 from io import BytesIO
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -15,6 +15,7 @@ from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter
+from app.core.limiter import limiter
 from app.models.notebook import Notebook
 from app.models.paper import Paper
 from app.models.patient_record import PatientRecordModel
@@ -24,6 +25,9 @@ from app.services.fair_export_service import FAIRExportService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/fair-export", tags=["fair-export"])
+
+# SSRF protection: only these hosts are used for Zenodo (no user-controlled URLs)
+ALLOWED_ZENODO_HOSTS = frozenset({"zenodo.org", "sandbox.zenodo.org"})
 
 
 def _apply_scope_notebook(stmt: Select[Any], scope: dict) -> Select[Any]:
@@ -58,7 +62,9 @@ class ZenodoUploadRequest(BaseModel):
 
 
 @router.post("/preview", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
 async def fair_export_preview(
+    request: Request,
     body: FAIRExportOptions,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -86,7 +92,9 @@ async def fair_export_preview(
 
 
 @router.post("/compliance-check", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
 async def fair_compliance_check(
+    request: Request,
     body: FAIRExportOptions,
     current_user: dict = Depends(get_current_user),
 ) -> FAIRComplianceReport:
@@ -101,7 +109,9 @@ async def fair_compliance_check(
 
 
 @router.post("/download", status_code=status.HTTP_200_OK)
+@limiter.limit("5/minute")
 async def fair_export_download(
+    request: Request,
     body: FAIRExportOptions,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -109,6 +119,11 @@ async def fair_export_download(
     """Generate and download FAIR export as ZIP."""
     service = FAIRExportService()
     zip_bytes = await service.create_export_package(db, current_user, body)
+    logger.info(
+        "FAIR export download by user=%s title=%s",
+        current_user.get("sub", "dev"),
+        body.title[:80] if body.title else "",
+    )
     filename = "".join(c for c in body.title if c.isalnum() or c in " ._-").strip() or "fair_export"
     filename = f"{filename}.zip"
     return StreamingResponse(
@@ -119,7 +134,9 @@ async def fair_export_download(
 
 
 @router.post("/zenodo", status_code=status.HTTP_200_OK)
+@limiter.limit("3/minute")
 async def fair_export_zenodo(
+    request: Request,
     body: ZenodoUploadRequest,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -132,9 +149,13 @@ async def fair_export_zenodo(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Zenodo upload not configured. Set ZENODO_TOKEN in .env or pass zenodo_token.",
         )
+    logger.info(
+        "Zenodo upload started for user=%s",
+        current_user.get("sub", "dev"),
+    )
     service = FAIRExportService()
     zip_bytes = await service.create_export_package(db, current_user, body.options)
-    # Zenodo API: create deposition, upload file, publish (optional)
+    # Zenodo API: only use allowlisted hosts (SSRF protection)
     import httpx
 
     try:

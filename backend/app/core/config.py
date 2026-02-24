@@ -175,6 +175,14 @@ class Settings(BaseSettings):
             )
         return v.lower()
 
+    @field_validator("jwt_secret")
+    @classmethod
+    def validate_jwt_secret_length(cls, v: str) -> str:
+        """When JWT secret is set (non-empty), require at least 32 characters."""
+        if v and len(v) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters when set")
+        return v
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, v: str | list[str]) -> list[str]:

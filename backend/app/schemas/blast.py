@@ -1,8 +1,9 @@
 """Pydantic schemas for BLAST search API and results (Biopython NCBIXML)."""
 
+import re
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class BLASTParams(BaseModel):
@@ -83,11 +84,39 @@ class PaperRef(BaseModel):
     doi: str | None = Field(default=None, description="DOI")
 
 
+# IUPAC nucleotide and amino acid single-letter codes (injection-safe for BLAST)
+_BLAST_SEQUENCE_PATTERN = re.compile(
+    r"^[A-Z\s\-*]+$",
+    re.IGNORECASE,
+)
+
+
 class BLASTSearchRequest(BaseModel):
     """Request body for POST /api/v1/blast/search."""
 
-    query: str = Field(..., min_length=1, description="Query sequence (FASTA or raw)")
+    query: str = Field(
+        ...,
+        min_length=1,
+        max_length=100_000,
+        description="DNA/Protein sequence (FASTA or raw)",
+    )
     database: str = Field(default="nt", description="BLAST database: nt, nr, or custom")
+
+    @field_validator("query")
+    @classmethod
+    def validate_sequence(cls, v: str) -> str:
+        """Only allow valid IUPAC nucleotide/amino acid characters (injection prevention)."""
+        lines = [line for line in v.splitlines() if not line.strip().startswith(">")]
+        seq = "".join(lines).upper().replace(" ", "").replace("\t", "")
+        if not seq:
+            raise ValueError("Sequence is empty after removing FASTA headers")
+        if not _BLAST_SEQUENCE_PATTERN.match(seq):
+            raise ValueError(
+                "Sequence contains invalid characters. "
+                "Only IUPAC nucleotide/amino acid codes (A-Z, -, *) allowed."
+            )
+        return v
+
     evalue: float | None = Field(default=None, ge=0.0)
     max_hits: int | None = Field(default=None, ge=1, le=500)
     sequence_type: str | None = Field(default="auto")

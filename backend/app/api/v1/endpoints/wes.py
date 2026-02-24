@@ -161,9 +161,15 @@ async def run_workflow(
                 body = await f.read()
                 attachments.append((f.filename, body))
 
-    run_id = await service_create_run(
-        db, request, workflow_attachments=attachments if attachments else None
-    )
+    try:
+        run_id = await service_create_run(
+            db, request, workflow_attachments=attachments if attachments else None
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
     await db.commit()
     return RunId(run_id=str(run_id))
 

@@ -2,11 +2,13 @@
 
 import logging
 import sys
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse, Response
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -56,11 +58,14 @@ def create_application() -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     cors_origins = list(settings.cors_origins)
+    if "*" in cors_origins and settings.deployment not in ("local", "development", ""):
+        logger.warning(
+            "CORS wildcard (*) in production. Set CORS_ORIGINS to specific origins in .env"
+        )
     for origin in (
         "http://localhost:5173",
         "http://localhost:3000",
         "https://bioresearch-assistant.vercel.app",
-        "https://*.vercel.app",
     ):
         if origin not in cors_origins:
             cors_origins.append(origin)
@@ -85,6 +90,35 @@ def create_application() -> FastAPI:
             "X-Requested-With",
         ],
     )
+
+    @app.middleware("http")
+    async def add_security_headers(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        if settings.deployment and settings.deployment not in ("local", "development", ""):
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(
+        request: Request,
+        exc: Exception,  # noqa: ANN001
+    ) -> JSONResponse:
+        logger.exception("Unhandled error: %s", exc)
+        if settings.deployment in ("local", "development", ""):
+            return JSONResponse(
+                status_code=500,
+                content={"detail": str(exc)},
+            )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"},
+        )
 
     app.include_router(api_router)
     app.include_router(wes_ep.router, prefix="/ga4gh/wes/v1")

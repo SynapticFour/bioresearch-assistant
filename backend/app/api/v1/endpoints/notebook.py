@@ -4,7 +4,7 @@ import io
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
@@ -14,6 +14,7 @@ from sqlalchemy.sql import Select
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.limiter import limiter
 from app.models.notebook import Notebook
 from app.services.llm_service import LLMService, LLMServiceError
 
@@ -29,7 +30,11 @@ class NotebookCreate(BaseModel):
     """Request body for POST /notebooks."""
 
     title: str = Field(default="", max_length=512, description="Notebook title")
-    content: str = Field(default="", description="Markdown content")
+    content: str = Field(
+        default="",
+        max_length=500_000,
+        description="Markdown content (max 500KB)",
+    )
     tags: list[str] = Field(default_factory=list, description="Tags")
 
 
@@ -37,7 +42,7 @@ class NotebookUpdate(BaseModel):
     """Request body for PUT /notebooks/{id}."""
 
     title: str | None = Field(default=None, max_length=512)
-    content: str | None = Field(default=None)
+    content: str | None = Field(default=None, max_length=500_000)
     tags: list[str] | None = Field(default=None)
 
 
@@ -88,7 +93,9 @@ def _apply_scope(stmt: Select[tuple[Notebook]], scope: dict) -> Select[tuple[Not
 
 
 @router.get("", status_code=status.HTTP_200_OK)
+@limiter.limit("60/minute")
 async def list_notebooks(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
     skip: int = Query(0, ge=0),
@@ -120,7 +127,9 @@ async def list_notebooks(
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
+@limiter.limit("30/minute")
 async def create_notebook(
+    request: Request,
     body: NotebookCreate,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -141,7 +150,9 @@ async def create_notebook(
 
 
 @router.get("/{notebook_id}", status_code=status.HTTP_200_OK)
+@limiter.limit("60/minute")
 async def get_notebook(
+    request: Request,
     notebook_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -158,7 +169,9 @@ async def get_notebook(
 
 
 @router.put("/{notebook_id}", status_code=status.HTTP_200_OK)
+@limiter.limit("60/minute")
 async def update_notebook(
+    request: Request,
     notebook_id: str,
     body: NotebookUpdate,
     db: AsyncSession = Depends(get_db),
@@ -184,7 +197,9 @@ async def update_notebook(
 
 
 @router.delete("/{notebook_id}", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("30/minute")
 async def delete_notebook(
+    request: Request,
     notebook_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
@@ -203,7 +218,9 @@ async def delete_notebook(
 
 
 @router.post("/{notebook_id}/ai-assist", status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def notebook_ai_assist(
+    request: Request,
     notebook_id: str,
     body: AIAssistRequest,
     db: AsyncSession = Depends(get_db),
@@ -238,7 +255,9 @@ async def notebook_ai_assist(
 
 
 @router.post("/{notebook_id}/link", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
 async def link_resource(
+    request: Request,
     notebook_id: str,
     body: NotebookLinkRequest,
     db: AsyncSession = Depends(get_db),
@@ -276,7 +295,9 @@ async def link_resource(
 
 
 @router.get("/{notebook_id}/export", status_code=status.HTTP_200_OK)
+@limiter.limit("30/minute")
 async def export_notebook(
+    request: Request,
     notebook_id: str,
     format: Annotated[str, Query(description="md or pdf")] = "md",
     db: AsyncSession = Depends(get_db),
