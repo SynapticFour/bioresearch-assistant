@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
     version: str = Field(
-        default="1.4.1",
+        default="1.4.2",
         description="Application version (e.g. for /health and UI)",
         validation_alias="APP_VERSION",
     )
