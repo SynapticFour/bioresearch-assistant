@@ -3,7 +3,8 @@
 import os
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import JSON, DateTime, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -11,17 +12,15 @@ from app.core.database import Base
 # paraphrase-multilingual-mpnet-base-v2 produces 768-dim embeddings (DE/EN/50+ languages)
 EMBEDDING_DIM = 768
 
-# SQLite (tests) does not support pgvector/ARRAY — use JSON when TESTING=1
-if os.environ.get("TESTING"):
-    from sqlalchemy import JSON
+# JSONB for list fields (authors); SQLite uses JSON
+_json_type = JSONB().with_variant(JSON(), "sqlite") if not os.environ.get("TESTING") else JSON()
 
-    _authors_type = JSON()
+# SQLite (tests) does not support pgvector — use JSON when TESTING=1
+if os.environ.get("TESTING"):
     _embedding_type = JSON()
 else:
     from pgvector.sqlalchemy import Vector
-    from sqlalchemy.dialects.postgresql import ARRAY
 
-    _authors_type = ARRAY(String)
     _embedding_type = Vector(EMBEDDING_DIM)
 
 
@@ -33,7 +32,7 @@ class Paper(Base):
         pmid: PubMed ID (unique).
         title: Article title.
         abstract: Full abstract text.
-        authors: List of author names (stored as PostgreSQL array).
+        authors: List of author names (stored as JSONB/JSON).
         year: Publication year (nullable).
         journal: Journal title.
         doi: Digital Object Identifier (nullable).
@@ -48,7 +47,7 @@ class Paper(Base):
     pmid: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
     title: Mapped[str] = mapped_column(Text, nullable=False, default="")
     abstract: Mapped[str] = mapped_column(Text, nullable=False, default="")
-    authors: Mapped[list[str]] = mapped_column(_authors_type, nullable=False, default=list)
+    authors: Mapped[list[str]] = mapped_column(_json_type, nullable=False, default=list)
     year: Mapped[str | None] = mapped_column(String(16), nullable=True)
     journal: Mapped[str] = mapped_column(Text, nullable=False, default="")
     doi: Mapped[str | None] = mapped_column(String(256), nullable=True)
