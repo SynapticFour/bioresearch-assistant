@@ -12,20 +12,56 @@ from app.schemas.pubmed import PubMedArticle
 logger = logging.getLogger(__name__)
 
 # Multilingual — versteht DE + EN + 50 andere Sprachen
-SENTENCE_TRANSFORMER_MODEL = (
-    "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
-)
+SENTENCE_TRANSFORMER_MODEL = "sentence-transformers/paraphrase-multilingual-mpnet-base-v2"
 
-GERMAN_STOPWORDS = frozenset([
-    "zeige", "mir", "alle", "papers", "für",
-    "über", "zu", "mit", "von", "und", "oder",
-    "die", "der", "das", "eine", "ein", "ist",
-    "sind", "hat", "haben", "zum", "zur", "im",
-    "in", "an", "auf", "bei", "nach", "ich",
-    "möchte", "suche", "finde", "liste", "zeig",
-    "bitte", "alles", "was", "related", "show",
-    "me", "find", "all", "about", "with",
-])
+GERMAN_STOPWORDS = frozenset(
+    [
+        "zeige",
+        "mir",
+        "alle",
+        "papers",
+        "für",
+        "über",
+        "zu",
+        "mit",
+        "von",
+        "und",
+        "oder",
+        "die",
+        "der",
+        "das",
+        "eine",
+        "ein",
+        "ist",
+        "sind",
+        "hat",
+        "haben",
+        "zum",
+        "zur",
+        "im",
+        "in",
+        "an",
+        "auf",
+        "bei",
+        "nach",
+        "ich",
+        "möchte",
+        "suche",
+        "finde",
+        "liste",
+        "zeig",
+        "bitte",
+        "alles",
+        "was",
+        "related",
+        "show",
+        "me",
+        "find",
+        "all",
+        "about",
+        "with",
+    ]
+)
 
 
 def _preprocess_query(query: str) -> str:
@@ -42,11 +78,7 @@ def _preprocess_query(query: str) -> str:
         → "breast cancer therapy"
     """
     words = (query or "").split()
-    keywords = [
-        w for w in words
-        if w.lower().strip(".,!?") not in GERMAN_STOPWORDS
-        and len(w) > 2
-    ]
+    keywords = [w for w in words if w.lower().strip(".,!?") not in GERMAN_STOPWORDS and len(w) > 2]
     result = " ".join(keywords).strip()
     return result if result else (query or "")
 
@@ -220,9 +252,7 @@ class EmbeddingService:
         processed_query = _preprocess_query(query or "")
         query_embedding = await self.embed_text_async(processed_query)
         distance_expr = Paper.embedding.cosine_distance(query_embedding)
-        stmt = select(Paper, distance_expr.label("distance")).where(
-            Paper.embedding.isnot(None)
-        )
+        stmt = select(Paper, distance_expr.label("distance")).where(Paper.embedding.isnot(None))
         if user_id is not None:
             stmt = stmt.where(Paper.user_id == user_id)
         if team_id is not None:
