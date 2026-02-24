@@ -375,6 +375,24 @@ export interface BlastSearchParams {
 }
 
 export const blast = {
+  async getDbStatus(): Promise<{
+    available: boolean;
+    reason?: string;
+    database?: string;
+    info?: string;
+    databases?: string[];
+    setup?: string;
+  }> {
+    const { data } = await apiClient.get<{
+      available: boolean;
+      reason?: string;
+      database?: string;
+      info?: string;
+      databases?: string[];
+      setup?: string;
+    }>(`${API_V1}/blast/db-status`);
+    return data;
+  },
   async search(
     query: string,
     database: string = "nt",

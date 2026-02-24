@@ -123,9 +123,17 @@ function PaperCard({
             )}
           </div>
           <p
-            className={`text-sm text-slate-700 ${
-              isSummaryExpanded ? "" : "line-clamp-2"
-            }`}
+            className="text-sm text-slate-700"
+            style={
+              !isSummaryExpanded
+                ? {
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical" as const,
+                    overflow: "hidden",
+                  }
+                : undefined
+            }
           >
             {displaySummary}
           </p>

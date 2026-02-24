@@ -17,7 +17,6 @@ import type { Paper } from "@/types";
 import { useToast } from "@/contexts/ToastContext";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
-import { useLanguage } from "@/components/ui/LanguageToggle";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -515,8 +514,7 @@ export function LiteraturePage() {
   const features = useFeatureFlags();
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(20);
-  const { language, setLanguage } = useLanguage();
-  const { t } = useTranslation();
+  const { language, changeLanguage, t } = useTranslation();
   const [history, setHistory] = useState<string[]>(loadSearchHistory);
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -624,7 +622,7 @@ export function LiteraturePage() {
           maxResults={maxResults}
           setMaxResults={setMaxResults}
           language={language}
-          setLanguage={setLanguage}
+          setLanguage={changeLanguage}
           onSearch={handleSearch}
           isSearching={isLoading}
           history={history}

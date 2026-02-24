@@ -16,6 +16,13 @@ export function BlastPage() {
   const [evalue, setEvalue] = useState("0.001");
   const [runId, setRunId] = useState<string | null>(null);
 
+  const dbStatusQuery = useQuery({
+    queryKey: ["blast-db-status"],
+    queryFn: () => blast.getDbStatus(),
+    enabled: features.blast ?? false,
+  });
+  const hasDatabase = dbStatusQuery.data?.available;
+
   const startMutation = useMutation({
     mutationFn: async () => {
       const res = await blast.search(sequence.trim(), database, {
@@ -56,8 +63,22 @@ export function BlastPage() {
       <aside className="flex w-[400px] shrink-0 flex-col gap-4 border-r border-slate-200 bg-white p-6">
         <h1 className="text-xl font-semibold text-slate-800">BLAST Suche</h1>
         {features.blast ? (
-          <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
-            ✓ BLAST verfügbar
+          <div
+            className={`rounded-lg border p-3 text-sm ${
+              hasDatabase
+                ? "border-teal-200 bg-teal-50 text-teal-900"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}
+          >
+            {hasDatabase ? (
+              "✓ BLAST verfügbar — Datenbank bereit"
+            ) : (
+              <>
+                ⚠️ BLAST installiert, aber keine Datenbank gefunden.{" "}
+                <code className="rounded bg-amber-100 px-1">./setup-blast-db.sh</code>{" "}
+                ausführen, um eine Datenbank einzurichten.
+              </>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
