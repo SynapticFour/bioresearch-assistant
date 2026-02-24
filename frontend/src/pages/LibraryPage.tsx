@@ -213,6 +213,7 @@ export function LibraryPage() {
   } | null>(null);
 
   const [semanticQuery, setSemanticQuery] = useState("");
+  const [semanticThreshold, setSemanticThreshold] = useState<number>(1.0);
   const [yearFilter, setYearFilter] = useState<string>("");
   const [journalFilter, setJournalFilter] = useState<string>("");
   const [freeTextFilter, setFreeTextFilter] = useState("");
@@ -249,7 +250,13 @@ export function LibraryPage() {
   });
 
   const semanticSearchMutation = useMutation({
-    mutationFn: (query: string) => libraryApi.semanticSearch(query, 10),
+    mutationFn: ({
+      query,
+      threshold,
+    }: {
+      query: string;
+      threshold: number;
+    }) => libraryApi.semanticSearch(query, 10, threshold),
     onSuccess: (data) => setSemanticResults(data),
   });
 
@@ -350,8 +357,11 @@ export function LibraryPage() {
       return;
     }
     if (!features.semantic_search) return;
-    semanticSearchMutation.mutate(q);
-  }, [semanticQuery, features.semantic_search, semanticSearchMutation]);
+    semanticSearchMutation.mutate({
+      query: q,
+      threshold: semanticThreshold,
+    });
+  }, [semanticQuery, semanticThreshold, features.semantic_search, semanticSearchMutation]);
 
   const displayList = semanticResults !== null ? semanticResults : papers;
   const years = useMemo(
@@ -472,6 +482,39 @@ export function LibraryPage() {
             <small className="mt-1 block text-xs text-slate-500">
               ⌘+Enter oder Strg+Enter zum Suchen
             </small>
+            {/* Threshold Slider */}
+            <div className="mt-3">
+              <div className="mb-1 flex items-center justify-between text-xs text-slate-500">
+                <span>🔍 Suchgenauigkeit</span>
+                <span className="font-medium text-slate-700">
+                  {semanticThreshold <= 0.5
+                    ? "Sehr präzise"
+                    : semanticThreshold <= 0.8
+                      ? "Präzise"
+                      : semanticThreshold <= 1.2
+                        ? "Ausgewogen"
+                        : semanticThreshold <= 1.5
+                          ? "Flexibel"
+                          : "Sehr flexibel"}
+                  {" "}({semanticThreshold.toFixed(2)})
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0.3}
+                max={1.8}
+                step={0.05}
+                value={semanticThreshold}
+                onChange={(e) =>
+                  setSemanticThreshold(parseFloat(e.target.value))
+                }
+                className="w-full accent-primary"
+              />
+              <div className="mt-0.5 flex justify-between text-xs text-slate-400">
+                <span>Präzise</span>
+                <span>Flexibel</span>
+              </div>
+            </div>
           </div>
           <Button
             onClick={handleSemanticSearch}
