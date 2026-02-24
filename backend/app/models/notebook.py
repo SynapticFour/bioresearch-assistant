@@ -4,19 +4,18 @@ import os
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import JSON, DateTime, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 
 # SQLite (tests) has no native UUID — use String(36)
 if os.environ.get("TESTING"):
-    from sqlalchemy import JSON
-
     _json_type = JSON()
     _id_type = String(36)
 else:
-    from sqlalchemy.dialects.postgresql import JSONB, UUID
+    from sqlalchemy.dialects.postgresql import UUID
 
     _json_type = JSONB().with_variant(JSON(), "sqlite")
     _id_type = UUID(as_uuid=False)
