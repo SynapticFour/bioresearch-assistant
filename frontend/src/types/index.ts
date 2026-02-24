@@ -19,6 +19,8 @@ export interface Paper {
   keywords?: string[];
   /** Relevance score 0–1 (e.g. from semantic search). */
   score?: number;
+  /** Semantic similarity 0–100% (from library semantic search). */
+  similarity_score?: number;
 }
 
 export interface EntityFound {

@@ -240,8 +240,35 @@ def configure(
         True,
     )
     if config["use_ollama"]:
-        info("Verfügbare Modelle: mistral (empfohlen), llama3, llama3.2, gemma2")
-        config["ollama_model"] = ask("Ollama Modell", "mistral")
+        print(f"\n{Colors.CYAN}Ollama Modell:{Colors.RESET}")
+        print("  Verfügbare Modelle:")
+        print("  1) mistral     (7B, Standard, ~4.4 GB)")
+        print("  2) phi3        (3.8B, schneller, ~2.3 GB)")
+        print("  3) gemma:2b    (2B, sehr schnell, ~1.7 GB)")
+        print("  4) llama3.2:3b (3B, gut, ~2.0 GB)")
+        print("  5) Eigenes Modell eingeben")
+        print()
+        print(f"  {Colors.YELLOW}Empfehlung für MacBook Air M4:")
+        print(f"  phi3 oder gemma:2b (weniger RAM){Colors.RESET}")
+        if unattended:
+            model_choice = "1"
+        else:
+            model_choice = input("  Modell [1=mistral]: ").strip() or "1"
+        model_map = {
+            "1": "mistral",
+            "2": "phi3",
+            "3": "gemma:2b",
+            "4": "llama3.2:3b",
+        }
+        if model_choice in model_map:
+            config["ollama_model"] = model_map[model_choice]
+        elif model_choice == "5":
+            config["ollama_model"] = (
+                input("  Modell Name (z.B. llama3.2): ").strip() or "mistral"
+            )
+        else:
+            config["ollama_model"] = "mistral"
+        ok(f"Ollama Modell: {config['ollama_model']}")
     else:
         config["anthropic_key"] = ask("Anthropic API Key (optional)", "")
 
@@ -356,6 +383,7 @@ def generate_docker_compose(config: dict, install_dir: Path):
 
     optional_services = ""
     if config.get("use_ollama"):
+        ollama_model = config.get("ollama_model", "mistral")
         optional_services += f"""
   ollama:
     image: ollama/ollama:latest
@@ -363,14 +391,21 @@ def generate_docker_compose(config: dict, install_dir: Path):
       - "{config["ollama_port"]}:11434"
     volumes:
       - ollama_data:/root/.ollama
+    entrypoint: >
+      sh -c "ollama serve &
+             sleep 5 &&
+             ollama pull {ollama_model} &&
+             wait"
     restart: unless-stopped
 """
     if config.get("install_blast"):
         optional_services += """
   blast:
     image: ncbi/blast:2.15.0
+    platform: linux/amd64
     volumes:
       - blast_data:/blast/db
+    command: tail -f /dev/null
     restart: unless-stopped
 """
     if config.get("install_nextflow"):

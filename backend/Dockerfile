@@ -14,6 +14,12 @@ RUN curl -s https://get.nextflow.io | bash && \
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+# Pre-download embedding model (~420MB, multilingual DE/EN/50+)
+RUN python -c "\
+from sentence_transformers import SentenceTransformer; \
+SentenceTransformer('sentence-transformers/paraphrase-multilingual-mpnet-base-v2'); \
+print('Embedding model downloaded.')\
+"
 COPY . .
 EXPOSE 8000
 

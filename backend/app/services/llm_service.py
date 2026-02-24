@@ -1,5 +1,6 @@
 """LLM service: Claude (primary) or Ollama (fallback) for summarization and entity extraction."""
 
+import asyncio
 import json
 import logging
 import re
@@ -114,8 +115,14 @@ class LLMService:
             return block.text
         raise LLMServiceError("Unexpected Claude response format")
 
-    async def _call_ollama(self, system: str, user: str) -> str:
-        """Call Ollama /api/chat. Returns assistant message content."""
+    async def _call_ollama_with_retry(
+        self,
+        system: str,
+        user: str,
+        max_retries: int = 3,
+        retry_delay: float = 2.0,
+    ) -> str:
+        """Ollama chat with automatic retry on 500/OOM."""
         url = f"{self._ollama_base}/api/chat"
         payload = {
             "model": self._ollama_model,
@@ -125,23 +132,38 @@ class LLMService:
                 {"role": "user", "content": user},
             ],
         }
-        try:
-            resp = await self._client.post(url, json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-        except httpx.HTTPStatusError as e:
-            logger.warning("Ollama HTTP error: %s", e)
-            raise LLMServiceError(f"Ollama API error: {e}") from e
-        except httpx.RequestError as e:
-            logger.warning("Ollama request error: %s", e)
-            raise LLMServiceError(f"Ollama request failed: {e}") from e
-        except ValueError as e:
-            raise LLMServiceError("Invalid Ollama response") from e
-        msg = data.get("message") or {}
-        content = msg.get("content") or ""
-        if not content.strip():
-            raise LLMServiceError("Ollama returned empty content")
-        return content
+        last_error: Exception | None = None
+        for attempt in range(max_retries):
+            try:
+                resp = await self._client.post(url, json=payload)
+                resp.raise_for_status()
+                data = resp.json()
+                msg = data.get("message") or {}
+                content = (msg.get("content") or "").strip()
+                if not content:
+                    raise LLMServiceError("Ollama returned empty content")
+                return content
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        "Ollama attempt %d/%d failed: %s — retrying in %.0fs",
+                        attempt + 1,
+                        max_retries,
+                        e,
+                        retry_delay,
+                    )
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+        if isinstance(last_error, httpx.HTTPStatusError):
+            raise LLMServiceError(f"Ollama API error: {last_error}") from last_error
+        if isinstance(last_error, httpx.RequestError):
+            raise LLMServiceError(f"Ollama request failed: {last_error}") from last_error
+        raise LLMServiceError(f"Ollama failed: {last_error}") from last_error
+
+    async def _call_ollama(self, system: str, user: str) -> str:
+        """Call Ollama /api/chat. Returns assistant message content (with retry)."""
+        return await self._call_ollama_with_retry(system=system, user=user)
 
     async def _complete(self, system: str, user: str) -> str:
         """Run completion with configured provider (Claude or Ollama)."""

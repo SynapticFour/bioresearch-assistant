@@ -285,3 +285,88 @@ def test_patient_text() -> str:
 def test_plain_text() -> str:
     """Plain text without PII."""
     return "Keine personenbezogenen Daten hier."
+
+
+# ── Extended fixtures for coverage tests ────────────────────────────────────
+@pytest.fixture
+def mock_embedding_service():
+    """Mock EmbeddingService — kein ML Model nötig."""
+    with patch("app.services.embedding_service.EmbeddingService") as mock:
+        instance = MagicMock()
+        instance.embed_text = MagicMock(return_value=[0.1] * 768)
+        instance.embed_text_async = AsyncMock(return_value=[0.1] * 768)
+        instance.find_similar = AsyncMock(return_value=[])
+        instance.store_paper = AsyncMock()
+        mock.return_value = instance
+        yield instance
+
+
+@pytest.fixture
+def mock_llm_service():
+    """Mock LLMService — kein Ollama/Anthropic nötig."""
+    with patch("app.services.llm_service.LLMService") as mock:
+        instance = MagicMock()
+        from app.schemas.llm import PaperSummary
+
+        instance.summarize_paper = AsyncMock(
+            return_value=PaperSummary(
+                summary="Mock summary",
+                key_findings=[],
+                methods=[],
+                relevance_score=None,
+            )
+        )
+        from app.schemas.llm import BiologicalEntities
+
+        instance.extract_entities = AsyncMock(return_value=BiologicalEntities())
+        mock.return_value = instance
+        yield instance
+
+
+@pytest.fixture
+def mock_pubmed_service():
+    """Mock PubMedService — kein NCBI API nötig."""
+    with patch("app.services.pubmed_service.PubMedService") as mock:
+        instance = MagicMock()
+        instance.search = AsyncMock(return_value=[])
+        instance.fetch_article = AsyncMock(return_value=None)
+        instance.search_pubmed = AsyncMock(return_value=[])
+        mock.return_value = instance
+        yield instance
+
+
+@pytest.fixture
+def mock_ollama_available():
+    """Mock Ollama als verfügbar mit geladenem Modell."""
+    with patch("httpx.AsyncClient") as mock_client:
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"models": [{"name": "mistral:latest"}]}
+        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+        mock_resp.__aexit__ = AsyncMock(return_value=None)
+        mock_client.return_value.get = AsyncMock(return_value=mock_resp)
+        yield mock_client
+
+
+@pytest.fixture
+def sample_paper():
+    """Beispiel Paper für Tests."""
+    return {
+        "pmid": "12345678",
+        "title": "Test Paper über BRCA1",
+        "abstract": "Dies ist ein Test Abstract.",
+        "authors": ["Mustermann Max"],
+        "year": 2024,
+        "journal": "Test Journal",
+        "doi": "10.1234/test",
+    }
+
+
+@pytest.fixture
+def sample_papers(sample_paper):
+    """Liste von Beispiel Papers."""
+    papers = [dict(sample_paper) for _ in range(5)]
+    for i, p in enumerate(papers):
+        p["pmid"] = f"1234567{i}"
+        p["title"] = f"Test Paper {i}"
+    return papers

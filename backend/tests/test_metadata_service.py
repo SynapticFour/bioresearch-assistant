@@ -1,6 +1,6 @@
 """Tests for MetadataService (DOI, FASTA, VCF)."""
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -103,3 +103,59 @@ async def test_doi_invalid_returns_none() -> None:
         MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
         result = await service.extract_from_doi("10.9999/invalid")
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_extract_from_doi_empty_returns_none() -> None:
+    """Empty or whitespace DOI returns None."""
+    service = MetadataService()
+    assert await service.extract_from_doi("") is None
+    assert await service.extract_from_doi("   ") is None
+
+
+@pytest.mark.asyncio
+async def test_extract_from_doi_exception_returns_none() -> None:
+    """When HTTP client raises, extract_from_doi returns None."""
+    service = MetadataService()
+    with patch("app.services.metadata_service.httpx.AsyncClient") as MockClient:
+        mock_client_instance = MagicMock()
+        mock_client_instance.get = AsyncMock(side_effect=Exception("network error"))
+        MockClient.return_value.__aenter__ = AsyncMock(return_value=mock_client_instance)
+        MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
+        result = await service.extract_from_doi("10.1234/real")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_extract_from_fasta_no_header_returns_format_only() -> None:
+    """FASTA without '>' header returns minimal dict with format/source."""
+    service = MetadataService()
+    result = await service.extract_from_fasta("not a fasta header\nACGT")
+    assert result == {"format": "fasta", "source": "fasta_header"}
+
+
+@pytest.mark.asyncio
+async def test_extract_from_pmid_exception_returns_none() -> None:
+    """When PubMed fetch raises, extract_from_pmid returns None."""
+    service = MetadataService()
+    with patch("app.services.pubmed_service.PubMedService") as MockPubMed:
+        mock_instance = MagicMock()
+        mock_instance.fetch_article = AsyncMock(side_effect=Exception("API error"))
+        MockPubMed.return_value = mock_instance
+        result = await service.extract_from_pmid("12345")
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_extract_from_vcf_contig_line() -> None:
+    """VCF with ##contig= lines populates contigs."""
+    service = MetadataService()
+    vcf = (
+        "##fileformat=VCFv4.2\n"
+        "##contig=chr1\n"
+        "##contig=chr2\n"
+        "#CHROM\tPOS\tID"
+    )
+    result = await service.extract_from_vcf_header(vcf)
+    assert result["format"] == "vcf"
+    assert len(result["contigs"]) == 2
