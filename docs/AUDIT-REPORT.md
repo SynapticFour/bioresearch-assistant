@@ -110,7 +110,7 @@ Eingeschränkte Souveränität (für Forschung):
 
 ### 3.2 Pseudonymisierung
 - Microsoft Presidio (produktionserprobtes NLP)
-- Erkannte Entitäten: Namen, Daten, Emails, Telefonnummern, Patienten-IDs
+- Erkannte Entitäten: PERSON, DATE_TIME, PHONE_NUMBER, EMAIL_ADDRESS, LOCATION, IBAN_CODE, CREDIT_CARD, MEDICAL_LICENSE, MEDICAL_RECORD_NUMBER (konfigurierbar via CUSTOM_PATIENT_ID_PATTERNS in .env)
 - Reversibel mit konfigurierbarem Zugriff
 - Vollständiger Audit Trail
 

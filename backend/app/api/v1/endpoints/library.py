@@ -313,12 +313,48 @@ async def semantic_search(
             limit=limit,
             user_id=user_id,
             team_id=team_id,
-            threshold=body.threshold if body.threshold is not None else 0.7,
+            threshold=body.threshold if body.threshold is not None else 1.5,
         )
         return [_paper_to_response(p) for p in papers]
     except EmbeddingServiceError as e:
         logger.warning("Semantic search failed: %s", e)
         return []
+
+
+@router.post(
+    "/reembed-all",
+    response_model=dict,
+    status_code=status.HTTP_200_OK,
+)
+async def reembed_all_papers(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Re-embed all papers that have no embedding (e.g. saved before embeddings were enabled)."""
+    scope = get_scope_filter(current_user)
+    stmt = select(Paper).where(Paper.embedding.is_(None))
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(Paper.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(Paper.team_id == scope["team_id"])
+    result = await db.execute(stmt)
+    papers = result.scalars().all()
+
+    service = EmbeddingService()
+    count = 0
+    for paper in papers:
+        try:
+            text = f"{paper.title} {paper.abstract or ''}".strip() or " "
+            embedding = await service.embed_text_async(text)
+            paper.embedding = embedding
+            count += 1
+        except Exception as e:
+            logger.warning("Re-embed failed for %s: %s", paper.pmid, e)
+    await db.commit()
+    return {
+        "reembedded": count,
+        "message": f"{count} Papers neu eingebettet",
+    }
 
 
 MAX_BULK_IMPORT_SIZE = 50 * 1024 * 1024  # 50 MB

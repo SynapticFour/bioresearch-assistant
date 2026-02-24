@@ -54,7 +54,30 @@ def _get_analyzer() -> AnalyzerEngine:
     supported_languages = ["de", "en"]
     registry = RecognizerRegistry(supported_languages=supported_languages)
     registry.load_predefined_recognizers(languages=supported_languages)
-    registry.add_recognizer(GermanPatientIDRecognizer())
+    # Konfigurierbare Patterns aus .env laden
+    settings = get_settings()
+    extra_patterns: list = []
+    if settings.custom_patient_id_patterns:
+        import re as _re
+
+        from presidio_analyzer import Pattern
+
+        for raw in settings.custom_patient_id_patterns.split(","):
+            pat = raw.strip()
+            if not pat:
+                continue
+            try:
+                _re.compile(pat)
+                extra_patterns.append(
+                    Pattern(
+                        name=f"CUSTOM_{len(extra_patterns)}",
+                        regex=pat,
+                        score=0.85,
+                    )
+                )
+            except _re.error:
+                logger.warning("Ungültiges custom pattern ignoriert: %s", pat)
+    registry.add_recognizer(GermanPatientIDRecognizer(extra_patterns=extra_patterns or None))
     registry.add_recognizer(GermanDateRecognizer())
     registry.add_recognizer(GermanPhoneRecognizer())
     registry.add_recognizer(GermanMedicalLicenseRecognizer())

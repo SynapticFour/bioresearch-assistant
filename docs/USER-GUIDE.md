@@ -138,6 +138,35 @@ Ersetzt persönliche Daten in Texten durch Platzhalter — DSGVO-konform und rev
 
 "Patient &lt;PERSON_1&gt;, geb. &lt;DATE_TIME_1&gt;, wurde am &lt;DATE_TIME_2&gt; vorgestellt. &lt;PHONE_NUMBER_1&gt;. &lt;MEDICAL_LICENSE_1&gt;."
 
+### Eigene Patienten-ID Formate konfigurieren
+
+Jede Institution hat eigene Patienten-ID Formate. Das System erkennt bereits gängige Formate (L-2024-98765, P-12345, Fallnummer: 123456), aber eigene Formate können in der .env konfiguriert werden.
+
+**Schritt 1:** .env öffnen:
+```bash
+nano ~/bioresearch/.env
+```
+
+**Schritt 2:** Eigene Patterns hinzufügen:
+```
+CUSTOM_PATIENT_ID_PATTERNS=L-\d{4}-\d{5},P-\d{4,8}
+```
+
+**Schritt 3:** Backend neu starten:
+```bash
+cd ~/bioresearch
+docker compose -f docker-compose.full.yml restart backend
+```
+
+**Gängige Regex-Formate:**
+| Format | Regex | Beispiel |
+|--------|-------|---------|
+| Labor-ID | L-\d{4}-\d{5} | L-2024-98765 |
+| Patient-ID | P-\d{4,8} | P-12345 |
+| 8-stellig | \d{8} | 12345678 |
+| Fallnummer | F-\d{6} | F-123456 |
+| Beliebig | [A-Z]{2}\d{6} | AB123456 |
+
 ### De-Pseudonymisierung
 
 Nur für berechtigte Nutzer (konfigurierbar):
@@ -249,6 +278,22 @@ Führt Bioinformatik-Pipelines über den GA4GH Workflow Execution Service (WES) 
 ### Voraussetzung
 
 Nextflow muss im Backend verfügbar sein (nextflow: true im Health Check).
+
+---
+
+## Häufige Fragen
+
+### Semantische Suche findet nichts, obwohl Papers vorhanden sind?
+
+Papers, die vor der Embedding-Aktivierung gespeichert wurden, haben keine Embeddings. Lösung:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/library/reembed-all \
+  -H "Authorization: Bearer DEIN_TOKEN"
+```
+
+Oder über die API-Dokumentation:  
+http://localhost:8000/docs → **POST** `/api/v1/library/reembed-all` ausführen (mit Anmeldung).
 
 ---
 
