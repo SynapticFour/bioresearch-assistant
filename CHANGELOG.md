@@ -4,6 +4,12 @@ Alle wichtigen Änderungen an diesem Projekt werden hier dokumentiert.
 
 Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.0.0/) und folgt [Semantic Versioning](https://semver.org/lang/de/).
 
+## [1.4.1] - 2026-02-24
+
+### Behoben
+- Notebook Model: JSON Import fehlte in notebook.py → Alembic Migration schlug fehl
+- Notebook Model: Vollständige Implementation auf main Branch
+
 ## [1.4.0] — 2026-02-24
 
 ### Neu
