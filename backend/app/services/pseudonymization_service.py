@@ -76,14 +76,8 @@ def _get_analyzer() -> AnalyzerEngine:
                     )
                 )
             except _re.error:
-                logger.warning(
-                    "Ungültiges custom pattern ignoriert: %s", pat
-                )
-    registry.add_recognizer(
-        GermanPatientIDRecognizer(
-            extra_patterns=extra_patterns or None
-        )
-    )
+                logger.warning("Ungültiges custom pattern ignoriert: %s", pat)
+    registry.add_recognizer(GermanPatientIDRecognizer(extra_patterns=extra_patterns or None))
     registry.add_recognizer(GermanDateRecognizer())
     registry.add_recognizer(GermanPhoneRecognizer())
     registry.add_recognizer(GermanMedicalLicenseRecognizer())

@@ -349,9 +349,7 @@ async def reembed_all_papers(
             paper.embedding = embedding
             count += 1
         except Exception as e:
-            logger.warning(
-                "Re-embed failed for %s: %s", paper.pmid, e
-            )
+            logger.warning("Re-embed failed for %s: %s", paper.pmid, e)
     await db.commit()
     return {
         "reembedded": count,
