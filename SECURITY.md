@@ -49,9 +49,26 @@ E-Mail: security@synapticfour.de
 ### Datenbank
 - Parameterisierte Queries (SQLAlchemy ORM)
 - Kein dynamisches SQL
-- Verschlüsselte Pseudonymisierungs-Keys (Fernet)
+- Pseudonymisierungs-Mappings verschlüsselt (AES-256-GCM, 32-Byte-Key)
 
-## Bekannte Einschränkungen
+## OWASP Top 10 – Maßnahmen
+
+| Risiko | Maßnahme |
+|--------|----------|
+| A01 Broken Access Control | Alle datenliefernden Endpoints nutzen `get_current_user`; Notebook/FAIR Export nutzen Scope-Filter (user/team). DRS List/Get/Stream erfordern Auth. |
+| A02 Cryptographic Failures | PSEUDONYMIZATION_ENCRYPTION_KEY 64 Hex-Zeichen (32 Bytes); JWT_SECRET mind. 32 Zeichen bei Nutzung. |
+| A03 Injection | BLAST-Sequenz: Whitelist IUPAC-Zeichen, max_length 100k. WES workflow_url: nur Allowlist (z. B. `blast`). Notebook content max_length 500k. |
+| A04 Insecure Design | Rate Limits: Notebook 30–60/min, AI-Assist 10/min, FAIR Download 5/min, Zenodo 3/min. |
+| A05 Security Misconfiguration | Security-Header (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS in Produktion). CORS-Warnung bei `*` in Produktion. Keine Stack-Traces in Produktion. |
+| A07 Auth Failures | Dev-User nur bei deployment=local/development; in Produktion muss OIDC konfiguriert sein. |
+| A09 Logging | FAIR-Export/Zenodo nur user_id/title (kein Token, keine PII) geloggt. |
+| A10 SSRF | Zenodo: nur feste Hosts (zenodo.org, sandbox.zenodo.org); keine user-kontrollierten URLs. |
+
+## Sichere Entwicklung
+
+- **Backend:** `cd backend && ruff check app/ && ruff format --check app/`
+- **Abhängigkeiten:** `pip-audit` (Python), `npm audit` (Frontend); bekannte CVEs beheben.
+- **Keine sensiblen Daten in Logs:** Kein Token, kein Klartext von Patiententexten.
 
 - Embeddings auf Railway nicht verfügbar (kein pgvector)
 - Demo-Modus (ISOLATION_MODE=open) nicht für Produktion

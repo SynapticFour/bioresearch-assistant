@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
     version: str = Field(
-        default="1.3.0",
+        default="1.4.0",
         description="Application version (e.g. for /health and UI)",
         validation_alias="APP_VERSION",
     )
@@ -138,6 +138,12 @@ class Settings(BaseSettings):
         description="Microsoft Entra ID / Azure AD tenant ID (e.g. for institution-specific login)",
     )
 
+    # FAIR Export: optional Zenodo upload
+    zenodo_token: str | None = Field(
+        default=None,
+        description="Zenodo API token for FAIR export upload (optional)",
+    )
+
     # Isolation: user = per-user, team = by institution, open = all (dev/demo)
     isolation_mode: str = Field(
         default="user",
@@ -168,6 +174,14 @@ class Settings(BaseSettings):
                 "PSEUDONYMIZATION_ENCRYPTION_KEY must be 64 hex chars (openssl rand -hex 32)"
             )
         return v.lower()
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def validate_jwt_secret_length(cls, v: str) -> str:
+        """When JWT secret is set (non-empty), require at least 32 characters."""
+        if v and len(v) < 32:
+            raise ValueError("JWT_SECRET must be at least 32 characters when set")
+        return v
 
     @field_validator("cors_origins", mode="before")
     @classmethod

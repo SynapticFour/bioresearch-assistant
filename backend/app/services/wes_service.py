@@ -26,6 +26,30 @@ logger = logging.getLogger(__name__)
 # In-process map run_id -> asyncio.Task for cancellation (single-instance only)
 _run_tasks: dict[str, asyncio.Task[None]] = {}
 
+# Allowed workflow_url values (injection prevention; no user-controlled paths/URLs)
+ALLOWED_WORKFLOWS = frozenset(
+    [
+        "blast",
+        # Nextflow Workflows — lokale .nf Dateien und bekannte nf-core Pipelines
+        "main.nf",
+        "nextflow",
+    ]
+)
+
+
+def _validate_workflow_url(workflow_url: str) -> None:
+    """Validate workflow URL against allowlist."""
+    if workflow_url in ALLOWED_WORKFLOWS:
+        return
+    # Erlaube lokale .nf Dateien
+    if workflow_url.endswith(".nf"):
+        return
+    raise ValueError(
+        f"Unknown workflow: {workflow_url!r}. "
+        f"Allowed: {sorted(ALLOWED_WORKFLOWS)} "
+        f"or local *.nf files"
+    )
+
 
 def _run_dir(run_id: str) -> Path:
     """Return the working directory for a run (e.g. /tmp/wes/{run_id})."""
@@ -188,7 +212,9 @@ async def _execute_nextflow(
     """Run Nextflow in run_dir and update WorkflowRun state and logs.
 
     Uses async subprocess; stdout/stderr captured into run_log and task_logs.
+    Only workflow_url in ALLOWED_WORKFLOWS is accepted (injection prevention).
     """
+    _validate_workflow_url(workflow_url)
     if workflow_url == "blast":
         task = asyncio.create_task(
             _run_blast_direct(run_id, run_dir, workflow_params),
@@ -360,6 +386,7 @@ async def create_run(
     workflow_attachments: list[tuple[str, bytes]] | None = None,
 ) -> UUID:
     """Create workflow run (QUEUED), stage files, start Nextflow. Returns run_id."""
+    _validate_workflow_url(request.workflow_url)
     run_id = uuid4()
     run_dir = _run_dir(str(run_id))
     run_dir.mkdir(parents=True, exist_ok=True)

@@ -5,7 +5,7 @@
      ![Version](https://img.shields.io/github/v/tag/SynapticFour/bioresearch-assistant?label=version&sort=semver)
      ![Tests](https://img.shields.io/github/actions/workflow/status/SynapticFour/bioresearch-assistant/ci.yml?label=tests)
 -->
-![Coverage](https://img.shields.io/badge/coverage-68%25-yellow)
+![Coverage](https://img.shields.io/badge/coverage-72%25-yellow)
 ![License](https://img.shields.io/badge/license-BUSL%201.1-blue)
 ![GA4GH](https://img.shields.io/badge/GA4GH-WES%20%7C%20DRS%20%7C%20Phenopackets-green)
 ![GAIA-X](https://img.shields.io/badge/GAIA--X-Ready-blue)
@@ -62,6 +62,9 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 
 ## Features
 
+- 📓 **Research Notebook** — Elektronisches Laborbuch (Markdown) mit KI-Assistent und Verknüpfungen zu Papers, Phenopackets, DRS
+- 📦 **FAIR Export** — FAIR-konforme Publikationsvorbereitung mit DataCite, DMP und optionalem Zenodo-Upload
+- 🧠 **Semantische Suche** — Multilingual DE+EN, Threshold Slider
 - 📚 **Literature Mining** — PubMed-Suche mit KI-Zusammenfassung (DE/EN)
 - 🔒 **DSGVO-konforme Pseudonymisierung** — Presidio-basiert (DE + EN)
 - ↩️ **De-Pseudonymisierung** — Mit Audit Trail und konfigurierbarer Zugriffskontrolle (DEPSEUDO_ACCESS)
@@ -81,7 +84,7 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 | Security Audit | [Report](docs/AUDIT-REPORT.md) |
 | SBOM | [Verfügbar](docs/SBOM.md) |
 | Lizenz | [BUSL 1.1](LICENSE.md) |
-| Test Coverage | 68% |
+| Test Coverage | 72% |
 | GA4GH Compliant | WES, DRS, Phenopackets, Passports |
 | DSGVO | Vollständig dokumentiert |
 | Sicherheitslücken melden | [SECURITY.md](SECURITY.md) |

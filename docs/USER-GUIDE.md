@@ -1,6 +1,6 @@
 # BioResearch Assistant — Benutzerhandbuch
 
-**Version:** 1.3.0  
+**Version:** 1.4.0  
 **Erstellt von:** Synaptic Four
 
 ---
@@ -308,6 +308,61 @@ Nextflow muss im Backend verfügbar sein (nextflow: true im Health Check).
 
 ---
 
+## 10. Research Notebook (ELN)
+
+### Was ist das?
+
+Ein elektronisches Laborbuch direkt in der App. Dokumentiere Experimente, Hypothesen und Ergebnisse in Markdown — verknüpft mit deinen Papers, Phenopackets und Sequenzdaten.
+
+### Workflow
+
+1. Notizbuch → "Neues Notizbuch"
+2. Titel und Inhalt in Markdown schreiben
+3. Papers aus der Bibliothek verknüpfen (PMID eingeben)
+4. DRS-Objekte und Phenopackets (Pseudonym-ID) verknüpfen
+5. KI-Assistent für Zusammenfassung oder nächste Schritte nutzen
+6. Auto-Save speichert alle 2 Sekunden nach der letzten Änderung
+
+### KI-Assistent
+
+- **Zusammenfassung:** Fasst den Notizinhalt in 2–4 Sätzen zusammen
+- **Nächste Schritte:** Schlägt basierend auf dem Inhalt konkrete Forschungsschritte vor
+- **Beides:** Beide Ausgaben in einem Aufruf
+
+### Export
+
+- Markdown-Export über den Download-Button im Editor
+- Optional: PDF-Export (Backend benötigt reportlab)
+
+---
+
+## 11. FAIR Data Export
+
+### Was ist FAIR?
+
+FAIR steht für **Findable, Accessible, Interoperable, Reusable** — der internationale Standard für Forschungsdaten. DFG und de.NBI fordern FAIR-Konformität für geförderte Projekte.
+
+### Export erstellen
+
+1. FAIR Export → **Schritt 1:** Inhalte auswählen (Literatur, Phenopackets, Notizbücher, optional DRS)
+2. **Schritt 2:** Metadaten eingeben (Titel, Autoren, Lizenz, Förderung, Keywords)
+3. **Schritt 3:** FAIR-Score prüfen und Empfehlungen umsetzen
+4. ZIP herunterladen oder zu Zenodo hochladen
+
+### FAIR-Score
+
+| Score   | Bedeutung |
+|--------|-----------|
+| 80–100 | Sehr gut — bereit für Publikation |
+| 60–79  | Gut — kleine Verbesserungen empfohlen |
+| &lt;60  | Metadaten unvollständig |
+
+### Zenodo-Upload
+
+Optional: Direkt zu Zenodo hochladen. Voraussetzung: `ZENODO_TOKEN` in der .env setzen. Zenodo vergibt nach Veröffentlichung automatisch einen DOI.
+
+---
+
 ## Häufige Fragen
 
 ### Semantische Suche findet nichts, obwohl Papers vorhanden sind?
@@ -333,4 +388,4 @@ http://localhost:8000/docs → **POST** `/api/v1/library/reembed-all` ausführen
 
 ---
 
-*Letzte Aktualisierung: 2026-02-23, Version 1.3.0*
+*Letzte Aktualisierung: 2026-02-24, Version 1.4.0*

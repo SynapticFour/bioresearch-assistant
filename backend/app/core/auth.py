@@ -29,6 +29,10 @@ async def get_current_user(
     settings = get_settings()
 
     if not settings.auth_enabled:
+        if settings.deployment and settings.deployment not in ("local", "development", ""):
+            raise RuntimeError(
+                "Auth must be enabled in production. Set OIDC_ISSUER and OIDC_CLIENT_ID in .env"
+            )
         return {
             "sub": "dev-user",
             "email": "dev@synapticfour.de",

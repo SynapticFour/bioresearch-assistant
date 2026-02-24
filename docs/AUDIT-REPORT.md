@@ -1,8 +1,8 @@
 # Code Quality & Security Audit Report
 
 **Projekt:** BioResearch Assistant
-**Version:** 1.3.0
-**Datum:** 2026-02-23
+**Version:** 1.4.0
+**Datum:** 2026-02-24
 **Erstellt von:** Synaptic Four
 **Methode:** Automatisierte Analyse + manuelle Review
 
@@ -14,7 +14,7 @@ BioResearch Assistant wurde einer umfassenden Code-Qualitäts- und Sicherheitsü
 
 | Kategorie | Bewertung | Details |
 |-----------|-----------|---------|
-| Sicherheit | ⭐⭐⭐⭐☆ | Gut — kleinere Verbesserungen geplant |
+| Sicherheit | ⭐⭐⭐⭐⭐ | OWASP Top 10 Review abgeschlossen, Security Headers, Input Validation, SSRF Protection |
 | Code-Qualität | ⭐⭐⭐⭐☆ | Konsistent, dokumentiert |
 | Test-Coverage | ⭐⭐⭐☆☆ | 68% — Ziel: 80%+ |
 | Dokumentation | ⭐⭐⭐⭐⭐ | Umfassend |
@@ -23,6 +23,13 @@ BioResearch Assistant wurde einer umfassenden Code-Qualitäts- und Sicherheitsü
 | Deployment | ⭐⭐⭐⭐⭐ | One-Command Installer |
 
 **Gesamtbewertung: Produktionsreif mit dokumentierten Einschränkungen**
+
+### Features (Auswahl v1.4)
+
+| Feature | Bewertung | Kurzbeschreibung |
+|---------|-----------|------------------|
+| Research Notebook (ELN) | ⭐⭐⭐⭐☆ | Markdown-ELN, KI-Assistent, Auto-Save. Besonders für Labor-Tagebücher. |
+| FAIR Export | ⭐⭐⭐⭐⭐ | FAIR-Compliance, DataCite, Zenodo. Besonders relevant für DFG-geförderte Projekte. |
 
 ---
 
@@ -269,6 +276,8 @@ v2.0 (geplant):
 - Nicht-klinische Studien
 - Open-Science Projekte
 - Pilotprojekte in Kliniken
+- DFG-geförderte Forschungsprojekte (FAIR Export erfüllt DFG Anforderungen)
+- de.NBI Partner Institutionen (GA4GH + FAIR Standards)
 
 ### Mit Einschränkungen
 - Klinischer Betrieb mit Patientendaten: Ollama erforderlich; Penetration Test vor Produktiveinsatz empfohlen; Zusätzliche Validierung je nach Institution
@@ -289,4 +298,4 @@ GitHub: https://github.com/synapticfour/bioresearch-assistant
 ---
 
 *Dieser Report wird mit jedem Release aktualisiert.*
-*Letzte Aktualisierung: 2026-02-23, v1.3.0*
+*Letzte Aktualisierung: 2026-02-24, v1.4.0*

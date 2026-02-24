@@ -139,7 +139,7 @@ Manche Institutionen nutzen noch Shibboleth. Lösung: **Keycloak als OIDC-Brück
 ```
 
 Keycloak kann als SAML-zu-OIDC Bridge fungieren.  
-Anleitung: docs/AUTH-SHIBBOLETH-BRIDGE.md (TODO)
+Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md)
 
 ### GA4GH Passports an Unikliniken
 

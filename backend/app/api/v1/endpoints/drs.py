@@ -51,7 +51,9 @@ async def drs_service_info() -> DrsServiceInfo:
     response_model=DrsObjectListResponse,
     status_code=status.HTTP_200_OK,
 )
-async def list_drs_objects() -> DrsObjectListResponse:
+async def list_drs_objects(
+    current_user: dict = Depends(get_current_user),
+) -> DrsObjectListResponse:
     """List all DRS objects (files under storage)."""
     raw = service_list_objects()
     objects = [DrsObjectSummary(**x) for x in raw]
@@ -152,7 +154,10 @@ async def register_drs_object(
 
 
 @router.get("/objects/{object_id}", response_model=DrsObject, status_code=status.HTTP_200_OK)
-async def get_drs_object(object_id: str) -> DrsObject:
+async def get_drs_object(
+    object_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> DrsObject:
     """Get metadata for a DRS object by id. object_id is a relative path under DRS storage."""
     obj = get_object(object_id)
     if obj is None:
@@ -168,7 +173,11 @@ async def get_drs_object(object_id: str) -> DrsObject:
     response_model=AccessURL,
     status_code=status.HTTP_200_OK,
 )
-async def get_drs_access(object_id: str, access_id: str) -> AccessURL:
+async def get_drs_access(
+    object_id: str,
+    access_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> AccessURL:
     """Return a URL (and optional headers) that can be used to fetch the object bytes."""
     access = get_access_url(object_id, access_id)
     if access is None:
@@ -180,7 +189,10 @@ async def get_drs_access(object_id: str, access_id: str) -> AccessURL:
 
 
 @router.get("/objects/{object_id}/stream", status_code=status.HTTP_200_OK)
-async def stream_drs_object(object_id: str) -> FileResponse:
+async def stream_drs_object(
+    object_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> FileResponse:
     """Stream object bytes (used by the URL returned in access_methods.access_url)."""
     path = _safe_object_id(object_id)
     if path is None or not path.is_file():
