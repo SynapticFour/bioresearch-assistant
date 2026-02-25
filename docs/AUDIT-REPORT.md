@@ -288,7 +288,31 @@ v2.0 (geplant):
 
 ---
 
-## 10. Kontakt & Support
+## 10. Compliance Status (Februar 2026)
+
+| Standard/Gesetz | Status | Details |
+|----------------|--------|---------|
+| DSGVO/GDPR | ✅ | Pseudonymisierung, Audit, Betroffenenrechte |
+| BDSG §27 | ✅ | Forschungsprivileg unterstützt |
+| §393 SGB V | ✅ On-premise | Cloud: Anbieter prüfen |
+| GDNG 2025 | ✅ | Pseudonymisierung, Audit-Trail |
+| DSK Sept. 2025 | ✅ | Keine Klartextdaten an US-KI |
+| GAIA-X Standard | ✅ | Self-Description API |
+| GAIA-X Level 1 | 🔜 | Roadmap 2026 Q2 |
+| GA4GH WES v1.1 | ✅ | Implementiert |
+| GA4GH DRS v1.4 | ✅ | Implementiert |
+| GA4GH Phenopackets v2 | ✅ | Implementiert |
+| FAIR Prinzipien | ✅ | FAIR Export Feature |
+| OWASP Top 10 | ✅ | Review Feb. 2026 |
+| ISO 27001 | 🔜 | Roadmap 2026 Q4 |
+| HIPAA | ⚠️ | Technisch kompatibel, BAA nötig |
+| ICH GCP E6(R3) | ✅ | Audit Trail, Pseudonymisierung |
+
+Vollständige Compliance-Dokumentation: [docs/COMPLIANCE.md](COMPLIANCE.md)
+
+---
+
+## 11. Kontakt & Support
 
 **Synaptic Four**
 E-Mail: info@synapticfour.de

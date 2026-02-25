@@ -363,6 +363,36 @@ Optional: Direkt zu Zenodo hochladen. Voraussetzung: `ZENODO_TOKEN` in der .env 
 
 ---
 
+## 12. Datenschutz & Compliance
+
+### KI-Modus und Datenschutz
+
+| KI-Modus | Wo werden Daten verarbeitet? |
+|----------|------------------------------|
+| Ollama (lokal) | Nur auf Ihrem Server — DSGVO-optimal |
+| Anthropic API | Server in USA — nur pseudonymisierte Daten senden! |
+| KI deaktiviert | Keine KI-Verarbeitung |
+
+### Empfehlung für Gesundheitsdaten
+
+Für klinische Daten:
+
+1. Immer zuerst pseudonymisieren
+2. Dann KI-Zusammenfassung erstellen
+3. Niemals Klarnamen oder Patientendaten in Suchfelder eingeben
+
+### DSGVO-Betroffenenrechte
+
+Wenn ein Patient Auskunft oder Löschung seiner Daten verlangt:
+
+1. Audit Log → Export (Nachweis der Verarbeitung)
+2. DELETE /api/v1/library/papers/{pmid}
+3. Pseudonym-Mappings werden separat gelöscht
+
+Vollständige Compliance-Übersicht: [docs/COMPLIANCE.md](COMPLIANCE.md)
+
+---
+
 ## Häufige Fragen
 
 ### Semantische Suche findet nichts, obwohl Papers vorhanden sind?

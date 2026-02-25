@@ -64,6 +64,29 @@ E-Mail: security@synapticfour.de
 | A09 Logging | FAIR-Export/Zenodo nur user_id/title (kein Token, keine PII) geloggt. |
 | A10 SSRF | Zenodo: nur feste Hosts (zenodo.org, sandbox.zenodo.org); keine user-kontrollierten URLs. |
 
+## Regulatorische Compliance
+
+Siehe [docs/COMPLIANCE.md](docs/COMPLIANCE.md) für vollständige Übersicht aller relevanten Standards:
+
+- DSGVO/GDPR inkl. DSK-Richtlinien Sept. 2025
+- §393 SGB V (Cloud-Gesundheitsdaten)
+- GDNG 2025
+- GAIA-X Standard Compliance
+- GA4GH Framework
+- FAIR Prinzipien
+- OWASP Top 10
+
+## Sicherheitsmeldungen
+
+Bitte melden Sie Sicherheitslücken an:  
+**security@synapticfour.de**
+
+Wir verpflichten uns zu:
+
+- Bestätigung innerhalb 48 Stunden
+- Behebung kritischer Lücken innerhalb 7 Tage
+- Responsible Disclosure nach 90 Tagen
+
 ## Sichere Entwicklung
 
 - **Backend:** `cd backend && ruff check app/ && ruff format --check app/`

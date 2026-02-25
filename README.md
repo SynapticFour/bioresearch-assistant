@@ -77,6 +77,22 @@ BioResearch Assistant ist ein **on-premise KI-System** für Forschungsinstitute 
 - 🔍 **Vollständiges Audit Logging** — Für Pseudonymisierungen
 - 👤 **Konfigurierbare Datenisolation** — User-, Team- oder Open-Modus ([docs/ISOLATION-MODES.md](docs/ISOLATION-MODES.md))
 
+## Compliance & Standards
+
+| Standard | Status |
+|----------|--------|
+| 🇪🇺 DSGVO/GDPR | ✅ Konform |
+| 🇩🇪 BDSG + §393 SGB V | ✅ On-premise |
+| 🇩🇪 GDNG 2025 | ✅ Konform |
+| 🌐 GAIA-X | ✅ Standard Compliance |
+| 🧬 GA4GH WES/DRS/Phenopackets | ✅ |
+| 📊 FAIR Prinzipien | ✅ |
+| 🔒 OWASP Top 10 | ✅ |
+| 🏥 HIPAA (technisch) | ✅ |
+| 📋 ICH GCP E6(R3) | ✅ |
+
+Vollständige Dokumentation: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)
+
 ## Audit & Qualität
 
 | Aspekt | Status |
