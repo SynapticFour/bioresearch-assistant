@@ -65,7 +65,7 @@ def header():
         f"""
 {Colors.BOLD}{Colors.BLUE}
 ╔═══════════════════════════════════════════════════╗
-║   BioResearch Assistant — Installer v1.3.0        ║
+║   BioResearch Assistant — Installer v1.0.0        ║
 ║   Synaptic Four                                   ║
 ║   Proudly built by individuals on the             ║
 ║   autism spectrum                                 ║
@@ -274,7 +274,7 @@ def configure(
         secrets.token_hex(32),
     )
 
-    config["app_version"] = "1.3.0"
+    config["app_version"] = "1.0.0"
     config["institution"] = ask("Name der Institution", "Meine Institution")
 
     # Ports
@@ -344,6 +344,17 @@ def configure(
     config["isolation_mode"] = {"1": "user", "2": "team", "3": "open"}.get(
         choice, "user"
     )
+
+    # Demo-Daten
+    print(f"\n  {Colors.BOLD}Demo-Daten:{Colors.RESET}")
+    if unattended:
+        config["seed_demo_data"] = False
+    else:
+        demo = input(
+            "\n  Demo-Daten laden? (Papers, Phenopacket,\n"
+            "  Notebook, DRS-Dateien für Tests) [j/N]: "
+        ).strip()
+        config["seed_demo_data"] = demo.lower() == "j"
 
     # De-Pseudonymisierung Zugriff
     print(f"\n  {Colors.BOLD}De-Pseudonymisierung:{Colors.RESET}")
@@ -466,7 +477,7 @@ def generate_docker_compose(config: dict, install_dir: Path):
         pass
 
     compose = f"""# BioResearch Assistant — Docker Compose (Vollinstallation)
-# Generiert von install.py v1.3.0
+# Generiert von install.py v1.0.0
 
 services:
 
@@ -746,6 +757,30 @@ def install(config: dict, install_dir: Path) -> bool:
     )
     ok("Alle Services gestartet")
 
+    # Optional: Demo-Daten laden
+    if config.get("seed_demo_data"):
+        info("Lade Demo-Daten...")
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "exec",
+                "-T",
+                "backend",
+                "python",
+                "scripts/seed_demo_data.py",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            ok("Demo-Daten geladen")
+        else:
+            warn(f"Demo-Daten fehlgeschlagen: {result.stderr or result.stdout}")
+
     # Ollama Modell herunterladen
     if config.get("use_ollama"):
         model = config.get("ollama_model", "mistral")
@@ -809,7 +844,7 @@ def create_management_scripts(config: dict, install_dir: Path):
     scripts = {
         "start.sh": f"""#!/bin/bash
 cd "{install_dir_str}"
-echo "🚀 Starte BioResearch Assistant v1.3.0..."
+echo "🚀 Starte BioResearch Assistant v1.0.0..."
 python3 install.py start
 echo ""
 echo "   Frontend:  http://localhost:{fp}"
@@ -868,7 +903,7 @@ curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null |
 
     (install_dir / "start.bat").write_text(
         f'@echo off\ncd /d "{install_dir_str}"\n'
-        f"echo Starte BioResearch Assistant v1.3.0...\n"
+        f"echo Starte BioResearch Assistant v1.0.0...\n"
         f"docker compose -f docker-compose.full.yml up -d\n"
         f"echo.\necho Frontend: http://localhost:{fp}\n"
         f"echo Backend:  http://localhost:{bp}\npause\n"
@@ -895,7 +930,7 @@ def print_summary(config: dict, install_dir: Path):
 {Colors.BOLD}{Colors.GREEN}
 ╔═══════════════════════════════════════════════════╗
 ║        Installation erfolgreich! 🎉               ║
-║        BioResearch Assistant v1.3.0               ║
+║        BioResearch Assistant v1.0.0               ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}
 {Colors.BOLD}URLs:{Colors.RESET}
@@ -1086,7 +1121,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="BioResearch Assistant Installer v1.3.0"
+        description="BioResearch Assistant Installer v1.0.0"
     )
     parser.add_argument(
         "command",

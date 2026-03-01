@@ -12,8 +12,8 @@ from app.schemas.llm import BiologicalEntities, PaperSummary
 
 logger = logging.getLogger(__name__)
 
-# Default timeout for LLM API calls (Mistral 7B etc. need time)
-LLM_TIMEOUT = 180.0
+# Default timeout for LLM API calls (RAG can take up to 5 min with large models)
+LLM_TIMEOUT = 300.0  # 5 Minuten für RAG
 
 
 class LLMServiceError(Exception):
