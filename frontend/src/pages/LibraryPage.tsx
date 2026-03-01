@@ -765,7 +765,7 @@ export function LibraryPage() {
               className="self-end"
             >
               {ragMutation.isPending
-                ? `🧠 Analysiere ${ragTopK} Papers…`
+                ? "🧠 Analysiere Papers… (kann bis zu 2 Minuten dauern bei großen Modellen)"
                 : "🧠 Fragen"}
             </Button>
           </div>
