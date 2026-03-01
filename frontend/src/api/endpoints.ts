@@ -189,8 +189,9 @@ export const library = {
   ): Promise<RAGResponse> {
     const { data } = await apiClient.post<RAGResponse>(
       `${API_V1}/library/rag`,
-      { question, top_k: topK, language }
-    );
+      { question, top_k: topK, language },
+      { timeout: 360_000 }
+    ); // 6 Minuten für RAG
     return data;
   },
   async extractMetadata(params: {
@@ -601,11 +602,15 @@ export const notebooks = {
     return data;
   },
   async create(payload: { title?: string; content?: string; tags?: string[] }): Promise<NotebookItem> {
-    const { data } = await apiClient.post<NotebookItem>(`${API_V1}/notebooks`, {
-      title: payload.title ?? "",
-      content: payload.content ?? "",
-      tags: payload.tags ?? [],
-    });
+    const { data } = await apiClient.post<NotebookItem>(
+      `${API_V1}/notebooks`,
+      {
+        title: payload.title ?? "Neues Notizbuch",
+        content: payload.content ?? "",
+        tags: payload.tags ?? [],
+      },
+      { headers: { "Content-Type": "application/json" } }
+    );
     return data;
   },
   async update(
