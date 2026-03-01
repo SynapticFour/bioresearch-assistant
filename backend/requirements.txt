@@ -1,0 +1,59 @@
+# BioResearch Assistant — Backend Dependencies
+# Python 3.11+
+
+# Web
+fastapi>=0.109.0,<1.0
+python-multipart>=0.0.6,<1.0
+uvicorn[standard]>=0.27.0,<1.0
+
+# Database
+sqlalchemy[asyncio]>=2.0.25,<3.0
+asyncpg>=0.29.0,<1.0
+psycopg2-binary>=2.9.0,<3.0
+pgvector>=0.2.4,<1.0
+
+# Config & validation
+pydantic>=2.5.0,<3.0
+pydantic-settings>=2.1.0,<3.0
+
+# Migrations
+alembic>=1.13.0,<2.0
+
+# Utilities
+httpx>=0.26.0,<1.0
+slowapi>=0.1.9,<1.0
+
+# OAuth2 / OIDC (GA4GH Passport)
+python-jose[cryptography]>=3.3.0
+authlib>=1.2.0,<2.0
+
+# Pseudonymization (DSGVO)
+# Pin spacy so thinc gets pre-built wheels (no C compiler required)
+spacy==3.7.4
+presidio-analyzer>=2.2.0,<3.0
+presidio-anonymizer>=2.2.0,<3.0
+cryptography>=42.0.0,<43.0
+# spaCy models for Presidio (de + en, small, pinned versions)
+de_core_news_sm @ https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.7.0/de_core_news_sm-3.7.0-py3-none-any.whl
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.0/en_core_web_sm-3.7.0-py3-none-any.whl
+
+# GA4GH Phenopackets v2
+phenopackets>=2.0.0,<3.0
+
+# LLM
+anthropic>=0.39.0,<1.0
+
+# Embeddings (local)
+sentence-transformers>=2.2.0,<3.0
+
+# Bioinformatik (BLAST XML parsing)
+biopython>=1.81,<2.0
+
+# Tests (SQLite in-memory — no PostgreSQL needed)
+aiosqlite>=0.19.0,<1.0
+coverage
+genbadge[coverage]
+pytest>=7.4.0,<9.0
+pytest-asyncio>=0.23.0,<1.0
+pytest-cov>=4.1.0,<6.0
+pytest-mock>=3.12.0,<4.0

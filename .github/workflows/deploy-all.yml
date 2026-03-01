@@ -1,0 +1,70 @@
+name: Deploy BioResearch Assistant
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        default: ""
+      target:
+        description: "Deployment Ziel"
+        required: true
+        type: choice
+        options:
+          - dfn-cloud
+          - open-telekom-cloud
+          - azure
+          - local-test
+      environment:
+        description: "Umgebung"
+        required: true
+        default: production
+        type: choice
+        options:
+          - production
+          - staging
+      server_ip:
+        description: "Server IP (für DFN/OTC)"
+        required: false
+        type: string
+
+jobs:
+  build:
+    if: github.event.inputs.confirm == 'DEPLOY'
+    uses: ./.github/workflows/build-images.yml
+    secrets: inherit
+
+  deploy-dfn:
+    needs: build
+    if: inputs.target == 'dfn-cloud'
+    uses: ./.github/workflows/deploy-dfn.yml
+    with:
+      server_ip: ${{ inputs.server_ip }}
+      environment: ${{ inputs.environment }}
+    secrets: inherit
+
+  deploy-otc:
+    needs: build
+    if: inputs.target == 'open-telekom-cloud'
+    uses: ./.github/workflows/deploy-otc.yml
+    with:
+      server_ip: ${{ inputs.server_ip }}
+      environment: ${{ inputs.environment }}
+    secrets: inherit
+
+  deploy-azure:
+    needs: build
+    if: inputs.target == 'azure'
+    uses: ./.github/workflows/deploy-azure.yml
+    with:
+      environment: ${{ inputs.environment }}
+    secrets: inherit
+
+  local-test:
+    needs: build
+    if: inputs.target == 'local-test'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Images wurden gebaut und nach ghcr.io gepusht. Lokalen Server mit docker compose -f docker-compose.prod.yml pull && up -d aktualisieren."
+        name: Hinweis

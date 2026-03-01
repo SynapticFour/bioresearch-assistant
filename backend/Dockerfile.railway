@@ -1,0 +1,28 @@
+FROM python:3.11-slim AS builder
+WORKDIR /app
+RUN apt-get update && apt-get install -y \
+    gcc g++ && \
+    rm -rf /var/lib/apt/lists/*
+COPY backend/requirements.railway.txt .
+RUN pip install --no-cache-dir --user \
+    -r requirements.railway.txt
+
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY backend/ .
+
+# Railway-Stubs über Originale kopieren (kein sentence-transformers/spaCy)
+RUN cp app/services/embedding_service_railway.py \
+       app/services/embedding_service.py && \
+    cp app/services/pseudonymization_service_railway.py \
+       app/services/pseudonymization_service.py
+
+COPY backend/entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/app
+ENV DEPLOYMENT=railway
+EXPOSE 8000
+ENTRYPOINT ["sh", "entrypoint.sh"]

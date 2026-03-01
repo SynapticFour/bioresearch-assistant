@@ -1,0 +1,55 @@
+name: Deploy to Open Telekom Cloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to confirm"
+        required: true
+        default: ""
+      server_ip:
+        description: "OTC Server IP"
+        required: true
+      environment:
+        description: "Ziel-Umgebung"
+        required: false
+        default: production
+        type: choice
+        options:
+          - production
+          - staging
+  workflow_call:
+    inputs:
+      server_ip:
+        description: "OTC Server IP"
+        required: true
+        type: string
+      environment:
+        description: "Ziel-Umgebung"
+        required: false
+        default: production
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'push' ||
+      github.event.inputs.confirm == 'DEPLOY' ||
+      github.event_name == 'workflow_call'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ inputs.server_ip }}
+          username: ubuntu
+          key: ${{ secrets.OTC_SSH_PRIVATE_KEY }}
+          script: |
+            cd /opt/bioresearch || cd bioresearch-assistant
+            git pull origin main
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker compose -f docker-compose.prod.yml exec -T backend alembic upgrade head
+            echo "Deployment erfolgreich ✅"
