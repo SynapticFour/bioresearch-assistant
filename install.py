@@ -527,6 +527,11 @@ volumes:
     (install_dir / "docker-compose.full.yml").write_text(compose)
     ok("docker-compose.full.yml erstellt")
 
+    # Wenn bei install() bestehende DB-Volumes ein anderes Passwort haben als
+    # die aktuelle .env (z. B. nach Passwortänderung), erkennt install() das
+    # nach dem Start der DB per check_db_password_match() und entfernt die
+    # Volumes (down -v), startet die DB neu und fährt mit Migrationen fort.
+
 
 # ── System installieren ───────────────────────────────
 def install(config: dict, install_dir: Path) -> bool:
@@ -614,6 +619,62 @@ def install(config: dict, install_dir: Path) -> bool:
     else:
         err("Datenbank Timeout — bitte Docker Logs prüfen")
         return False
+
+    # Prüfe ob Volumes existieren mit anderem Passwort
+    if not check_db_password_match(config):
+        warn("Bestehende DB-Volumes gefunden mit anderem Passwort — lösche Volumes...")
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "down",
+                "-v",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+        )
+        ok("DB-Volumes gelöscht — werden neu erstellt")
+        info("Starte Datenbank neu...")
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "up",
+                "-d",
+                "db",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+        )
+        for i in range(30):
+            r = subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "exec",
+                    "-T",
+                    "db",
+                    "pg_isready",
+                    "-U",
+                    "bioresearch",
+                ],
+                capture_output=True,
+                cwd=install_dir,
+            )
+            if r.returncode == 0:
+                ok("Datenbank bereit")
+                break
+            time.sleep(2)
+            print(f"  Warte... ({i + 1}/30)", end="\r")
+        else:
+            err("Datenbank startet nicht nach Volume-Reset")
+            return False
 
     # pgvector Extension aktivieren
     info("Aktiviere pgvector Extension...")
