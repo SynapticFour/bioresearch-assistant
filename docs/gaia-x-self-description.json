@@ -1,0 +1,29 @@
+{
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1",
+    "https://w3id.org/gaia-x/development"
+  ],
+  "type": "VerifiablePresentation",
+  "gx:ServiceOffering": {
+    "gx:name": "BioResearch Assistant",
+    "gx:description": "On-premise bioinformatics research assistant combining literature mining, pseudonymization and GA4GH-compatible pipeline execution",
+    "gx:provider": {
+      "gx:name": "Synaptic Four",
+      "gx:registrationNumber": "",
+      "gx:headquarterAddress": {
+        "gx:addressCountryCode": "DE",
+        "gx:addressLocality": "Stuttgart"
+      }
+    },
+    "gx:dataProtectionRegime": ["GDPR2016"],
+    "gx:location": "DE",
+    "gx:deploymentModel": "on-premise",
+    "gx:interoperabilityStandards": [
+      "GA4GH-DRS-v1.3",
+      "GA4GH-WES-v1.1",
+      "GA4GH-Phenopackets-v2"
+    ],
+    "gx:dataLineage": "On-premise (Ollama): data stays local; with Anthropic API: query text may be sent to US",
+    "gx:openSourceLicense": "MIT"
+  }
+}
