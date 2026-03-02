@@ -14,20 +14,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.execute(
-        """
-        ALTER TABLE notebooks
-        ALTER COLUMN id TYPE UUID
-        USING id::uuid
-        """
-    )
+    op.execute("ALTER TABLE notebooks ALTER COLUMN id TYPE UUID USING id::uuid")
 
 
 def downgrade() -> None:
-    op.execute(
-        """
-        ALTER TABLE notebooks
-        ALTER COLUMN id TYPE VARCHAR(36)
-        USING id::varchar
-        """
-    )
+    op.execute("ALTER TABLE notebooks ALTER COLUMN id TYPE VARCHAR(36) USING id::varchar")

@@ -12,7 +12,6 @@ import asyncio
 import json
 import os
 import sys
-from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -243,17 +242,18 @@ async def seed() -> None:
 
         await session.commit()
 
-    # DRS files — write to DRS storage path (outside transaction).
-    # DRS service discovers objects by scanning drs_storage_path (no DB table).
-    drs_dir = Path(os.environ.get("DRS_DATA_DIR", "/data/drs"))
-    drs_dir.mkdir(parents=True, exist_ok=True)
+    # DRS files via DRS Service registrieren (register_object schreibt unter drs_storage_path)
+    from app.services.drs_service import register_object
+
     for filename, content in [
         ("demo_BRCA1_exon10.fasta", DEMO_FASTA),
         ("demo_variants.vcf", DEMO_VCF),
     ]:
-        path = drs_dir / filename
-        path.write_text(content)
-        print(f"  ✓ DRS: {filename}")
+        try:
+            register_object(filename, content.encode("utf-8"))
+            print(f"  ✓ DRS registered: {filename}")
+        except ValueError as e:
+            print(f"  ⚠ DRS skip {filename}: {e}")
 
     await engine.dispose()
 

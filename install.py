@@ -166,6 +166,47 @@ def is_running(install_dir: Path) -> bool:
     return bool(result.stdout and result.stdout.strip())
 
 
+def find_existing_ollama() -> str | None:
+    """Return Ollama container name if running."""
+    result = subprocess.run(
+        ["docker", "ps", "--format", "{{.Names}}"],
+        capture_output=True,
+        text=True,
+    )
+    for name in (result.stdout or "").strip().split("\n"):
+        if name and "ollama" in name.lower():
+            return name
+    return None
+
+
+def find_ollama_volume() -> str | None:
+    """Return Ollama volume name if exists."""
+    result = subprocess.run(
+        ["docker", "volume", "ls", "--format", "{{.Name}}"],
+        capture_output=True,
+        text=True,
+    )
+    for vol in (result.stdout or "").strip().split("\n"):
+        if vol and "ollama" in vol.lower():
+            return vol
+    return None
+
+
+def wait_for_backend(install_dir: Path, port: int = 8000, max_wait: int = 60) -> bool:
+    """Wait until backend API responds."""
+    url = f"http://localhost:{port}/api/v1/health"
+    deadline = time.time() + max_wait
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=3) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            pass
+        time.sleep(3)
+    return False
+
+
 # ── Voraussetzungen prüfen ────────────────────────────
 def check_prerequisites() -> bool:
     step("Prüfe Voraussetzungen")
@@ -293,25 +334,47 @@ def configure(
     config["install_dir"] = ask("Installationsverzeichnis", default_dir)
     install_dir = Path(config["install_dir"])
 
-    if not unattended and check_existing_installation(install_dir):
-        print("\n⚠️  Bestehende Installation gefunden!")
-        print(f"   Pfad: {install_dir}")
-        print("\n   Optionen:")
-        print("   1) Überschreiben (Docker Volumes werden gelöscht!)")
-        print("   2) Abbrechen")
-        choice = input("\nWahl [1/2]: ").strip()
-        if choice == "1":
-            cleanup_existing(install_dir)
-            ok("Alte Installation entfernt")
+    if not unattended and (install_dir / "docker-compose.full.yml").exists():
+        print(f"\n⚠️  Bestehende Installation: {install_dir}")
+        running = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                str(install_dir / "docker-compose.full.yml"),
+                "ps",
+                "--quiet",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        if running:
+            print("   Docker Compose läuft gerade.")
+            stop = input("   Stoppen und neu installieren? [j/N]: ").strip()
+            if stop.lower() == "j":
+                subprocess.run(
+                    [
+                        "docker",
+                        "compose",
+                        "-f",
+                        str(install_dir / "docker-compose.full.yml"),
+                        "down",
+                        "--remove-orphans",
+                    ],
+                    cwd=install_dir,
+                )
+                ok("Gestoppt")
+            else:
+                print("Abgebrochen.")
+                sys.exit(0)
         else:
-            print("Installation abgebrochen.")
-            sys.exit(0)
-
-    if not unattended and is_running(install_dir):
-        print("\n⚠️  Docker Compose läuft bereits!")
-        stop = input("Jetzt stoppen? [j/N]: ").strip()
-        if stop.lower() == "j":
-            cleanup_existing(install_dir)
+            overwrite = input(
+                "   Überschreiben? Volumes bleiben erhalten. [j/N]: "
+            ).strip()
+            if overwrite.lower() != "j":
+                print("Abgebrochen.")
+                sys.exit(0)
 
     # Prüfe ob bereits eine .env existiert — bestehende Secrets wiederverwenden
     existing_env = Path(config["install_dir"]) / ".env"
@@ -383,8 +446,30 @@ def configure(
         else:
             config["ollama_model"] = "mistral"
         ok(f"Ollama Modell: {config['ollama_model']}")
+        existing_ollama = find_existing_ollama()
+        ollama_volume = find_ollama_volume()
+        if existing_ollama or ollama_volume:
+            print(
+                f"\n{Colors.GREEN}  ✓ Bestehende Ollama-Installation gefunden!{Colors.RESET}"
+            )
+            if existing_ollama:
+                print(f"     Container: {existing_ollama}")
+            if ollama_volume:
+                print(f"     Volume: {ollama_volume}")
+            if not unattended:
+                reuse = input("  Ollama wiederverwenden? [J/n]: ").strip()
+                config["reuse_ollama"] = reuse.lower() != "n"
+            else:
+                config["reuse_ollama"] = True
+            if config.get("reuse_ollama"):
+                config["ollama_volume"] = ollama_volume
+        else:
+            config["reuse_ollama"] = False
+            config["ollama_volume"] = None
     else:
         config["anthropic_key"] = ask("Anthropic API Key (optional)", "")
+        config["reuse_ollama"] = False
+        config["ollama_volume"] = None
 
     # Optionale Komponenten
     print(f"\n  {Colors.BOLD}Optionale Komponenten:{Colors.RESET}")
@@ -509,7 +594,19 @@ def generate_docker_compose(config: dict, install_dir: Path):
     optional_services = ""
     if config.get("use_ollama"):
         ollama_model = config.get("ollama_model", "mistral")
-        optional_services += f"""
+        if config.get("reuse_ollama"):
+            optional_services += f"""
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "{config["ollama_port"]}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["ollama", "serve"]
+    restart: unless-stopped
+"""
+        else:
+            optional_services += f"""
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -538,6 +635,11 @@ def generate_docker_compose(config: dict, install_dir: Path):
         # wird als Binary im Backend-Container installiert via requirements.
         # Kein separater Service nötig.
         pass
+
+    ollama_vol = config.get("ollama_volume") if config.get("reuse_ollama") else None
+    ollama_volume_spec = (
+        f"\n    external: true\n    name: {ollama_vol}" if ollama_vol else ""
+    )
 
     compose = f"""# BioResearch Assistant — Docker Compose (Vollinstallation)
 # Generiert von install.py v1.0.0
@@ -595,7 +697,7 @@ volumes:
   postgres_data:
   drs_data:
   blast_data:
-  ollama_data:
+  ollama_data:{ollama_volume_spec}
 """
 
     (install_dir / "docker-compose.full.yml").write_text(compose)
@@ -610,6 +712,9 @@ volumes:
 # ── System installieren ───────────────────────────────
 def install(config: dict, install_dir: Path) -> bool:
     step("Installiere BioResearch Assistant")
+    install_dir = Path(config["install_dir"])
+    install_dir.mkdir(parents=True, exist_ok=True)
+    ok(f"Installationsverzeichnis: {install_dir}")
     os.chdir(install_dir)
 
     # Prüfe ob DB bereits läuft
@@ -820,32 +925,37 @@ def install(config: dict, install_dir: Path) -> bool:
     )
     ok("Alle Services gestartet")
 
-    # Optional: Demo-Daten laden
+    # Optional: Demo-Daten laden (erst wenn Backend healthy)
     if config.get("seed_demo_data"):
-        info("Lade Demo-Daten...")
-        result = subprocess.run(
-            [
-                "docker",
-                "compose",
-                "-f",
-                "docker-compose.full.yml",
-                "exec",
-                "-T",
-                "backend",
-                "python",
-                "scripts/seed_demo_data.py",
-            ],
-            cwd=install_dir,
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            ok("Demo-Daten geladen")
+        port = int(config.get("backend_port", "8000"))
+        info("Warte auf Backend...")
+        if wait_for_backend(install_dir, port=port):
+            info("Lade Demo-Daten...")
+            result = subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "exec",
+                    "-T",
+                    "backend",
+                    "python",
+                    "scripts/seed_demo_data.py",
+                ],
+                cwd=install_dir,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                ok("Demo-Daten geladen")
+            else:
+                warn(f"Demo-Daten fehlgeschlagen: {result.stderr or result.stdout}")
         else:
-            warn(f"Demo-Daten fehlgeschlagen: {result.stderr or result.stdout}")
+            warn("Backend nicht erreichbar — Demo-Daten übersprungen")
 
-    # Ollama Modell herunterladen
-    if config.get("use_ollama"):
+    # Ollama Modell herunterladen (nur wenn nicht wiederverwendet)
+    if config.get("use_ollama") and not config.get("reuse_ollama"):
         model = config.get("ollama_model", "mistral")
         info(f"Lade Ollama Modell '{model}' herunter...")
         info("(Das kann 5-15 Minuten dauern je nach Internetgeschwindigkeit)")
@@ -864,6 +974,8 @@ def install(config: dict, install_dir: Path) -> bool:
             cwd=install_dir,
         )
         ok(f"Modell '{model}' heruntergeladen")
+    elif config.get("use_ollama") and config.get("reuse_ollama"):
+        ok("Ollama Modell bereits vorhanden — übersprungen")
 
     return True
 
