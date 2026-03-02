@@ -14,17 +14,15 @@ import os
 import sys
 from pathlib import Path
 
-# Add app to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql+asyncpg://bioresearch:bioresearch@db:5432/bioresearch",
-)
+# Use app config (same as backend server); required when run via docker exec (no .env loaded)
+sys.path.insert(0, "/app")
+from app.core.config import settings  # noqa: E402
+
+DATABASE_URL = settings.database_url
 
 # ── Demo Papers (2 echte PubMed Papers) ─────────────
 DEMO_PAPERS = [
