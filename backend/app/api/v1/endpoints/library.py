@@ -135,13 +135,12 @@ async def summarize_paper(
         }
     abstract = (paper.abstract or "").strip()
     if not abstract:
-        title_fallback = (paper.title or "").strip()
-        if not title_fallback:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Paper hat keinen Abstract und keinen Titel.",
-            )
-        abstract = f"[Kein Abstract. Basierend auf Titel:]\n{title_fallback}"
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Paper hat keinen Abstract — Zusammenfassung nicht möglich.",
+        )
+
+    # Kein Fallback auf Titel — fertig.
     try:
         llm = LLMService()
         result = await llm.summarize_paper(
