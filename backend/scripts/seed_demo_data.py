@@ -18,11 +18,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-# Use app config (same as backend server); required when run via docker exec (no .env loaded)
+# Required when run via docker exec so app package is found
 sys.path.insert(0, "/app")
-from app.core.config import settings  # noqa: E402
-
-DATABASE_URL = settings.database_url
+# DATABASE_URL is always set in container (docker-compose loads .env)
+DATABASE_URL = os.environ["DATABASE_URL"]
 
 # ── Demo Papers (2 echte PubMed Papers) ─────────────
 DEMO_PAPERS = [
