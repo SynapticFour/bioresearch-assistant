@@ -124,6 +124,48 @@ def load_env_config(install_dir: Path) -> dict | None:
     return config if config.get("db_password") else None
 
 
+def check_existing_installation(install_dir: Path) -> bool:
+    """Check if installation already exists."""
+    return (install_dir / "docker-compose.full.yml").exists()
+
+
+def cleanup_existing(install_dir: Path) -> None:
+    """Stop and remove existing Docker installation."""
+    info("Stoppe bestehende Installation...")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(install_dir / "docker-compose.full.yml"),
+            "down",
+            "-v",
+            "--remove-orphans",
+        ],
+        cwd=install_dir,
+        capture_output=True,
+    )
+    ok("Bestehende Installation gestoppt")
+
+
+def is_running(install_dir: Path) -> bool:
+    """Check if Docker Compose is already running for this install."""
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(install_dir / "docker-compose.full.yml"),
+            "ps",
+            "--quiet",
+        ],
+        cwd=install_dir,
+        capture_output=True,
+        text=True,
+    )
+    return bool(result.stdout and result.stdout.strip())
+
+
 # ── Voraussetzungen prüfen ────────────────────────────
 def check_prerequisites() -> bool:
     step("Prüfe Voraussetzungen")
@@ -249,6 +291,27 @@ def configure(
     print(f"\n  {Colors.BOLD}Basis:{Colors.RESET}")
     default_dir = install_dir_arg or str(Path.home() / "bioresearch")
     config["install_dir"] = ask("Installationsverzeichnis", default_dir)
+    install_dir = Path(config["install_dir"])
+
+    if not unattended and check_existing_installation(install_dir):
+        print("\n⚠️  Bestehende Installation gefunden!")
+        print(f"   Pfad: {install_dir}")
+        print("\n   Optionen:")
+        print("   1) Überschreiben (Docker Volumes werden gelöscht!)")
+        print("   2) Abbrechen")
+        choice = input("\nWahl [1/2]: ").strip()
+        if choice == "1":
+            cleanup_existing(install_dir)
+            ok("Alte Installation entfernt")
+        else:
+            print("Installation abgebrochen.")
+            sys.exit(0)
+
+    if not unattended and is_running(install_dir):
+        print("\n⚠️  Docker Compose läuft bereits!")
+        stop = input("Jetzt stoppen? [j/N]: ").strip()
+        if stop.lower() == "j":
+            cleanup_existing(install_dir)
 
     # Prüfe ob bereits eine .env existiert — bestehende Secrets wiederverwenden
     existing_env = Path(config["install_dir"]) / ".env"

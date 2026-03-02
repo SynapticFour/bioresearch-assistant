@@ -243,15 +243,17 @@ async def seed() -> None:
 
         await session.commit()
 
-    # DRS files — write to DRS storage path (outside transaction)
+    # DRS files — write to DRS storage path (outside transaction).
+    # DRS service discovers objects by scanning drs_storage_path (no DB table).
     drs_dir = Path(os.environ.get("DRS_DATA_DIR", "/data/drs"))
     drs_dir.mkdir(parents=True, exist_ok=True)
-    fasta_path = drs_dir / "demo_BRCA1_exon10.fasta"
-    fasta_path.write_text(DEMO_FASTA)
-    print("  ✓ DRS: demo_BRCA1_exon10.fasta")
-    vcf_path = drs_dir / "demo_variants.vcf"
-    vcf_path.write_text(DEMO_VCF)
-    print("  ✓ DRS: demo_variants.vcf")
+    for filename, content in [
+        ("demo_BRCA1_exon10.fasta", DEMO_FASTA),
+        ("demo_variants.vcf", DEMO_VCF),
+    ]:
+        path = drs_dir / filename
+        path.write_text(content)
+        print(f"  ✓ DRS: {filename}")
 
     await engine.dispose()
 

@@ -4,6 +4,7 @@ All patient identifiers are pseudonym ID only (no real PII).
 Reference: https://phenopacket-schema.readthedocs.io/
 """
 
+import json
 import logging
 import re
 from typing import Annotated, Any
@@ -142,7 +143,12 @@ async def list_phenopackets(
         stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
     result = await db.execute(stmt)
     rows = result.scalars().all()
-    return [row.phenopacket_json for row in rows]
+
+    def _to_dict(record: PatientRecordModel) -> dict[str, Any]:
+        raw = record.phenopacket_json
+        return json.loads(raw) if isinstance(raw, str) else raw
+
+    return [_to_dict(r) for r in rows]
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
@@ -200,7 +206,12 @@ async def get_phenopacket(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Phenopacket not found",
         )
-    return row.phenopacket_json
+    phenopacket_data = (
+        json.loads(row.phenopacket_json)
+        if isinstance(row.phenopacket_json, str)
+        else row.phenopacket_json
+    )
+    return phenopacket_data
 
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -247,7 +258,12 @@ async def export_phenopacket_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Phenopacket not found",
         )
-    return export_phenopacket(row.phenopacket_json)
+    phenopacket_data = (
+        json.loads(row.phenopacket_json)
+        if isinstance(row.phenopacket_json, str)
+        else row.phenopacket_json
+    )
+    return export_phenopacket(phenopacket_data)
 
 
 @router.post("/validate", response_model=ValidationResult, status_code=status.HTTP_200_OK)
