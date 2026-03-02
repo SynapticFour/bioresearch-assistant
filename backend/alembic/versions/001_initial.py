@@ -8,6 +8,7 @@ Create Date: 2026-02-24
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from alembic import op
@@ -225,7 +226,11 @@ def upgrade() -> None:
     # ── notebooks ────────────────────────────────────
     op.create_table(
         "notebooks",
-        sa.Column("id", sa.String(36), primary_key=True),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=False),
+            primary_key=True,
+        ),
         sa.Column("title", sa.String(512), nullable=False, server_default=""),
         sa.Column("content", sa.Text(), nullable=False, server_default=""),
         sa.Column(
