@@ -14,7 +14,7 @@ from app.services.llm_service import LLMService, LLMServiceError
 
 logger = logging.getLogger(__name__)
 
-MAX_CONTEXT_CHARS = 8000
+MAX_CONTEXT_CHARS = 4000  # Schneller für Mistral 7B
 
 
 class RAGService:
@@ -33,7 +33,7 @@ class RAGService:
         question: str,
         db: AsyncSession,
         current_user: dict[str, Any],
-        top_k: int = 5,
+        top_k: int = 3,  # Weniger Papers = schneller
         language: str = "de",
     ) -> RAGResponse:
         """Vollständiger RAG-Ablauf.

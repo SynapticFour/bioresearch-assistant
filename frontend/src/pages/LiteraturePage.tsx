@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import {
   Search,
   ExternalLink,
@@ -511,6 +511,7 @@ function PaperDetailModal({
 
 export function LiteraturePage() {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const features = useFeatureFlags();
   const [query, setQuery] = useState("");
   const [maxResults, setMaxResults] = useState(20);
@@ -575,6 +576,17 @@ export function LiteraturePage() {
     }
     runSearch();
   }, [query, language, runSearch]);
+
+  // URL ?q= prefills search and starts it (e.g. from Phenopackets "Literature search mit…")
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q && q.trim()) {
+      setQuery(q);
+      saveSearchToHistory(q);
+      setHistory(loadSearchHistory());
+      mutation.mutate({ q: q.trim(), max: maxResults, lang: language });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const searchQuery = (location.state as { searchQuery?: string } | null)?.searchQuery;

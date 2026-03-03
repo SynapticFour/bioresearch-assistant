@@ -136,6 +136,11 @@ async def create_notebook(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
     """Create a new notebook."""
+    logger.info(
+        "Creating notebook for user=%s body=%s",
+        current_user.get("sub", "dev"),
+        body.model_dump(),
+    )
     scope_vals = get_scope_values(current_user)
     nb = Notebook(
         title=(body.title or "").strip() or "Neues Notizbuch",

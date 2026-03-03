@@ -65,13 +65,146 @@ def header():
         f"""
 {Colors.BOLD}{Colors.BLUE}
 ╔═══════════════════════════════════════════════════╗
-║   BioResearch Assistant — Installer v1.3.0        ║
+║   BioResearch Assistant — Installer v1.0.0        ║
 ║   Synaptic Four                                   ║
 ║   Proudly built by individuals on the             ║
 ║   autism spectrum                                 ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}"""
     )
+
+
+# ── DB-Passwort-Check (bei bestehendem Volume) ─────────
+def check_db_password_match(config: dict) -> bool:
+    """Check if DB password matches existing volume.
+
+    Runs psql inside the db container with PGPASSWORD from config.
+    Returns True if connection succeeds, False otherwise.
+    """
+    install_dir = config.get("install_dir") or os.getcwd()
+    try:
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "exec",
+                "-T",
+                "db",
+                "psql",
+                "-U",
+                "bioresearch",
+                "-c",
+                "SELECT 1",
+            ],
+            capture_output=True,
+            timeout=15,
+            cwd=install_dir,
+            env={**os.environ, "PGPASSWORD": config.get("db_password", "")},
+        )
+        return result.returncode == 0
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        return False
+
+
+def load_env_config(install_dir: Path) -> dict | None:
+    """Load config from existing .env for start command."""
+    env_path = install_dir / ".env"
+    if not env_path.exists():
+        return None
+    config = {"install_dir": str(install_dir)}
+    for line in env_path.read_text().splitlines():
+        if "=" in line and not line.strip().startswith("#"):
+            key, _, val = line.partition("=")
+            key, val = key.strip(), val.strip()
+            if key == "POSTGRES_PASSWORD":
+                config["db_password"] = val
+                break
+    return config if config.get("db_password") else None
+
+
+def check_existing_installation(install_dir: Path) -> bool:
+    """Check if installation already exists."""
+    return (install_dir / "docker-compose.full.yml").exists()
+
+
+def cleanup_existing(install_dir: Path) -> None:
+    """Stop and remove existing Docker installation."""
+    info("Stoppe bestehende Installation...")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(install_dir / "docker-compose.full.yml"),
+            "down",
+            "-v",
+            "--remove-orphans",
+        ],
+        cwd=install_dir,
+        capture_output=True,
+    )
+    ok("Bestehende Installation gestoppt")
+
+
+def is_running(install_dir: Path) -> bool:
+    """Check if Docker Compose is already running for this install."""
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(install_dir / "docker-compose.full.yml"),
+            "ps",
+            "--quiet",
+        ],
+        cwd=install_dir,
+        capture_output=True,
+        text=True,
+    )
+    return bool(result.stdout and result.stdout.strip())
+
+
+def find_existing_ollama() -> str | None:
+    """Return Ollama container name if running."""
+    result = subprocess.run(
+        ["docker", "ps", "--format", "{{.Names}}"],
+        capture_output=True,
+        text=True,
+    )
+    for name in (result.stdout or "").strip().split("\n"):
+        if name and "ollama" in name.lower():
+            return name
+    return None
+
+
+def find_ollama_volume() -> str | None:
+    """Return Ollama volume name if exists."""
+    result = subprocess.run(
+        ["docker", "volume", "ls", "--format", "{{.Name}}"],
+        capture_output=True,
+        text=True,
+    )
+    for vol in (result.stdout or "").strip().split("\n"):
+        if vol and "ollama" in vol.lower():
+            return vol
+    return None
+
+
+def wait_for_backend(install_dir: Path, port: int = 8000, max_wait: int = 60) -> bool:
+    """Wait until backend API responds."""
+    url = f"http://localhost:{port}/api/v1/health"
+    deadline = time.time() + max_wait
+    while time.time() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=3) as r:
+                if r.status == 200:
+                    return True
+        except Exception:
+            pass
+        time.sleep(3)
+    return False
 
 
 # ── Voraussetzungen prüfen ────────────────────────────
@@ -199,6 +332,49 @@ def configure(
     print(f"\n  {Colors.BOLD}Basis:{Colors.RESET}")
     default_dir = install_dir_arg or str(Path.home() / "bioresearch")
     config["install_dir"] = ask("Installationsverzeichnis", default_dir)
+    install_dir = Path(config["install_dir"])
+
+    if not unattended and (install_dir / "docker-compose.full.yml").exists():
+        print(f"\n⚠️  Bestehende Installation: {install_dir}")
+        running = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                str(install_dir / "docker-compose.full.yml"),
+                "ps",
+                "--quiet",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        if running:
+            print("   Docker Compose läuft gerade.")
+            stop = input("   Stoppen und neu installieren? [j/N]: ").strip()
+            if stop.lower() == "j":
+                subprocess.run(
+                    [
+                        "docker",
+                        "compose",
+                        "-f",
+                        str(install_dir / "docker-compose.full.yml"),
+                        "down",
+                        "--remove-orphans",
+                    ],
+                    cwd=install_dir,
+                )
+                ok("Gestoppt")
+            else:
+                print("Abgebrochen.")
+                sys.exit(0)
+        else:
+            overwrite = input(
+                "   Überschreiben? Volumes bleiben erhalten. [j/N]: "
+            ).strip()
+            if overwrite.lower() != "j":
+                print("Abgebrochen.")
+                sys.exit(0)
 
     # Prüfe ob bereits eine .env existiert — bestehende Secrets wiederverwenden
     existing_env = Path(config["install_dir"]) / ".env"
@@ -224,7 +400,7 @@ def configure(
         secrets.token_hex(32),
     )
 
-    config["app_version"] = "1.3.0"
+    config["app_version"] = "1.0.0"
     config["institution"] = ask("Name der Institution", "Meine Institution")
 
     # Ports
@@ -270,8 +446,30 @@ def configure(
         else:
             config["ollama_model"] = "mistral"
         ok(f"Ollama Modell: {config['ollama_model']}")
+        existing_ollama = find_existing_ollama()
+        ollama_volume = find_ollama_volume()
+        if existing_ollama or ollama_volume:
+            print(
+                f"\n{Colors.GREEN}  ✓ Bestehende Ollama-Installation gefunden!{Colors.RESET}"
+            )
+            if existing_ollama:
+                print(f"     Container: {existing_ollama}")
+            if ollama_volume:
+                print(f"     Volume: {ollama_volume}")
+            if not unattended:
+                reuse = input("  Ollama wiederverwenden? [J/n]: ").strip()
+                config["reuse_ollama"] = reuse.lower() != "n"
+            else:
+                config["reuse_ollama"] = True
+            if config.get("reuse_ollama"):
+                config["ollama_volume"] = ollama_volume
+        else:
+            config["reuse_ollama"] = False
+            config["ollama_volume"] = None
     else:
         config["anthropic_key"] = ask("Anthropic API Key (optional)", "")
+        config["reuse_ollama"] = False
+        config["ollama_volume"] = None
 
     # Optionale Komponenten
     print(f"\n  {Colors.BOLD}Optionale Komponenten:{Colors.RESET}")
@@ -294,6 +492,17 @@ def configure(
     config["isolation_mode"] = {"1": "user", "2": "team", "3": "open"}.get(
         choice, "user"
     )
+
+    # Demo-Daten
+    print(f"\n  {Colors.BOLD}Demo-Daten:{Colors.RESET}")
+    if unattended:
+        config["seed_demo_data"] = False
+    else:
+        demo = input(
+            "\n  Demo-Daten laden? (Papers, Phenopacket,\n"
+            "  Notebook, DRS-Dateien für Tests) [j/N]: "
+        ).strip()
+        config["seed_demo_data"] = demo.lower() == "j"
 
     # De-Pseudonymisierung Zugriff
     print(f"\n  {Colors.BOLD}De-Pseudonymisierung:{Colors.RESET}")
@@ -385,7 +594,19 @@ def generate_docker_compose(config: dict, install_dir: Path):
     optional_services = ""
     if config.get("use_ollama"):
         ollama_model = config.get("ollama_model", "mistral")
-        optional_services += f"""
+        if config.get("reuse_ollama"):
+            optional_services += f"""
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "{config["ollama_port"]}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    entrypoint: ["ollama", "serve"]
+    restart: unless-stopped
+"""
+        else:
+            optional_services += f"""
   ollama:
     image: ollama/ollama:latest
     ports:
@@ -415,8 +636,13 @@ def generate_docker_compose(config: dict, install_dir: Path):
         # Kein separater Service nötig.
         pass
 
+    ollama_vol = config.get("ollama_volume") if config.get("reuse_ollama") else None
+    ollama_volume_spec = (
+        f"\n    external: true\n    name: {ollama_vol}" if ollama_vol else ""
+    )
+
     compose = f"""# BioResearch Assistant — Docker Compose (Vollinstallation)
-# Generiert von install.py v1.3.0
+# Generiert von install.py v1.0.0
 
 services:
 
@@ -471,16 +697,24 @@ volumes:
   postgres_data:
   drs_data:
   blast_data:
-  ollama_data:
+  ollama_data:{ollama_volume_spec}
 """
 
     (install_dir / "docker-compose.full.yml").write_text(compose)
     ok("docker-compose.full.yml erstellt")
 
+    # Wenn bei install() bestehende DB-Volumes ein anderes Passwort haben als
+    # die aktuelle .env (z. B. nach Passwortänderung), erkennt install() das
+    # nach dem Start der DB per check_db_password_match() und entfernt die
+    # Volumes (down -v), startet die DB neu und fährt mit Migrationen fort.
+
 
 # ── System installieren ───────────────────────────────
 def install(config: dict, install_dir: Path) -> bool:
     step("Installiere BioResearch Assistant")
+    install_dir = Path(config["install_dir"])
+    install_dir.mkdir(parents=True, exist_ok=True)
+    ok(f"Installationsverzeichnis: {install_dir}")
     os.chdir(install_dir)
 
     # Prüfe ob DB bereits läuft
@@ -565,6 +799,62 @@ def install(config: dict, install_dir: Path) -> bool:
         err("Datenbank Timeout — bitte Docker Logs prüfen")
         return False
 
+    # Prüfe ob Volumes existieren mit anderem Passwort
+    if not check_db_password_match(config):
+        warn("Bestehende DB-Volumes gefunden mit anderem Passwort — lösche Volumes...")
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "down",
+                "-v",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+        )
+        ok("DB-Volumes gelöscht — werden neu erstellt")
+        info("Starte Datenbank neu...")
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "up",
+                "-d",
+                "db",
+            ],
+            cwd=install_dir,
+            capture_output=True,
+        )
+        for i in range(30):
+            r = subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "exec",
+                    "-T",
+                    "db",
+                    "pg_isready",
+                    "-U",
+                    "bioresearch",
+                ],
+                capture_output=True,
+                cwd=install_dir,
+            )
+            if r.returncode == 0:
+                ok("Datenbank bereit")
+                break
+            time.sleep(2)
+            print(f"  Warte... ({i + 1}/30)", end="\r")
+        else:
+            err("Datenbank startet nicht nach Volume-Reset")
+            return False
+
     # pgvector Extension aktivieren
     info("Aktiviere pgvector Extension...")
     subprocess.run(
@@ -635,8 +925,37 @@ def install(config: dict, install_dir: Path) -> bool:
     )
     ok("Alle Services gestartet")
 
-    # Ollama Modell herunterladen
-    if config.get("use_ollama"):
+    # Optional: Demo-Daten laden (erst wenn Backend healthy)
+    if config.get("seed_demo_data"):
+        port = int(config.get("backend_port", "8000"))
+        info("Warte auf Backend...")
+        if wait_for_backend(install_dir, port=port):
+            info("Lade Demo-Daten...")
+            result = subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "exec",
+                    "-T",
+                    "backend",
+                    "python",
+                    "scripts/seed_demo_data.py",
+                ],
+                cwd=install_dir,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                ok("Demo-Daten geladen")
+            else:
+                warn(f"Demo-Daten fehlgeschlagen: {result.stderr or result.stdout}")
+        else:
+            warn("Backend nicht erreichbar — Demo-Daten übersprungen")
+
+    # Ollama Modell herunterladen (nur wenn nicht wiederverwendet)
+    if config.get("use_ollama") and not config.get("reuse_ollama"):
         model = config.get("ollama_model", "mistral")
         info(f"Lade Ollama Modell '{model}' herunter...")
         info("(Das kann 5-15 Minuten dauern je nach Internetgeschwindigkeit)")
@@ -655,6 +974,8 @@ def install(config: dict, install_dir: Path) -> bool:
             cwd=install_dir,
         )
         ok(f"Modell '{model}' heruntergeladen")
+    elif config.get("use_ollama") and config.get("reuse_ollama"):
+        ok("Ollama Modell bereits vorhanden — übersprungen")
 
     return True
 
@@ -698,10 +1019,9 @@ def create_management_scripts(config: dict, install_dir: Path):
     scripts = {
         "start.sh": f"""#!/bin/bash
 cd "{install_dir_str}"
-echo "🚀 Starte BioResearch Assistant v1.3.0..."
-docker compose -f docker-compose.full.yml up -d
+echo "🚀 Starte BioResearch Assistant v1.0.0..."
+python3 install.py start
 echo ""
-echo "✅ System gestartet!"
 echo "   Frontend:  http://localhost:{fp}"
 echo "   Backend:   http://localhost:{bp}"
 echo "   API Docs:  http://localhost:{bp}/docs"
@@ -758,7 +1078,7 @@ curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null |
 
     (install_dir / "start.bat").write_text(
         f'@echo off\ncd /d "{install_dir_str}"\n'
-        f"echo Starte BioResearch Assistant v1.3.0...\n"
+        f"echo Starte BioResearch Assistant v1.0.0...\n"
         f"docker compose -f docker-compose.full.yml up -d\n"
         f"echo.\necho Frontend: http://localhost:{fp}\n"
         f"echo Backend:  http://localhost:{bp}\npause\n"
@@ -768,6 +1088,16 @@ curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null |
         f"docker compose -f docker-compose.full.yml down\npause\n"
     )
     ok("start.bat / stop.bat erstellt")
+
+    # reset_db.sh — Kopie aus Repo ins Installationsverzeichnis
+    _repo_root = Path(__file__).resolve().parent
+    _reset_src = _repo_root / "scripts" / "reset_db.sh"
+    if _reset_src.exists():
+        (install_dir / "reset_db.sh").write_text(_reset_src.read_text())
+        (install_dir / "reset_db.sh").chmod(0o755)
+        ok("reset_db.sh erstellt")
+    else:
+        warn("scripts/reset_db.sh nicht gefunden — DB-Reset-Skript nicht kopiert")
 
 
 # ── Zusammenfassung ───────────────────────────────────
@@ -785,7 +1115,7 @@ def print_summary(config: dict, install_dir: Path):
 {Colors.BOLD}{Colors.GREEN}
 ╔═══════════════════════════════════════════════════╗
 ║        Installation erfolgreich! 🎉               ║
-║        BioResearch Assistant v1.3.0               ║
+║        BioResearch Assistant v1.0.0               ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}
 {Colors.BOLD}URLs:{Colors.RESET}
@@ -802,6 +1132,8 @@ def print_summary(config: dict, install_dir: Path):
   ./logs.sh     Logs anzeigen (./logs.sh backend)
   ./backup.sh   Datenbank-Backup erstellen
   ./status.sh   System-Status anzeigen
+  ./reset_db.sh DB-Reset (Volume löschen, Migrationen neu)
+  ./reset_db.sh --seed   DB-Reset inkl. Demo-Daten
 
 {Colors.BOLD}Konfiguration:{Colors.RESET}
   {install_dir}/.env
@@ -827,12 +1159,163 @@ Für komplett neue Secrets: .env vorher löschen.{Colors.RESET}
     )
 
 
+# ── Start (mit DB-Passwort-Check) ──────────────────────
+def run_start(install_dir: Path) -> bool:
+    """Run start with DB password mismatch check. Returns True on success."""
+    step("Starte BioResearch Assistant")
+    config = load_env_config(install_dir)
+    if not config:
+        warn(".env nicht gefunden oder POSTGRES_PASSWORD fehlt — starte ohne Check.")
+        subprocess.run(
+            ["docker", "compose", "-f", "docker-compose.full.yml", "up", "-d"],
+            cwd=install_dir,
+        )
+        ok("Services gestartet")
+        return True
+
+    # DB zuerst starten
+    subprocess.run(
+        ["docker", "compose", "-f", "docker-compose.full.yml", "up", "-d", "db"],
+        cwd=install_dir,
+        capture_output=True,
+    )
+    info("Warte auf Datenbank...")
+    for i in range(25):
+        r = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                "docker-compose.full.yml",
+                "exec",
+                "-T",
+                "db",
+                "pg_isready",
+                "-U",
+                "bioresearch",
+            ],
+            capture_output=True,
+            cwd=install_dir,
+        )
+        if r.returncode == 0:
+            break
+        time.sleep(2)
+        if i < 24:
+            print(f"  Warte... ({i + 1}/25)", end="\r")
+    else:
+        err("Datenbank startet nicht — bitte Logs prüfen (docker compose logs db)")
+        return False
+
+    if not check_db_password_match(config):
+        print("")
+        warn("DB-Passwort Mismatch erkannt!")
+        print("   Das gespeicherte DB-Volume verwendet")
+        print("   ein anderes Passwort als .env")
+        print("")
+        print("   Optionen:")
+        print("   1. Volumes löschen (Daten gehen verloren):")
+        print("      docker compose -f docker-compose.full.yml down -v")
+        print("   2. Altes Passwort in .env wiederherstellen")
+        print("")
+        try:
+            answer = input("Volumes jetzt löschen? (j/N): ").strip()
+        except EOFError:
+            answer = "n"
+        if answer.lower() == "j":
+            subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "down",
+                    "-v",
+                ],
+                cwd=install_dir,
+            )
+            ok("Volumes gelöscht — starte neu...")
+            subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "up",
+                    "-d",
+                    "db",
+                ],
+                cwd=install_dir,
+                capture_output=True,
+            )
+            info("Warte auf Datenbank...")
+            for _ in range(25):
+                r = subprocess.run(
+                    [
+                        "docker",
+                        "compose",
+                        "-f",
+                        "docker-compose.full.yml",
+                        "exec",
+                        "-T",
+                        "db",
+                        "pg_isready",
+                        "-U",
+                        "bioresearch",
+                    ],
+                    capture_output=True,
+                    cwd=install_dir,
+                )
+                if r.returncode == 0:
+                    break
+                time.sleep(2)
+            else:
+                err("Datenbank startet nicht")
+                return False
+            info("Führe Migrationen aus...")
+            subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    "docker-compose.full.yml",
+                    "run",
+                    "--rm",
+                    "backend",
+                    "alembic",
+                    "upgrade",
+                    "head",
+                ],
+                cwd=install_dir,
+            )
+            subprocess.run(
+                ["docker", "compose", "-f", "docker-compose.full.yml", "up", "-d"],
+                cwd=install_dir,
+            )
+        else:
+            err("Start abgebrochen. Bitte .env anpassen oder Volumes löschen.")
+            return False
+    else:
+        subprocess.run(
+            ["docker", "compose", "-f", "docker-compose.full.yml", "up", "-d"],
+            cwd=install_dir,
+        )
+    ok("System gestartet")
+    return True
+
+
 # ── Main ──────────────────────────────────────────────
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="BioResearch Assistant Installer v1.3.0"
+        description="BioResearch Assistant Installer v1.0.0"
+    )
+    parser.add_argument(
+        "command",
+        nargs="?",
+        default="install",
+        choices=["install", "start"],
+        help="install (default) oder start",
     )
     parser.add_argument(
         "--minimal",
@@ -850,6 +1333,17 @@ def main():
         help="Installationsverzeichnis",
     )
     args = parser.parse_args()
+
+    if args.command == "start":
+        install_dir = Path(args.install_dir or os.getcwd())
+        if not (install_dir / "docker-compose.full.yml").exists():
+            err(
+                "docker-compose.full.yml nicht gefunden. Bitte aus Installationsverzeichnis ausführen."
+            )
+            sys.exit(1)
+        if not run_start(install_dir):
+            sys.exit(1)
+        return
 
     header()
 

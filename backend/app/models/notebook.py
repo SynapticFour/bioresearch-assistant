@@ -1,11 +1,12 @@
 """SQLAlchemy model for Research Notebook / ELN entries."""
 
 import os
+import uuid
 from datetime import datetime
-from uuid import uuid4
 
 from sqlalchemy import JSON, DateTime, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -15,14 +16,8 @@ if os.environ.get("TESTING"):
     _json_type = JSON()
     _id_type = String(36)
 else:
-    from sqlalchemy.dialects.postgresql import UUID
-
     _json_type = JSONB().with_variant(JSON(), "sqlite")
-    _id_type = UUID(as_uuid=False)
-
-
-def _default_uuid() -> str:
-    return str(uuid4())
+    _id_type = PG_UUID(as_uuid=False)
 
 
 class Notebook(Base):
@@ -49,7 +44,7 @@ class Notebook(Base):
     id: Mapped[str] = mapped_column(
         _id_type,
         primary_key=True,
-        default=_default_uuid,
+        default=lambda: str(uuid.uuid4()),
     )
     title: Mapped[str] = mapped_column(String(512), nullable=False, default="")
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")

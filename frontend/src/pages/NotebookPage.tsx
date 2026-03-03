@@ -409,13 +409,17 @@ function AIAssistPanel({
         {notebook.ai_summary && (
           <div className="rounded bg-slate-50 p-2">
             <p className="font-medium text-slate-600">Zusammenfassung</p>
-            <p className="mt-1 text-slate-700">{notebook.ai_summary}</p>
+            <div className="mt-1 max-h-64 overflow-y-auto whitespace-pre-wrap text-slate-700">
+              {notebook.ai_summary}
+            </div>
           </div>
         )}
         {notebook.ai_next_steps && (
           <div className="rounded bg-slate-50 p-2">
             <p className="font-medium text-slate-600">Nächste Schritte</p>
-            <p className="mt-1 whitespace-pre-wrap text-slate-700">{notebook.ai_next_steps}</p>
+            <div className="mt-1 max-h-64 overflow-y-auto whitespace-pre-wrap text-slate-700">
+              {notebook.ai_next_steps}
+            </div>
           </div>
         )}
       </div>
