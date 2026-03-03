@@ -1089,6 +1089,16 @@ curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null |
     )
     ok("start.bat / stop.bat erstellt")
 
+    # reset_db.sh — Kopie aus Repo ins Installationsverzeichnis
+    _repo_root = Path(__file__).resolve().parent
+    _reset_src = _repo_root / "scripts" / "reset_db.sh"
+    if _reset_src.exists():
+        (install_dir / "reset_db.sh").write_text(_reset_src.read_text())
+        (install_dir / "reset_db.sh").chmod(0o755)
+        ok("reset_db.sh erstellt")
+    else:
+        warn("scripts/reset_db.sh nicht gefunden — DB-Reset-Skript nicht kopiert")
+
 
 # ── Zusammenfassung ───────────────────────────────────
 def print_summary(config: dict, install_dir: Path):
@@ -1122,6 +1132,8 @@ def print_summary(config: dict, install_dir: Path):
   ./logs.sh     Logs anzeigen (./logs.sh backend)
   ./backup.sh   Datenbank-Backup erstellen
   ./status.sh   System-Status anzeigen
+  ./reset_db.sh DB-Reset (Volume löschen, Migrationen neu)
+  ./reset_db.sh --seed   DB-Reset inkl. Demo-Daten
 
 {Colors.BOLD}Konfiguration:{Colors.RESET}
   {install_dir}/.env

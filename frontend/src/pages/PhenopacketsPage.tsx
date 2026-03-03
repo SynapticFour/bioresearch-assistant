@@ -244,13 +244,8 @@ export function PhenopacketsPage() {
                     const phenotypes = extractPhenotypes(pp);
                     const diseases = extractDiseases(pp);
                     const allTerms = [...genes, ...phenotypes, ...diseases].filter(Boolean);
-                    navigate("/literature", {
-                      state: {
-                        searchQuery: allTerms.length
-                          ? allTerms.join(" ")
-                          : getPseudonymId(pp),
-                      },
-                    });
+                    const searchTerm = allTerms.length ? allTerms.join(" ") : getPseudonymId(pp);
+                    navigate(`/literature?q=${encodeURIComponent(searchTerm)}`);
                   }}
                 >
                   <Search className="h-4 w-4" />
@@ -439,11 +434,9 @@ export function PhenopacketsPage() {
                       );
                     const diseases = extractDiseases(detailItem);
                     const allTerms = [...genes, ...phenotypes, ...diseases].filter(Boolean);
-                    const searchQuery = allTerms.length
-                      ? allTerms.join(" ")
-                      : getPseudonymId(detailItem);
+                    const searchTerm = allTerms.length ? allTerms.join(" ") : getPseudonymId(detailItem);
                     setDetailItem(null);
-                    navigate("/literature", { state: { searchQuery } });
+                    navigate(`/literature?q=${encodeURIComponent(searchTerm)}`);
                   }}
                 >
                   <Search className="h-4 w-4" />
