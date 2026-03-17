@@ -1,4 +1,9 @@
-"""DSGVO-compliant pseudonymization service using Microsoft Presidio."""
+"""Pseudonymization service using Microsoft Presidio.
+
+The implementation is designed to support GDPR/DSGVO requirements
+around pseudonymization (Art. 4 Nr. 5), but does not in itself
+guarantee legal compliance for any specific deployment.
+"""
 
 import asyncio
 import hashlib

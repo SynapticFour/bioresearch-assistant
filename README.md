@@ -2,12 +2,12 @@
 
 **KI-gestützte Forschungsplattform für
 biomedizinische Forschung**
-DSGVO-konform · On-premise · Open Standards
+Für DSGVO-konforme Nutzung konzipiert · On-premise · Open Standards
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
-[![GA4GH Compliant](https://img.shields.io/badge/GA4GH-Compliant-green.svg)](https://ga4gh.org)
-[![GAIA-X Ready](https://img.shields.io/badge/GAIA--X-Ready-blue.svg)](https://gaia-x.eu)
-[![DSGVO](https://img.shields.io/badge/DSGVO-Konform-green.svg)](docs/COMPLIANCE.md)
+[![GA4GH Standards](https://img.shields.io/badge/GA4GH-Standards-blue.svg)](https://ga4gh.org)
+[![GAIA-X Ready (design)](https://img.shields.io/badge/GAIA--X-Ready%20(design)-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
+[![Datenschutz](https://img.shields.io/badge/Datenschutz-DSGVO%20orientiert-green.svg)](docs/COMPLIANCE.md)
 
 ---
 
@@ -15,7 +15,8 @@ DSGVO-konform · On-premise · Open Standards
 
 BioResearch Assistant verbindet Literaturrecherche,
 Pseudonymisierung, Phenotypisierung, Genomanalyse
-und KI in einer einzigen, DSGVO-konformen Plattform —
+und KI in einer Plattform, die technische Maßnahmen
+zur datenschutzfreundlichen Nutzung bereitstellt —
 vollständig on-premise betreibbar.
 
 Entwickelt von [Synaptic Four](https://synapticfour.de)
@@ -41,22 +42,26 @@ im DACH-Raum.
 
 ---
 
-## Compliance
+## Compliance (Überblick, keine Rechtsberatung)
 
-| Standard | Status |
-|----------|--------|
-| 🇪🇺 DSGVO / GDPR | ✅ |
-| 🇩🇪 BDSG + §393 SGB V | ✅ On-premise |
-| 🇩🇪 GDNG 2025 | ✅ |
-| 🌐 GAIA-X Standard | ✅ |
-| 🧬 GA4GH WES / DRS / Phenopackets | ✅ |
-| 📊 FAIR Prinzipien | ✅ |
-| 🔒 OWASP Top 10 | ✅ |
-| 🏥 HIPAA (technisch) | ✅ |
-| 📋 ICH GCP E6(R3) | ✅ |
-| 🏥 EHDS-ready | ✅ (Pflichten ab 2029) |
+Die Software wurde technisch so gestaltet, dass sie gängige
+Standards und gesetzliche Rahmenbedingungen **unterstützen kann**.
+Ob ein konkreter Einsatz „konform“ ist, hängt immer von
+Konfiguration, Betriebsumgebung und den Verantwortlichen vor Ort ab.
 
-Vollständige Dokumentation: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)
+| Bereich / Rahmen | Technische Ausrichtung (kein Zertifikat) |
+|------------------|-------------------------------------------|
+| 🇪🇺 DSGVO / GDPR | Pseudonymisierung, Audit-Logs, Isolation, Verschlüsselung (Details in `COMPLIANCE.md`) |
+| 🇩🇪 BDSG / §393 SGB V | Fokus auf On-Premise-Betrieb; Cloud-Einsatz erfordert separate Bewertung |
+| 🇩🇪 GDNG 2025 | Unterstützt pseudonymisierte Forschungs-Workflows, Audit-Trails |
+| 🌐 GAIA-X | Architektur „GAIA-X ready by design“, keine formale Zertifizierung |
+| 🧬 GA4GH WES / DRS / Phenopackets | Implementierung orientiert sich an den jeweiligen GA4GH-Spezifikationen |
+| 📊 FAIR Prinzipien | FAIR-Export, Metadaten & Compliance-Check als Hilfsmittel |
+| 🔒 OWASP Top 10 | Sicherheitsmaßnahmen an OWASP-Empfehlungen ausgerichtet |
+| 🏥 HIPAA / ICH GCP / EHDS | Ausgewählte technische Kontrollen vorhanden; rechtliche Bewertung bleibt Kund:in vorbehalten |
+
+Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)  
+Dieses Dokument ersetzt **keine** individuelle Rechtsberatung.
 
 ---
 

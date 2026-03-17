@@ -10,19 +10,24 @@
 
 ## Executive Summary
 
-BioResearch Assistant wurde einer umfassenden Code-Qualitäts- und Sicherheitsüberprüfung unterzogen.
+BioResearch Assistant wurde intern von Synaptic Four im Hinblick auf
+Code-Qualität und Sicherheit überprüft. Dieses Dokument beschreibt eine
+**interne technische Einschätzung**, keine unabhängige Zertifizierung
+oder rechtliche Bewertung.
 
-| Kategorie | Bewertung | Details |
-|-----------|-----------|---------|
-| Sicherheit | ⭐⭐⭐⭐⭐ | OWASP Top 10 Review abgeschlossen, Security Headers, Input Validation, SSRF Protection |
-| Code-Qualität | ⭐⭐⭐⭐☆ | Konsistent, dokumentiert |
-| Test-Coverage | ⭐⭐⭐☆☆ | 68% — Ziel: 80%+ |
-| Dokumentation | ⭐⭐⭐⭐⭐ | Umfassend |
-| DSGVO | ⭐⭐⭐⭐⭐ | Vollständig dokumentiert |
-| GA4GH Compliance | ⭐⭐⭐⭐☆ | WES, DRS, Phenopackets |
-| Deployment | ⭐⭐⭐⭐⭐ | One-Command Installer |
+| Kategorie       | Einordnung (intern) | Details (Auszug) |
+|----------------|----------------------|------------------|
+| Sicherheit     | solide Basis         | OWASP-orientierter Review, Security Headers, Input Validation, SSRF-Schutz |
+| Code-Qualität  | gut strukturiert     | Klare Schichten, Linting, Typisierung |
+| Test-Coverage  | ausbaufähig          | ca. 68 %, Ziel 80 %+ |
+| Dokumentation  | umfangreich          | Benutzer-, Entwickler- und Compliance-Doku vorhanden |
+| Datenschutz    | technisch vorbereitet| Pseudonymisierung, Audit, Isolation; rechtliche Bewertung bleibt Betreiber:in vorbehalten |
+| GA4GH Standards| weitgehend umgesetzt | WES, DRS, Phenopackets (siehe Developer Guide) |
+| Deployment     | vereinfacht          | One-Command Installer, Management-Skripte |
 
-**Gesamtbewertung: Produktionsreif mit dokumentierten Einschränkungen**
+**Kurzfazit:** Aus technischer Sicht für den Einsatz in
+Forschungsumgebungen geeignet, mit klar dokumentierten Einschränkungen
+und ohne Anspruch auf formale Zertifizierung oder Rechtskonformität.
 
 ### Features (Auswahl v1.0.0)
 
@@ -106,18 +111,18 @@ BioResearch Assistant wurde einer umfassenden Code-Qualitäts- und Sicherheitsü
 
 ---
 
-## 3. DSGVO & Datenschutz
+## 3. DSGVO & Datenschutz (technische Perspektive)
 
 ### 3.1 Datensouveränität
 
-Zwei Modi klar dokumentiert und konfigurierbar:
+Zwei Modi sind dokumentiert und konfigurierbar:
 
-Vollständige Souveränität (empfohlen für Kliniken):
+Vollständige Souveränität (z. B. Kliniken, On‑Premise):
 - LLM_PROVIDER=ollama — keine externen API Calls
 - Alle Verarbeitung auf eigenem Server
 - Keine Daten verlassen die Institution
 
-Eingeschränkte Souveränität (für Forschung):
+Eingeschränkte Souveränität (z. B. externe KI-Dienste):
 - LLM_PROVIDER=anthropic — Texte gehen nach USA
 - PubMed/CrossRef — Suchanfragen nach außen
 - System warnt automatisch bei PII in Suchanfragen
@@ -141,7 +146,7 @@ Eingeschränkte Souveränität (für Forschung):
 
 ---
 
-## 4. GA4GH Compliance
+## 4. GA4GH Standards (Implementierungsstand)
 
 ### 4.1 Workflow Execution Service (WES) v1.1
 - POST /ga4gh/wes/v1/runs

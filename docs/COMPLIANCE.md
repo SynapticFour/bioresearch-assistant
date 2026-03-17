@@ -4,6 +4,15 @@
 
 ### Stand: März 2026 | Version: 1.0.0
 
+> **Wichtiger Hinweis (kein Rechtsrat):**  
+> Dieses Dokument beschreibt technische und organisatorische Maßnahmen,
+> die den datenschutzfreundlichen Einsatz des BioResearch Assistant
+> unterstützen sollen. Es stellt **keine verbindliche Aussage zur
+> Rechtskonformität** eines konkreten Einsatzes dar und ersetzt keine
+> individuelle rechtliche Beratung. Ob eine Verarbeitung „DSGVO-konform“
+> ist, hängt von Nutzungskontext, Verantwortlichen, Verträgen und
+> weiteren Umständen ab.
+
 ---
 
 ## Übersicht
@@ -12,11 +21,13 @@ BioResearch Assistant wurde von Grund auf für den Einsatz in regulierten Umgebu
 
 ---
 
-## 1. DSGVO / GDPR Compliance
+## 1. DSGVO / GDPR – Technische Unterstützung
 
 ### 1.1 Rechtsgrundlagen (Art. 6, 9 DSGVO)
 
-Gesundheits- und Genomdaten sind besondere Kategorien (Art. 9 DSGVO). BioResearch Assistant unterstützt folgende Rechtsgrundlagen:
+Gesundheits- und Genomdaten sind besondere Kategorien (Art. 9 DSGVO).
+BioResearch Assistant kann in Szenarien eingesetzt werden, in denen sich
+Verantwortliche auf folgende Rechtsgrundlagen stützen **möchten**:
 
 | Szenario | Rechtsgrundlage |
 |----------|----------------|
@@ -26,7 +37,7 @@ Gesundheits- und Genomdaten sind besondere Kategorien (Art. 9 DSGVO). BioResearc
 
 ### 1.2 Pseudonymisierung (Art. 4 Nr. 5 DSGVO)
 
-✅ Implementiert:
+Technisch umgesetzt sind u. a.:
 
 - Presidio-basierte PII-Erkennung
 - Verschlüsselte Mapping-Speicherung (AES-256)
@@ -42,7 +53,7 @@ Rechtshinweis: Pseudonymisierte Daten gelten gemäß DSK-Richtlinien (Sept. 2025
 
 Die KI-Zusammenfassung via Anthropic API überträgt Daten in die USA (Drittland).
 
-Empfehlung für produktiven Einsatz:
+Empfehlung für produktiven Einsatz (unverbindlich, ohne Gewähr):
 
 - Option A: Ollama (lokal) verwenden → kein Transfer
 - Option B: Nur pseudonymisierte Abstracts senden
@@ -52,7 +63,11 @@ BioResearch Assistant zeigt in der UI einen Hinweis wenn Anthropic API aktiv ist
 
 ### 1.4 Auftragsverarbeitung (Art. 28 DSGVO)
 
-Wenn BioResearch Assistant für Dritte betrieben wird, ist ein Auftragsverarbeitungsvertrag (AVV) erforderlich. AVV-Template: docs/AVV-TEMPLATE.md
+Wenn BioResearch Assistant für Dritte betrieben wird, **kann** ein
+Auftragsverarbeitungsvertrag (AVV) erforderlich sein. Ob dies im
+Einzelfall zutrifft, hängt von Rollenverteilung und Einsatzszenario ab.
+Ein AVV-Template in `docs/AVV-TEMPLATE.md` dient lediglich als
+Startpunkt und ersetzt keine anwaltliche Prüfung.
 
 ### 1.5 Verzeichnis der Verarbeitungstätigkeiten
 
@@ -68,12 +83,12 @@ BioResearch Assistant verarbeitet:
 
 ### 1.6 Betroffenenrechte (Art. 15-22 DSGVO)
 
-| Recht | Status | Umsetzung |
-|-------|--------|-----------|
-| Auskunft (Art. 15) | ✅ | Audit Log Export |
-| Löschung (Art. 17) | ✅ | DELETE Endpoints |
-| Portabilität (Art. 20) | ✅ | FAIR Export (JSON/ZIP) |
-| Widerspruch (Art. 21) | ✅ | User Isolation |
+| Recht | Technische Unterstützung | Beispiel |
+|-------|--------------------------|----------|
+| Auskunft (Art. 15) | Exportfunktionen, Audit-Logs | Audit Log Export |
+| Löschung (Art. 17) | Delete-Endpunkte | DELETE /… APIs |
+| Portabilität (Art. 20) | Exportfunktionen | FAIR Export (JSON/ZIP) |
+| Widerspruch (Art. 21) | Datenisolation, Filter | User/Team Isolation |
 
 ---
 
@@ -109,36 +124,38 @@ Seit Januar 2025 in Kraft. Ermöglicht erleichterte Nutzung von Gesundheitsdaten
 
 ---
 
-## 3. GAIA-X Compliance
+## 3. GAIA-X – Architektonische Ausrichtung
 
-### 3.1 Standard Compliance (Level 0)
+### 3.1 Architektur-Alignment („Level 0“)
 
-✅ Selbsterklärung möglich — bereits implementiert:
+Die Architektur des BioResearch Assistant orientiert sich an
+GAIA‑X‑Prinzipien. Eine **formale GAIA‑X Zertifizierung liegt nicht vor**.
 
 - Transparenz: Self-Description API (/api/v1/gaia-x)
-- Datenschutz: DSGVO-konforme Verarbeitung
-- Sicherheit: OWASP Top 10, Verschlüsselung
+- Datenschutz: Pseudonymisierung, Audit-Logs, On‑Premise‑Option
+- Sicherheit: Maßnahmen entlang OWASP Top 10, Verschlüsselung
 - Interoperabilität: GA4GH Standards, REST API
 - Portabilität: FAIR Export, Standard-Formate
 
-### 3.2 Label Level 1
+### 3.2 Perspektive „Label Level 1“
 
-Für Level 1 ist Selbsterklärung ausreichend. Empfohlene nächste Schritte:
+Für ein GAIA‑X‑Label sind zusätzliche organisatorische und rechtliche
+Schritte nötig. Mögliche nächste Schritte (aus Sicht der Betreiber):
 
 1. GAIA-X Wizard verwenden (wizard.lab.gaia-x.eu)
 2. Verifiable Credential erstellen (VC-JWT)
 3. Bei GAIA-X Clearing House einreichen
 
-### 3.3 Implementierte GAIA-X Anforderungen
+### 3.3 Ausgewählte GAIA-X Anforderungen (technische Sicht)
 
-| Kriterium | Status | Details |
-|-----------|--------|---------|
-| P1 Governance | ✅ | BUSL 1.1 Lizenz, Changelog |
-| P2 Datenschutz | ✅ | DSGVO, Pseudonymisierung |
-| P3 Sicherheit | ✅ | OWASP, Verschlüsselung, HTTPS |
-| P4 Portabilität | ✅ | FAIR Export, Open Standards |
-| P5 Transparenz | ✅ | Self-Description API |
-| P6 Nachhaltigkeit | ⚠️ | Nicht bewertet |
+| Kriterium | Technische Maßnahmen (Beispiele) |
+|-----------|----------------------------------|
+| P1 Governance | Versionierung, Changelog, Lizenz (BUSL 1.1) |
+| P2 Datenschutz | Pseudonymisierung, Audit, On‑Premise‑Option |
+| P3 Sicherheit | Verschlüsselung, AuthN/Z, OWASP-orientiertes Review |
+| P4 Portabilität | Docker, Standardprotokolle, FAIR Export |
+| P5 Transparenz | Self‑Description API, offene Schnittstellen |
+| P6 Nachhaltigkeit | Nicht bewertet, kundenspezifisch |
 
 ---
 
@@ -187,7 +204,8 @@ Empfehlung: DUO-Codes in FAIR Export und Phenopackets integrieren:
 
 ### 5.2 ISO/IEC 27001 (Informationssicherheit)
 
-Relevante Kontrollen implementiert:
+Ausgewählte Kontrollen werden technisch unterstützt, eine formale
+ISO‑27001‑Zertifizierung liegt **nicht** vor:
 
 - A.8 Asset Management: Audit Logs ✅
 - A.9 Access Control: User Isolation ✅
@@ -199,14 +217,17 @@ Relevante Kontrollen implementiert:
 
 ### 5.3 HIPAA (USA)
 
-Für US-Kunden relevant:
+Für US-Kunden können folgende Funktionen beim Erreichen
+von HIPAA-Anforderungen unterstützen:
 
 - PHI Pseudonymisierung ✅
 - Audit Logs ✅
 - Verschlüsselung at rest und in transit ✅
 - Zugriffskontrolle ✅
 
-Hinweis: Vollständige HIPAA-Compliance erfordert BAA mit dem Betreiber.
+Hinweis: Eine vollständige HIPAA‑Compliance erfordert zusätzliche
+vertragliche, organisatorische und technische Maßnahmen (z. B. BAA)
+und kann nicht allein durch die Software gewährleistet werden.
 
 ### 5.4 ICH GCP E6(R3) (Klinische Studien)
 

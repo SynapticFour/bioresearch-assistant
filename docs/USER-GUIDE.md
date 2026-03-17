@@ -10,7 +10,7 @@
 
 ### Was ist das System?
 
-BioResearch Assistant ist ein on-premise KI-System für Forschungsinstitute und Unikliniken. Es verbindet **Literature Mining** (PubMed), **persönliche Bibliothek** mit semantischer Suche, **DSGVO-konforme Pseudonymisierung**, **Phenopackets**, **DRS-Dateiverwaltung**, **BLAST/WES-Pipelines**, **Research Notebook (ELN)** und **FAIR Data Export** in einer Anwendung.
+BioResearch Assistant ist ein on-premise KI-System für Forschungsinstitute und Unikliniken. Es verbindet **Literature Mining** (PubMed), **persönliche Bibliothek** mit semantischer Suche, Pseudonymisierung, **Phenopackets**, **DRS-Dateiverwaltung**, **BLAST/WES-Pipelines**, **Research Notebook (ELN)** und **FAIR Data Export** in einer Anwendung. Die Software stellt technische Funktionen zur datenschutzfreundlichen Nutzung bereit; ob ein Einsatz rechtlich zulässig ist, hängt vom jeweiligen Szenario und den Verantwortlichen ab.
 
 ### Erste Schritte nach Installation
 
@@ -35,7 +35,7 @@ BioResearch Assistant ist ein on-premise KI-System für Forschungsinstitute und 
 | Dashboard              | Übersicht Papers, Phenopackets, WES-Runs, Health | Einstieg, Systemstatus, schnelle Links              |
 | Literatursuche         | PubMed-Suche, Paper speichern, PII-Prüfung    | Literaturrecherche, Paper in Bibliothek übernehmen  |
 | Bibliothek             | Paper verwalten, Keyword/Semantik, KI-Summary | Suche in gespeicherten Papers, Zusammenfassungen   |
-| Pseudonymisierung      | Text anonymisieren, Restore, Audit           | Klinische Texte DSGVO-konform nutzen                |
+| Pseudonymisierung      | Text anonymisieren, Restore, Audit           | Klinische Texte für weitere Nutzung vorbereiten (unter Beachtung der DSGVO durch Verantwortliche) |
 | Phenopackets           | HPO-Suche, Phenopacket erstellen/exportieren  | Seltene Erkrankungen, GA4GH-Austausch               |
 | DRS                    | Dateien hochladen/registrieren, Download     | VCF, FASTA, BAM etc. verwalten                      |
 | BLAST                  | Sequenzsuche (nt/nr)                          | DNA/Protein gegen Datenbanken                      |
@@ -125,7 +125,7 @@ Verwaltet **gespeicherte Papers** (aus Literatursuche oder manuell/Bulk). Ermög
 
 ### Was macht es?
 
-Ersetzt **personenbezogene und sensible Daten** in Texten durch Platzhalter (DSGVO-konform, reversibel). Mappings werden verschlüsselt gespeichert; **Restore** (Original wiederherstellen) und **De-Pseudonymisierung** (reverse) mit Berechtigungen und Audit.
+Ersetzt **personenbezogene und sensible Daten** in Texten durch Platzhalter (reversibel). Mappings werden verschlüsselt gespeichert; **Restore** (Original wiederherstellen) und **De-Pseudonymisierung** (reverse) mit Berechtigungen und Audit. Die Pseudonymisierung ist als technische Maßnahme zur Unterstützung von DSGVO‑Anforderungen gedacht, ersetzt aber keine rechtliche Bewertung des konkreten Einsatzes.
 
 ### Wann verwenden?
 
