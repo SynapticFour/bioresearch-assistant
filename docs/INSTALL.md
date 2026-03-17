@@ -83,10 +83,13 @@ APP_VERSION=1.3.0
 
 | Modus        | Datensouveränität |
 |--------------|--------------------|
-| Ollama (Standard) | ✅ Alle Daten bleiben lokal |
+| Ollama (Standard) | Datenverarbeitung lokal im eigenen Setup |
 | Anthropic API     | ⚠️ Texte werden an Anthropic übertragen |
 
-Für klinische Produktionsbetriebe: **Ollama verwenden** — keine Daten verlassen das System.
+Für klinische Produktionsbetriebe wird in der Regel ein Betrieb mit
+lokalem LLM (Ollama) ohne externe KI‑APIs empfohlen. Ob dies ausreicht,
+um rechtliche Anforderungen (z. B. DSGVO, §393 SGB V) zu erfüllen,
+muss durch die verantwortlichen Stellen geprüft werden.
 
 ## Ollama GPU Support
 

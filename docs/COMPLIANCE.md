@@ -286,14 +286,20 @@ Bei einem Datenleck ohne Verschlüsselung:
 
 ## 7. Empfehlungen für Produktionsbetrieb
 
-### 7.1 Vor dem Go-Live
+### 7.1 Vor dem Go-Live (Checkliste für Betreiber:innen)
 
-☐ Datenschutz-Folgenabschätzung (DSFA/DPIA) gemäß Art. 35 DSGVO durchführen  
-☐ AVV mit Synaptic Four abschließen (Template: docs/AVV-TEMPLATE.md)  
-☐ Lokalen Datenschutzbeauftragten einbinden  
-☐ Verzeichnis der Verarbeitungstätigkeiten (VVT) aktualisieren  
-☐ OIDC Provider konfigurieren (kein Dev-Mode!)  
-☐ CORS_ORIGINS einschränken
+Die folgende Liste bietet eine technische Orientierung und ersetzt keine
+individuelle Beratung:
+
+- ☐ Datenschutz-Folgenabschätzung (DSFA/DPIA) gemäß Art. 35 DSGVO prüfen und ggf. durchführen  
+- ☐ Rollenklärung: Verantwortlicher / Auftragsverarbeiter / ggf. gemeinsame Verantwortlichkeit  
+- ☐ Vertragslage prüfen (z. B. AVV/BAA mit Hosting‑Provider und ggf. Synaptic Four)  
+- ☐ Lokalen Datenschutzbeauftragten und Informationssicherheitsbeauftragten einbinden  
+- ☐ Verzeichnis der Verarbeitungstätigkeiten (VVT) aktualisieren  
+- ☐ OIDC Provider konfigurieren (kein Dev‑Mode in Produktion)  
+- ☐ CORS_ORIGINS auf notwendige Domains einschränken  
+- ☐ Verschlüsselung at rest (Datenbank/Volumes) und Backups implementieren  
+- ☐ Monitoring und Incident‑Prozess (z. B. Log‑Überwachung, Alarmierung) etablieren  
 
 ### 7.2 KI-Konfiguration
 
