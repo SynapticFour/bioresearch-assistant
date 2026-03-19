@@ -71,3 +71,13 @@ def test_get_service_info_returns_drs_service_info():
     assert info.name == "BioResearch Assistant DRS"
     assert info.drs.objectCount == 5
     assert info.drs.totalObjectSize == 1000
+    assert info.organization.url == "https://www.synapticfour.com"
+
+
+def test_get_object_nested_path_under_storage(drs_storage):
+    """object_id may contain slashes (relative path under DRS root)."""
+    (drs_storage / "a").mkdir()
+    (drs_storage / "a" / "b.txt").write_text("nested")
+    obj = get_object("a/b.txt")
+    assert obj is not None
+    assert obj.id == "a/b.txt"

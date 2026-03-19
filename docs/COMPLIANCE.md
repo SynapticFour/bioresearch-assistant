@@ -400,13 +400,13 @@ Für NIS2-betroffene Kunden ist BioResearch Assistant mit:
 **Verantwortlicher (Art. 4 Nr. 7 DSGVO):**  
 Synaptic Four  
 [Adresse]  
-datenschutz@synapticfour.de
+contact@synapticfour.com
 
 **Technisch-organisatorische Maßnahmen (TOM):**  
-Auf Anfrage: tom@synapticfour.de
+Auf Anfrage: contact@synapticfour.com
 
 **Sicherheitsmeldungen:**  
-security@synapticfour.de  
+contact@synapticfour.com  
 (PGP Key auf Anfrage)
 
 ---

@@ -117,3 +117,14 @@ async def test_get_run_invalid_uuid_returns_none(db_session):
     """get_run with invalid UUID string returns None."""
     run = await wes_service.get_run(db_session, "not-a-uuid")
     assert run is None
+
+
+def test_validate_workflow_url_accepts_http_descriptor() -> None:
+    """Remote workflow descriptors over https are allowed (WES / Ferrum-aligned)."""
+    wes_service._validate_workflow_url("https://example.org/wf/main.nf")
+
+
+def test_validate_workflow_url_rejects_parent_segments_in_path() -> None:
+    """Path traversal in workflow_url must be rejected."""
+    with pytest.raises(ValueError, match="\\.\\."):
+        wes_service._validate_workflow_url("https://example.org/../../etc/passwd")

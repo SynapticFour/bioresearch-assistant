@@ -594,6 +594,6 @@ Ja. Wenn keine OIDC-Anmeldung konfiguriert ist, kannst du die Anwendung ohne Log
 - [INSTALL.md](INSTALL.md) — Installation
 - [docs/COMPLIANCE.md](COMPLIANCE.md) — Compliance (DSGVO, NIS2, FAIR, …)
 - [SECURITY.md](../SECURITY.md) — Sicherheit, Meldung von Lücken  
-- **Synaptic Four:** info@synapticfour.de
+- **Synaptic Four:** contact@synapticfour.com · https://www.synapticfour.com
 
 *Letzte Aktualisierung: März 2026, Version 1.0.0*

@@ -2,7 +2,10 @@
 
 import asyncio
 import tempfile
+from collections.abc import Awaitable
+from datetime import UTC
 from pathlib import Path
+from typing import Never, TypeVar
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -12,9 +15,15 @@ from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import State
 from app.services import wes_service
 
+_T = TypeVar("_T")
 
-async def _await_coro(coro, timeout=None):
-    """Await the given coroutine (for mocking asyncio.wait_for)."""
+
+async def _await_coro(coro: Awaitable[_T], timeout: float | None = None) -> _T:
+    """Await the given coroutine (for mocking asyncio.wait_for).
+
+    The real ``asyncio.wait_for`` passes ``timeout``; the mock ignores it.
+    """
+    _ = timeout
     return await coro
 
 
@@ -32,7 +41,7 @@ async def test_run_blast_direct_early_return_when_no_query_fasta() -> None:
 
 @pytest.mark.asyncio
 async def test_run_blast_direct_success_complete(db_session) -> None:
-    """_run_blast_direct runs subprocess and sets state COMPLETE when exit 0 and results.xml exists."""
+    """_run_blast_direct sets COMPLETE when subprocess exits 0 and results.xml exists."""
     row = WorkflowRun(
         run_id=uuid4(),
         state=State.QUEUED.value,
@@ -67,9 +76,20 @@ async def test_run_blast_direct_success_complete(db_session) -> None:
         mock_cm.__aexit__ = AsyncMock(return_value=None)
         mock_factory = MagicMock(return_value=mock_cm)
 
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_process):
-            with patch("app.services.wes_service.asyncio.wait_for", new_callable=AsyncMock, side_effect=_await_coro):
-                with patch("app.services.wes_service.get_async_session_maker", return_value=mock_factory):
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            return_value=mock_process,
+        ):
+            with patch(
+                "app.services.wes_service.asyncio.wait_for",
+                new_callable=AsyncMock,
+                side_effect=_await_coro,
+            ):
+                with patch(
+                    "app.services.wes_service.get_async_session_maker",
+                    return_value=mock_factory,
+                ):
                     await wes_service._run_blast_direct(run_id, run_dir, {"database": "nt"})
 
         await db_session.refresh(row)
@@ -104,11 +124,18 @@ async def test_run_blast_direct_timeout_sets_executor_error(db_session) -> None:
         await db_session.flush()
         run_id = str(row.run_id)
 
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+        ) as mock_exec:
             mock_process = MagicMock()
             mock_exec.return_value = mock_process
             mock_process.communicate = AsyncMock(side_effect=TimeoutError())
-            with patch("app.services.wes_service.asyncio.wait_for", new_callable=AsyncMock, side_effect=TimeoutError):
+            with patch(
+                "app.services.wes_service.asyncio.wait_for",
+                new_callable=AsyncMock,
+                side_effect=TimeoutError,
+            ):
                 with patch("app.services.wes_service.get_async_session_maker") as mock_get_sess:
                     mock_sess_instance = MagicMock()
                     mock_sess_instance.__aenter__ = AsyncMock(return_value=db_session)
@@ -149,7 +176,11 @@ async def test_run_blast_direct_exception_sets_system_error(db_session) -> None:
         await db_session.flush()
         run_id = str(row.run_id)
 
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, side_effect=RuntimeError("subprocess failed")):
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("subprocess failed"),
+        ):
             with patch("app.services.wes_service.get_async_session_maker") as mock_get_sess:
                 mock_sess_instance = MagicMock()
                 mock_sess_instance.__aenter__ = AsyncMock(return_value=db_session)
@@ -169,7 +200,10 @@ async def test_execute_nextflow_blast_delegates_to_run_blast_direct() -> None:
     with tempfile.TemporaryDirectory() as tmpdir:
         run_dir = Path(tmpdir)
         (run_dir / "query.fasta").write_text(">q\nATCG\n")
-        with patch("app.services.wes_service._run_blast_direct", new_callable=AsyncMock) as mock_blast:
+        with patch(
+            "app.services.wes_service._run_blast_direct",
+            new_callable=AsyncMock,
+        ) as mock_blast:
             await wes_service._execute_nextflow(run_id, run_dir, "blast", {"database": "nt"})
             mock_blast.assert_called_once_with(run_id, run_dir, {"database": "nt"})
 
@@ -206,7 +240,11 @@ async def test_execute_nextflow_nextflow_success(db_session) -> None:
         mock_process.returncode = 0
         mock_process.communicate = AsyncMock(return_value=(b"Published output: out.txt", b""))
 
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_process):
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            return_value=mock_process,
+        ):
             with patch("app.services.wes_service.get_async_session_maker") as mock_get_sess:
                 mock_sess_instance = MagicMock()
                 mock_sess_instance.__aenter__ = AsyncMock(return_value=db_session)
@@ -246,7 +284,11 @@ async def test_execute_nextflow_exception_sets_system_error(db_session) -> None:
         await db_session.flush()
         run_id = str(row.run_id)
 
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, side_effect=FileNotFoundError("nextflow not found")):
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            side_effect=FileNotFoundError("nextflow not found"),
+        ):
             with patch("app.services.wes_service.get_async_session_maker") as mock_get_sess:
                 mock_sess_instance = MagicMock()
                 mock_sess_instance.__aenter__ = AsyncMock(return_value=db_session)
@@ -261,7 +303,7 @@ async def test_execute_nextflow_exception_sets_system_error(db_session) -> None:
 
 def test_run_to_run_summary_with_times() -> None:
     """run_to_run_summary includes start_time and end_time when set."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     run = WorkflowRun(
         run_id=uuid4(),
@@ -273,8 +315,8 @@ def test_run_to_run_summary_with_times() -> None:
         workflow_engine="blast",
         workflow_engine_version=None,
         tags=None,
-        start_time=datetime.now(timezone.utc),
-        end_time=datetime.now(timezone.utc),
+        start_time=datetime.now(UTC),
+        end_time=datetime.now(UTC),
         outputs=None,
         run_log=None,
         task_logs=None,
@@ -303,7 +345,16 @@ def test_run_to_run_log_with_task_logs_with_id() -> None:
         end_time=None,
         outputs=None,
         run_log={"name": "blast", "cmd": [], "stdout": "", "stderr": ""},
-        task_logs=[{"id": "t1", "name": "blast", "cmd": [], "stdout": "", "stderr": "", "exit_code": 0}],
+        task_logs=[
+            {
+                "id": "t1",
+                "name": "blast",
+                "cmd": [],
+                "stdout": "",
+                "stderr": "",
+                "exit_code": 0,
+            },
+        ],
         request={"workflow_url": "blast", "workflow_type": "BLAST", "workflow_type_version": "1.0"},
     )
     log = wes_service.run_to_run_log(run)
@@ -369,9 +420,21 @@ async def test_run_blast_direct_exit_nonzero_sets_executor_error(db_session) -> 
         mock_cm = MagicMock()
         mock_cm.__aenter__ = AsyncMock(return_value=db_session)
         mock_cm.__aexit__ = AsyncMock(return_value=None)
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_process):
-            with patch("app.services.wes_service.asyncio.wait_for", new_callable=AsyncMock, side_effect=_await_coro):
-                with patch("app.services.wes_service.get_async_session_maker", return_value=MagicMock(return_value=mock_cm)):
+        sess_factory = MagicMock(return_value=mock_cm)
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            return_value=mock_process,
+        ):
+            with patch(
+                "app.services.wes_service.asyncio.wait_for",
+                new_callable=AsyncMock,
+                side_effect=_await_coro,
+            ):
+                with patch(
+                    "app.services.wes_service.get_async_session_maker",
+                    return_value=sess_factory,
+                ):
                     await wes_service._run_blast_direct(run_id, run_dir, {})
         await db_session.refresh(row)
         assert row.state == State.EXECUTOR_ERROR.value
@@ -410,9 +473,21 @@ async def test_run_blast_direct_no_results_xml_sets_executor_error(db_session) -
         mock_cm = MagicMock()
         mock_cm.__aenter__ = AsyncMock(return_value=db_session)
         mock_cm.__aexit__ = AsyncMock(return_value=None)
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_process):
-            with patch("app.services.wes_service.asyncio.wait_for", new_callable=AsyncMock, side_effect=_await_coro):
-                with patch("app.services.wes_service.get_async_session_maker", return_value=MagicMock(return_value=mock_cm)):
+        sess_factory = MagicMock(return_value=mock_cm)
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            return_value=mock_process,
+        ):
+            with patch(
+                "app.services.wes_service.asyncio.wait_for",
+                new_callable=AsyncMock,
+                side_effect=_await_coro,
+            ):
+                with patch(
+                    "app.services.wes_service.get_async_session_maker",
+                    return_value=sess_factory,
+                ):
                     await wes_service._run_blast_direct(run_id, run_dir, {})
         await db_session.refresh(row)
         assert row.state == State.EXECUTOR_ERROR.value
@@ -450,8 +525,16 @@ async def test_execute_nextflow_exit_nonzero_sets_executor_error(db_session) -> 
         mock_cm = MagicMock()
         mock_cm.__aenter__ = AsyncMock(return_value=db_session)
         mock_cm.__aexit__ = AsyncMock(return_value=None)
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, return_value=mock_process):
-            with patch("app.services.wes_service.get_async_session_maker", return_value=MagicMock(return_value=mock_cm)):
+        sess_factory = MagicMock(return_value=mock_cm)
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            return_value=mock_process,
+        ):
+            with patch(
+                "app.services.wes_service.get_async_session_maker",
+                return_value=sess_factory,
+            ):
                 await wes_service._execute_nextflow(run_id, run_dir, "main.nf", {})
         await db_session.refresh(row)
         assert row.state == State.EXECUTOR_ERROR.value
@@ -487,11 +570,19 @@ async def test_execute_nextflow_cancelled_sets_canceled(db_session) -> None:
         mock_cm.__aenter__ = AsyncMock(return_value=db_session)
         mock_cm.__aexit__ = AsyncMock(return_value=None)
 
-        async def raise_cancelled(*args, **kwargs):
+        async def raise_cancelled(*args: object, **kwargs: object) -> Never:
             raise asyncio.CancelledError()
 
-        with patch("app.services.wes_service.asyncio.create_subprocess_exec", new_callable=AsyncMock, side_effect=raise_cancelled):
-            with patch("app.services.wes_service.get_async_session_maker", return_value=MagicMock(return_value=mock_cm)):
+        sess_factory = MagicMock(return_value=mock_cm)
+        with patch(
+            "app.services.wes_service.asyncio.create_subprocess_exec",
+            new_callable=AsyncMock,
+            side_effect=raise_cancelled,
+        ):
+            with patch(
+                "app.services.wes_service.get_async_session_maker",
+                return_value=sess_factory,
+            ):
                 with pytest.raises(asyncio.CancelledError):
                     await wes_service._execute_nextflow(run_id, run_dir, "main.nf", {})
         await db_session.refresh(row)

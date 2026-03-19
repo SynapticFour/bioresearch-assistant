@@ -66,7 +66,7 @@ def get_service_info(
         type=ServiceType(group="org.ga4gh", artifact="drs", version="1.3"),
         organization=ServiceOrganization(
             name="Synaptic Four",
-            url="https://synapticfour.com",
+            url="https://www.synapticfour.com",
         ),
         version="0.1.0",
         description="GA4GH DRS v1.3 for on-premise data objects (file-backed).",

@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -81,7 +81,7 @@ async def test_get_run_not_found_returns_none(db_session) -> None:
 @pytest.mark.asyncio
 async def test_list_runs_pagination(db_session) -> None:
     """list_runs returns runs and next_page_token when more than page_size."""
-    for i in range(3):
+    for _ in range(3):
         row = WorkflowRun(
             run_id=uuid4(),
             state=State.COMPLETE.value,
@@ -102,9 +102,7 @@ async def test_list_runs_pagination(db_session) -> None:
         db_session.add(row)
     await db_session.flush()
 
-    runs, next_token = await wes_service.list_runs(
-        db_session, page_size=2, page_token=None
-    )
+    runs, next_token = await wes_service.list_runs(db_session, page_size=2, page_token=None)
     assert len(runs) <= 2
     assert isinstance(next_token, str)
 
@@ -194,9 +192,7 @@ async def test_cancel_run_sets_canceled(db_session) -> None:
 @pytest.mark.asyncio
 async def test_cancel_run_not_found_returns_false(db_session) -> None:
     """cancel_run returns False when run not found."""
-    result = await wes_service.cancel_run(
-        db_session, "00000000-0000-0000-0000-000000000000"
-    )
+    result = await wes_service.cancel_run(db_session, "00000000-0000-0000-0000-000000000000")
     assert result is False
 
 

@@ -12,7 +12,7 @@
 **Bitte keine öffentlichen GitHub Issues für Sicherheitslücken!**
 
 ### Kontakt
-E-Mail: security@synapticfour.de
+E-Mail: contact@synapticfour.com
 
 ### Was wir brauchen
 - Beschreibung der Lücke
@@ -82,7 +82,7 @@ Siehe [docs/COMPLIANCE.md](docs/COMPLIANCE.md) für vollständige Übersicht all
 ## Sicherheitsmeldungen
 
 Bitte melden Sie Sicherheitslücken an:  
-**security@synapticfour.de**
+**contact@synapticfour.com**
 
 Wir verpflichten uns zu:
 

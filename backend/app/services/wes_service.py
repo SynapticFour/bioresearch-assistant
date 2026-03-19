@@ -11,6 +11,7 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID, uuid4
 
 from sqlalchemy import func, select
@@ -38,16 +39,27 @@ ALLOWED_WORKFLOWS = frozenset(
 
 
 def _validate_workflow_url(workflow_url: str) -> None:
-    """Validate workflow URL against allowlist."""
+    """Validate workflow URL against allowlist and safe http(s) URLs.
+
+    Remote ``http://`` / ``https://`` URLs are accepted when the path has no
+    ``..`` segments (GA4GH WES / conformance clients; aligns with relaxed
+    validation in Ferrum for workflow descriptors served over HTTP).
+    """
     if workflow_url in ALLOWED_WORKFLOWS:
         return
     # Erlaube lokale .nf Dateien
     if workflow_url.endswith(".nf"):
         return
+    parsed = urlparse(workflow_url)
+    if parsed.scheme in ("http", "https") and parsed.netloc:
+        path = parsed.path or "/"
+        if ".." in path:
+            raise ValueError("Invalid workflow URL: path must not contain '..'")
+        return
     raise ValueError(
         f"Unknown workflow: {workflow_url!r}. "
-        f"Allowed: {sorted(ALLOWED_WORKFLOWS)} "
-        f"or local *.nf files"
+        f"Allowed: {sorted(ALLOWED_WORKFLOWS)}, local *.nf files, "
+        "or http(s) URLs without '..' in the path"
     )
 
 

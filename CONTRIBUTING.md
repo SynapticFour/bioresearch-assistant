@@ -2,6 +2,8 @@
 
 Danke für dein Interesse! Wir freuen uns über jeden Beitrag — Bug Reports, Feature-Ideen oder Code.
 
+**Synaptic Four:** [www.synapticfour.com](https://www.synapticfour.com) · contact@synapticfour.com
+
 ## Verhaltenskodex
 
 Wir folgen dem [Contributor Covenant](https://www.contributor-covenant.org/de/). Respektvoller, konstruktiver Umgang ist Pflicht.

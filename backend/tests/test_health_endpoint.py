@@ -1,10 +1,13 @@
 """Tests for health and readiness endpoints (feature flags, DB check)."""
 
+from collections.abc import AsyncGenerator
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
 
@@ -14,7 +17,7 @@ async def health_client(db_session):
     """Client for health endpoints (no auth required)."""
     from app.core.database import get_db
 
-    async def override_get_db():
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
         yield db_session
 
     app.dependency_overrides[get_db] = override_get_db
@@ -259,19 +262,17 @@ async def test_readiness_check_database_disconnected():
     """GET /health/ready returns not_ready when DB fails."""
     from app.core.database import get_db
 
-    async def failing_db():
+    async def failing_db() -> AsyncGenerator[AsyncSession, None]:
         from unittest.mock import AsyncMock, MagicMock
 
         session = MagicMock()
         session.execute = AsyncMock(side_effect=RuntimeError("connection lost"))
-        yield session
+        yield cast(AsyncSession, session)
 
     app.dependency_overrides[get_db] = failing_db
     try:
         transport = ASGITransport(app=app)
-        async with AsyncClient(
-            transport=transport, base_url="http://test"
-        ) as client:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get("/api/v1/health/ready")
         assert resp.status_code == 200
         data = resp.json()

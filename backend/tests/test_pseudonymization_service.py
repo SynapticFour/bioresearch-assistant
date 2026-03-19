@@ -58,9 +58,7 @@ class TestAnalyze:
             language="de",
         )
         entity_types = [r.entity_type for r in results]
-        assert "DATE_TIME" in entity_types, (
-            f"DATE_TIME nicht erkannt. Gefunden: {entity_types}"
-        )
+        assert "DATE_TIME" in entity_types, f"DATE_TIME nicht erkannt. Gefunden: {entity_types}"
 
     def test_german_phone_recognized(self) -> None:
         results = analyze("Tel. 0711-123456", language="de")

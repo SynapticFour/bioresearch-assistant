@@ -1,16 +1,15 @@
 """Extended tests for EmbeddingService (_preprocess_query, find_similar, store_paper)."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.models.paper import EMBEDDING_DIM, Paper
+from app.models.paper import EMBEDDING_DIM
 from app.schemas.pubmed import PubMedArticle
 from app.services.embedding_service import (
     EmbeddingService,
     _preprocess_query,
 )
-
 
 # ─── _preprocess_query (module-level) ──────────────────────────────────────
 
@@ -62,9 +61,7 @@ def test_preprocess_query_short_words_filtered():
 
 def test_embed_text_multilingual_de():
     """embed_text accepts German text (mock returns vector)."""
-    with patch(
-        "app.services.embedding_service.EmbeddingService._get_model"
-    ) as mock_get:
+    with patch("app.services.embedding_service.EmbeddingService._get_model") as mock_get:
         mock_model = MagicMock()
         mock_encode = MagicMock()
         mock_encode.tolist.return_value = [0.2] * EMBEDDING_DIM
@@ -78,13 +75,9 @@ def test_embed_text_multilingual_de():
 
 def test_embed_text_multilingual_en():
     """embed_text accepts English text."""
-    with patch(
-        "app.services.embedding_service.EmbeddingService._get_model"
-    ) as mock_get:
+    with patch("app.services.embedding_service.EmbeddingService._get_model") as mock_get:
         mock_model = MagicMock()
-        mock_model.encode.return_value = MagicMock(
-            tolist=lambda: [0.3] * EMBEDDING_DIM
-        )
+        mock_model.encode.return_value = MagicMock(tolist=lambda: [0.3] * EMBEDDING_DIM)
         mock_get.return_value = mock_model
         svc = EmbeddingService()
         out = svc.embed_text("breast cancer therapy")
@@ -100,13 +93,9 @@ def test_embed_text_multilingual_en():
 @pytest.mark.asyncio
 async def test_find_similar_empty_db_returns_empty(db_session):
     """find_similar with no papers in DB returns empty list."""
-    with patch(
-        "app.services.embedding_service.EmbeddingService._get_model"
-    ) as mock_get:
+    with patch("app.services.embedding_service.EmbeddingService._get_model") as mock_get:
         mock_model = MagicMock()
-        mock_model.encode.return_value = MagicMock(
-            tolist=lambda: [0.1] * EMBEDDING_DIM
-        )
+        mock_model.encode.return_value = MagicMock(tolist=lambda: [0.1] * EMBEDDING_DIM)
         mock_get.return_value = mock_model
         svc = EmbeddingService()
         result = await svc.find_similar(db_session, "query", limit=10)
@@ -119,13 +108,9 @@ async def test_find_similar_empty_db_returns_empty(db_session):
 @pytest.mark.asyncio
 async def test_store_paper_generates_embedding(db_session):
     """store_paper generates embedding via embed_text_async."""
-    with patch(
-        "app.services.embedding_service.EmbeddingService._get_model"
-    ) as mock_get:
+    with patch("app.services.embedding_service.EmbeddingService._get_model") as mock_get:
         mock_model = MagicMock()
-        mock_model.encode.return_value = MagicMock(
-            tolist=lambda: [0.1] * EMBEDDING_DIM
-        )
+        mock_model.encode.return_value = MagicMock(tolist=lambda: [0.1] * EMBEDDING_DIM)
         mock_get.return_value = mock_model
         svc = EmbeddingService()
         article = PubMedArticle(
@@ -146,13 +131,9 @@ async def test_store_paper_generates_embedding(db_session):
 @pytest.mark.asyncio
 async def test_reembed_updates_existing_paper(db_session):
     """Re-embedding updates existing paper's embedding."""
-    with patch(
-        "app.services.embedding_service.EmbeddingService._get_model"
-    ) as mock_get:
+    with patch("app.services.embedding_service.EmbeddingService._get_model") as mock_get:
         mock_model = MagicMock()
-        mock_model.encode.return_value = MagicMock(
-            tolist=lambda: [0.5] * EMBEDDING_DIM
-        )
+        mock_model.encode.return_value = MagicMock(tolist=lambda: [0.5] * EMBEDDING_DIM)
         mock_get.return_value = mock_model
         svc = EmbeddingService()
         article = PubMedArticle(

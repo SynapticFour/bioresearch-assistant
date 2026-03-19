@@ -24,7 +24,7 @@ Non-production use includes:
 ## Production Use
 
 Production use requires a commercial license from Synaptic Four.  
-Contact: kontakt@synapticfour.com
+Contact: contact@synapticfour.com · https://www.synapticfour.com
 
 ## No Warranties
 

@@ -22,14 +22,10 @@ async def test_search_hpo_terms_success() -> None:
             },
         ],
     }
-    with patch(
-        "app.services.hpo_service.httpx.AsyncClient"
-    ) as MockClient:
+    with patch("app.services.hpo_service.httpx.AsyncClient") as MockClient:
         mock_client_instance = MagicMock()
         mock_client_instance.get = AsyncMock(return_value=mock_resp)
-        mock_client_instance.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
-        )
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         MockClient.return_value = mock_client_instance
         service = HPOService()
@@ -45,14 +41,10 @@ async def test_search_hpo_terms_empty_result() -> None:
     mock_resp = MagicMock()
     mock_resp.status_code = 200
     mock_resp.json.return_value = {"terms": []}
-    with patch(
-        "app.services.hpo_service.httpx.AsyncClient"
-    ) as MockClient:
+    with patch("app.services.hpo_service.httpx.AsyncClient") as MockClient:
         mock_client_instance = MagicMock()
         mock_client_instance.get = AsyncMock(return_value=mock_resp)
-        mock_client_instance.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
-        )
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         MockClient.return_value = mock_client_instance
         service = HPOService()
@@ -63,16 +55,10 @@ async def test_search_hpo_terms_empty_result() -> None:
 @pytest.mark.asyncio
 async def test_search_hpo_terms_api_error_returns_empty() -> None:
     """search_terms returns empty list on API error."""
-    with patch(
-        "app.services.hpo_service.httpx.AsyncClient"
-    ) as MockClient:
+    with patch("app.services.hpo_service.httpx.AsyncClient") as MockClient:
         mock_client_instance = MagicMock()
-        mock_client_instance.get = AsyncMock(
-            side_effect=Exception("API error")
-        )
-        mock_client_instance.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
-        )
+        mock_client_instance.get = AsyncMock(side_effect=Exception("API error"))
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         MockClient.return_value = mock_client_instance
         service = HPOService()
@@ -85,16 +71,10 @@ async def test_search_hpo_terms_timeout_returns_empty() -> None:
     """search_terms returns empty list on timeout."""
     import httpx
 
-    with patch(
-        "app.services.hpo_service.httpx.AsyncClient"
-    ) as MockClient:
+    with patch("app.services.hpo_service.httpx.AsyncClient") as MockClient:
         mock_client_instance = MagicMock()
-        mock_client_instance.get = AsyncMock(
-            side_effect=httpx.TimeoutException("timeout")
-        )
-        mock_client_instance.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
-        )
+        mock_client_instance.get = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         MockClient.return_value = mock_client_instance
         service = HPOService()
@@ -106,9 +86,7 @@ async def test_search_hpo_terms_timeout_returns_empty() -> None:
 async def test_extract_keywords_clinical_text() -> None:
     """extract_from_text finds phenotypes in clinical text."""
     service = HPOService()
-    result = await service.extract_from_text(
-        "Patient has fever and headache and chest pain."
-    )
+    result = await service.extract_from_text("Patient has fever and headache and chest pain.")
     assert len(result) >= 1
     names = [r["name"] for r in result]
     assert any("Fever" in n or "Headache" in n or "Chest" in n for n in names)
@@ -139,14 +117,10 @@ async def test_search_hpo_terms_non_200_returns_empty() -> None:
     """search_terms returns empty when API returns non-200."""
     mock_resp = MagicMock()
     mock_resp.status_code = 500
-    with patch(
-        "app.services.hpo_service.httpx.AsyncClient"
-    ) as MockClient:
+    with patch("app.services.hpo_service.httpx.AsyncClient") as MockClient:
         mock_client_instance = MagicMock()
         mock_client_instance.get = AsyncMock(return_value=mock_resp)
-        mock_client_instance.__aenter__ = AsyncMock(
-            return_value=mock_client_instance
-        )
+        mock_client_instance.__aenter__ = AsyncMock(return_value=mock_client_instance)
         mock_client_instance.__aexit__ = AsyncMock(return_value=None)
         MockClient.return_value = mock_client_instance
         service = HPOService()

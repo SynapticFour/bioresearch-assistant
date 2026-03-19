@@ -42,7 +42,7 @@ DEMO_PAPERS = [
         "journal": "Nature Reviews Genetics",
         "doi": "10.1038/s41576-020-00288-9",
         "user_id": "dev-user",
-        "team_id": "domain:synapticfour.de",
+        "team_id": "domain:synapticfour.com",
     },
     {
         "pmid": "34521899",
@@ -63,7 +63,7 @@ DEMO_PAPERS = [
         "journal": "Nature Reviews Cancer",
         "doi": "10.1038/s41568-021-00344-2",
         "user_id": "dev-user",
-        "team_id": "domain:synapticfour.de",
+        "team_id": "domain:synapticfour.com",
     },
 ]
 
@@ -212,7 +212,7 @@ async def seed() -> None:
                 pseudonym_id="DEMO-P001",
                 phenopacket_json=json.dumps(DEMO_PHENOPACKET, ensure_ascii=False),
                 user_id="dev-user",
-                team_id="domain:synapticfour.de",
+                team_id="domain:synapticfour.com",
             )
             session.add(pp)
             print("  ✓ Phenopacket: DEMO-P001")
@@ -232,7 +232,7 @@ async def seed() -> None:
                 content=DEMO_NOTEBOOK_CONTENT,
                 tags=["demo", "CRISPR", "Onkologie"],
                 user_id="dev-user",
-                team_id="domain:synapticfour.de",
+                team_id="domain:synapticfour.com",
                 linked_pmids=["33514641", "34521899"],
             )
             session.add(nb)

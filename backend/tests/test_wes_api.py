@@ -63,3 +63,23 @@ async def test_wes_run_workflow_returns_run_id(async_client: AsyncClient) -> Non
         )
     assert response.status_code in (200, 201)
     assert "run_id" in response.json()
+
+
+async def test_wes_post_runs_accepts_application_json(async_client: AsyncClient) -> None:
+    """POST /ga4gh/wes/v1/runs accepts application/json RunRequest (GA4GH / HelixTest style)."""
+    with patch(
+        "app.services.wes_service._execute_nextflow",
+        new_callable=AsyncMock,
+        return_value=None,
+    ):
+        response = await async_client.post(
+            "/ga4gh/wes/v1/runs",
+            json={
+                "workflow_url": "https://example.org/workflows/pipeline.nf",
+                "workflow_type": "NEXTFLOW",
+                "workflow_type_version": "DSL2",
+                "workflow_params": {},
+            },
+        )
+    assert response.status_code in (200, 201)
+    assert "run_id" in response.json()

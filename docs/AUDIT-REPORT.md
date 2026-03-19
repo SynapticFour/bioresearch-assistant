@@ -330,9 +330,10 @@ Vollständige Compliance-Dokumentation: [docs/COMPLIANCE.md](COMPLIANCE.md)
 ## 11. Kontakt & Support
 
 **Synaptic Four**
-E-Mail: info@synapticfour.de
-Security: security@synapticfour.de
-GitHub: https://github.com/synapticfour/bioresearch-assistant
+E-Mail: contact@synapticfour.com
+Security: contact@synapticfour.com
+Web: https://www.synapticfour.com
+GitHub: https://github.com/SynapticFour/bioresearch-assistant
 
 ---
 

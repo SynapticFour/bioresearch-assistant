@@ -7,7 +7,8 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
@@ -56,7 +57,7 @@ def _service_info() -> ServiceInfo:
         type=ServiceType(group="org.ga4gh", artifact="wes", version="1.1.0"),
         organization=ServiceOrganization(
             name="Synaptic Four",
-            url="https://synapticfour.com",
+            url="https://www.synapticfour.com",
         ),
         version="0.1.0",
         description="GA4GH WES v1.1 for Nextflow workflows (on-premise).",
@@ -105,65 +106,105 @@ async def list_runs(
 
 @router.post("/runs", response_model=RunId, status_code=status.HTTP_200_OK)
 async def run_workflow(
-    workflow_type: str = Form(...),
-    workflow_type_version: str = Form(...),
-    workflow_url: str = Form(...),
-    workflow_params: str | None = Form(default=None),
-    tags: str | None = Form(default=None),
-    workflow_engine: str | None = Form(default=None),
-    workflow_engine_version: str | None = Form(default=None),
-    workflow_engine_parameters: str | None = Form(default=None),
-    workflow_attachment: list[UploadFile] | None = File(default=None),
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> RunId:
-    """Submit a new workflow run. Returns run_id to monitor progress."""
-    params: dict[str, Any] | None = None
-    if workflow_params:
+    """Submit a new workflow run. Returns run_id to monitor progress.
+
+    Accepts ``application/json`` (GA4GH WES RunRequest body) or multipart/form-data
+    as used by browser clients and older integrations.
+    """
+    content_type = request.headers.get("content-type") or ""
+    media_type = content_type.split(";")[0].strip().lower()
+    attachments: list[tuple[str, bytes]] | None = None
+
+    if media_type == "application/json":
         try:
-            params = json.loads(workflow_params)
+            raw_body: Any = await request.json()
         except json.JSONDecodeError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid workflow_params JSON: {e}",
+                detail=f"Invalid JSON body: {e}",
             ) from e
-    tags_dict: dict[str, str] | None = None
-    if tags:
         try:
-            tags_dict = json.loads(tags)
-        except json.JSONDecodeError as e:
+            run_req = RunRequest.model_validate(raw_body)
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=e.errors(),
+            ) from e
+    else:
+        form = await request.form()
+        try:
+            workflow_type = str(form["workflow_type"])
+            workflow_type_version = str(form["workflow_type_version"])
+            workflow_url = str(form["workflow_url"])
+        except KeyError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid tags JSON: {e}",
+                detail=f"Missing form field: {e.args[0]!r}",
             ) from e
-    engine_params: dict[str, str] | None = None
-    if workflow_engine_parameters:
-        try:
-            engine_params = json.loads(workflow_engine_parameters)
-        except json.JSONDecodeError:
-            engine_params = None
 
-    request = RunRequest(
-        workflow_type=workflow_type,
-        workflow_type_version=workflow_type_version,
-        workflow_url=workflow_url,
-        workflow_params=params,
-        tags=tags_dict,
-        workflow_engine=workflow_engine,
-        workflow_engine_version=workflow_engine_version,
-        workflow_engine_parameters=engine_params,
-    )
+        workflow_params = form.get("workflow_params")
+        params: dict[str, Any] | None = None
+        if workflow_params:
+            try:
+                params = json.loads(str(workflow_params))
+            except json.JSONDecodeError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid workflow_params JSON: {e}",
+                ) from e
 
-    attachments: list[tuple[str, bytes]] = []
-    if workflow_attachment:
-        for f in workflow_attachment:
-            if f.filename and not f.filename.startswith(".."):
-                body = await f.read()
-                attachments.append((f.filename, body))
+        tags_raw = form.get("tags")
+        tags_dict: dict[str, str] | None = None
+        if tags_raw:
+            try:
+                tags_dict = json.loads(str(tags_raw))
+            except json.JSONDecodeError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid tags JSON: {e}",
+                ) from e
+
+        engine_raw = form.get("workflow_engine_parameters")
+        engine_params: dict[str, str] | None = None
+        if engine_raw:
+            try:
+                engine_params = json.loads(str(engine_raw))
+            except json.JSONDecodeError:
+                engine_params = None
+
+        run_req = RunRequest(
+            workflow_type=workflow_type,
+            workflow_type_version=workflow_type_version,
+            workflow_url=workflow_url,
+            workflow_params=params,
+            tags=tags_dict,
+            workflow_engine=str(form["workflow_engine"]) if form.get("workflow_engine") else None,
+            workflow_engine_version=(
+                str(form["workflow_engine_version"])
+                if form.get("workflow_engine_version")
+                else None
+            ),
+            workflow_engine_parameters=engine_params,
+        )
+
+        att_list: list[tuple[str, bytes]] = []
+        for key, item in form.multi_items():
+            if key != "workflow_attachment":
+                continue
+            if not isinstance(item, UploadFile):
+                continue
+            if item.filename and not item.filename.startswith(".."):
+                body = await item.read()
+                att_list.append((item.filename, body))
+        attachments = att_list if att_list else None
 
     try:
         run_id = await service_create_run(
-            db, request, workflow_attachments=attachments if attachments else None
+            db, run_req, workflow_attachments=attachments
         )
     except ValueError as e:
         raise HTTPException(
@@ -174,20 +215,24 @@ async def run_workflow(
     return RunId(run_id=str(run_id))
 
 
-@router.get("/runs/{run_id}", response_model=RunLog, status_code=status.HTTP_200_OK)
-async def get_run_log(
+@router.get("/runs/{run_id}/status", response_model=RunStatus, status_code=status.HTTP_200_OK)
+async def get_run_status(
     run_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
-) -> RunLog:
-    """Get detailed information about a workflow run (logs, outputs, state)."""
+) -> RunStatus:
+    """Get abbreviated status of a workflow run (run_id and state).
+
+    Declared before ``GET /runs/{run_id}`` so frameworks that match in order
+    never treat ``…/status`` as a run_id suffix (mirrors Ferrum WES routing fixes).
+    """
     run = await service_get_run(db, run_id)
     if not run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="The requested workflow run not found.",
+            detail="The requested workflow run wasn't found.",
         )
-    return run_to_run_log(run)
+    return run_to_run_status(run)
 
 
 @router.post("/runs/{run_id}/cancel", response_model=RunId, status_code=status.HTTP_200_OK)
@@ -207,17 +252,17 @@ async def cancel_run(
     return RunId(run_id=run_id)
 
 
-@router.get("/runs/{run_id}/status", response_model=RunStatus, status_code=status.HTTP_200_OK)
-async def get_run_status(
+@router.get("/runs/{run_id}", response_model=RunLog, status_code=status.HTTP_200_OK)
+async def get_run_log(
     run_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
-) -> RunStatus:
-    """Get abbreviated status of a workflow run (run_id and state)."""
+) -> RunLog:
+    """Get detailed information about a workflow run (logs, outputs, state)."""
     run = await service_get_run(db, run_id)
     if not run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="The requested workflow run wasn't found.",
+            detail="The requested workflow run not found.",
         )
-    return run_to_run_status(run)
+    return run_to_run_log(run)

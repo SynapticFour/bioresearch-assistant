@@ -150,12 +150,7 @@ async def test_extract_from_pmid_exception_returns_none() -> None:
 async def test_extract_from_vcf_contig_line() -> None:
     """VCF with ##contig= lines populates contigs."""
     service = MetadataService()
-    vcf = (
-        "##fileformat=VCFv4.2\n"
-        "##contig=chr1\n"
-        "##contig=chr2\n"
-        "#CHROM\tPOS\tID"
-    )
+    vcf = "##fileformat=VCFv4.2\n##contig=chr1\n##contig=chr2\n#CHROM\tPOS\tID"
     result = await service.extract_from_vcf_header(vcf)
     assert result["format"] == "vcf"
     assert len(result["contigs"]) == 2
