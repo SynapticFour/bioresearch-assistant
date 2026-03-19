@@ -27,21 +27,13 @@ from app.schemas.wes import (
 )
 from app.services.wes_service import (
     cancel_run as service_cancel_run,
-)
-from app.services.wes_service import (
     create_run as service_create_run,
-)
-from app.services.wes_service import (
     get_run as service_get_run,
-)
-from app.services.wes_service import (
     get_system_state_counts,
+    list_runs as service_list_runs,
     run_to_run_log,
     run_to_run_status,
     run_to_run_summary,
-)
-from app.services.wes_service import (
-    list_runs as service_list_runs,
 )
 
 logger = logging.getLogger(__name__)
@@ -203,9 +195,7 @@ async def run_workflow(
         attachments = att_list if att_list else None
 
     try:
-        run_id = await service_create_run(
-            db, run_req, workflow_attachments=attachments
-        )
+        run_id = await service_create_run(db, run_req, workflow_attachments=attachments)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
