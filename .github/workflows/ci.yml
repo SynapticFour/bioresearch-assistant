@@ -84,6 +84,50 @@ jobs:
         run: ruff format --check app/
         working-directory: backend
 
+  conformance-ga4gh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TESTING: "1"
+      DATABASE_URL: "sqlite+aiosqlite:///:memory:"
+      DEPLOYMENT: test
+      ISOLATION_MODE: open
+      PSEUDONYMIZATION_ENCRYPTION_KEY: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SECRET_KEY: ci-secret-key-for-tests
+      ENVIRONMENT: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: GA4GH conformance smoke (DRS/WES/Phenopackets/Auth)
+        working-directory: backend
+        run: >
+          pytest
+          tests/test_drs_endpoints.py
+          tests/test_drs_endpoint_extended.py
+          tests/test_drs_service.py
+          tests/test_wes_api.py
+          tests/test_wes_service.py
+          tests/test_wes_service_extended.py
+          tests/test_wes_service_workflows.py
+          tests/test_phenopackets.py
+          tests/test_auth.py
+          -v
+          --cov=app
+          --cov-fail-under=0
+
   frontend:
     runs-on: ubuntu-latest
     steps:

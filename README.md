@@ -101,6 +101,7 @@ Danach erreichbar unter:
 | [USER-GUIDE.md](docs/USER-GUIDE.md) | Benutzerhandbuch (UI) |
 | [DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | API Referenz + curl Beispiele |
 | [COMPLIANCE.md](docs/COMPLIANCE.md) | DSGVO, GAIA-X, GA4GH, NIS2, EHDS |
+| [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
