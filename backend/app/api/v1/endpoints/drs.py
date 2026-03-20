@@ -238,7 +238,11 @@ async def get_drs_access(
     return access
 
 
-@router.get("/objects/{object_id:path}/stream", status_code=status.HTTP_200_OK)
+@router.get(
+    "/objects/{object_id:path}/stream",
+    status_code=status.HTTP_200_OK,
+    response_model=None,
+)
 async def stream_drs_object(
     request: Request,
     object_id: str,

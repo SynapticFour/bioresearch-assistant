@@ -8,6 +8,7 @@ Create Date: 2026-02-24
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy import Uuid
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
@@ -25,10 +26,17 @@ depends_on: str | Sequence[str] | None = None
 
 EMBEDDING_DIM = 768  # paraphrase-multilingual-mpnet-base-v2
 
-_embedding_type = Vector(EMBEDDING_DIM) if Vector else sa.Text()
-
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    is_postgresql = bind.dialect.name == "postgresql"
+
+    json_type = JSONB() if is_postgresql else sa.JSON()
+    json_empty_array_default = sa.text("'[]'::jsonb") if is_postgresql else sa.text("'[]'")
+    embedding_type = Vector(EMBEDDING_DIM) if is_postgresql and Vector else sa.Text()
+    workflow_run_id_type = UUID(as_uuid=True) if is_postgresql else Uuid(as_uuid=True)
+    notebook_id_type = postgresql.UUID(as_uuid=False) if is_postgresql else sa.String(36)
+
     try:
         op.execute("CREATE EXTENSION IF NOT EXISTS vector")
     except Exception:
@@ -43,16 +51,16 @@ def upgrade() -> None:
         sa.Column("abstract", sa.Text(), nullable=False, server_default=""),
         sa.Column(
             "authors",
-            JSONB(),
+            json_type,
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=json_empty_array_default,
         ),
         sa.Column("year", sa.String(16), nullable=True),
         sa.Column("journal", sa.Text(), nullable=False, server_default=""),
         sa.Column("doi", sa.String(256), nullable=True),
         sa.Column("user_id", sa.String(128), nullable=True),
         sa.Column("team_id", sa.String(128), nullable=True),
-        sa.Column("embedding", _embedding_type, nullable=True),
+        sa.Column("embedding", embedding_type, nullable=True),
         sa.Column("summary", sa.Text(), nullable=True),
         sa.Column("summary_language", sa.String(16), nullable=True),
         sa.Column("summary_model", sa.String(128), nullable=True),
@@ -171,7 +179,7 @@ def upgrade() -> None:
         "patient_records",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("pseudonym_id", sa.String(128), nullable=False),
-        sa.Column("phenopacket_json", JSONB(), nullable=False),
+        sa.Column("phenopacket_json", json_type, nullable=False),
         sa.Column("user_id", sa.String(128), nullable=True),
         sa.Column("team_id", sa.String(128), nullable=True),
         sa.Column(
@@ -199,21 +207,21 @@ def upgrade() -> None:
     # ── workflow_runs ────────────────────────────────
     op.create_table(
         "workflow_runs",
-        sa.Column("run_id", UUID(as_uuid=True), primary_key=True),
+        sa.Column("run_id", workflow_run_id_type, primary_key=True),
         sa.Column("state", sa.String(32), nullable=False),
         sa.Column("workflow_url", sa.Text(), nullable=False),
-        sa.Column("workflow_params", JSONB(), nullable=True),
+        sa.Column("workflow_params", json_type, nullable=True),
         sa.Column("workflow_type", sa.String(32), nullable=False),
         sa.Column("workflow_type_version", sa.String(32), nullable=False),
         sa.Column("workflow_engine", sa.String(64), nullable=True),
         sa.Column("workflow_engine_version", sa.String(64), nullable=True),
-        sa.Column("tags", JSONB(), nullable=True),
+        sa.Column("tags", json_type, nullable=True),
         sa.Column("start_time", sa.DateTime(timezone=True), nullable=True),
         sa.Column("end_time", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("outputs", JSONB(), nullable=True),
-        sa.Column("run_log", JSONB(), nullable=True),
-        sa.Column("task_logs", JSONB(), nullable=True),
-        sa.Column("request", JSONB(), nullable=True),
+        sa.Column("outputs", json_type, nullable=True),
+        sa.Column("run_log", json_type, nullable=True),
+        sa.Column("task_logs", json_type, nullable=True),
+        sa.Column("request", json_type, nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -228,36 +236,36 @@ def upgrade() -> None:
         "notebooks",
         sa.Column(
             "id",
-            postgresql.UUID(as_uuid=False),
+            notebook_id_type,
             primary_key=True,
         ),
         sa.Column("title", sa.String(512), nullable=False, server_default=""),
         sa.Column("content", sa.Text(), nullable=False, server_default=""),
         sa.Column(
             "tags",
-            JSONB(),
+            json_type,
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=json_empty_array_default,
         ),
         sa.Column("user_id", sa.String(128), nullable=True),
         sa.Column("team_id", sa.String(128), nullable=True),
         sa.Column(
             "linked_pmids",
-            JSONB(),
+            json_type,
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=json_empty_array_default,
         ),
         sa.Column(
             "linked_drs_ids",
-            JSONB(),
+            json_type,
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=json_empty_array_default,
         ),
         sa.Column(
             "linked_phenopacket_ids",
-            JSONB(),
+            json_type,
             nullable=False,
-            server_default=sa.text("'[]'::jsonb"),
+            server_default=json_empty_array_default,
         ),
         sa.Column("ai_summary", sa.Text(), nullable=True),
         sa.Column("ai_next_steps", sa.Text(), nullable=True),
