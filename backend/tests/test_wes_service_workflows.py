@@ -284,10 +284,12 @@ async def test_execute_nextflow_exception_sets_system_error(db_session) -> None:
         await db_session.flush()
         run_id = str(row.run_id)
 
+        async def _raise_nextflow_not_found(*_a: object, **_kw: object) -> Never:
+            raise FileNotFoundError("nextflow not found")
+
         with patch(
             "app.services.wes_service.asyncio.create_subprocess_exec",
-            new_callable=AsyncMock,
-            side_effect=FileNotFoundError("nextflow not found"),
+            new=_raise_nextflow_not_found,
         ):
             with patch("app.services.wes_service.get_async_session_maker") as mock_get_sess:
                 mock_sess_instance = MagicMock()
@@ -654,3 +656,9 @@ async def test_cancel_run_cancels_running_task(db_session) -> None:
         assert row.state == State.CANCELED.value
     finally:
         wes_service._run_tasks.pop(run_id, None)
+        if not long_task.done():
+            long_task.cancel()
+            try:
+                await long_task
+            except asyncio.CancelledError:
+                pass

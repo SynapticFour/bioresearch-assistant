@@ -103,7 +103,7 @@ async def register_drs_object(
         content = await file.read()
         if len(content) > MAX_DRS_UPLOAD_SIZE:
             raise HTTPException(
-                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                status_code=status.HTTP_413_CONTENT_TOO_LARGE,
                 detail=(
                     f"Datei zu groß ({len(content) // 1024 // 1024}MB). "
                     "Maximum: 500MB. Für größere Dateien Server-Pfad angeben."
@@ -181,7 +181,7 @@ async def extract_file_metadata(
     content = await file.read()
     if len(content) > MAX_EXTRACT_METADATA_SIZE:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="Datei zu groß (max. 50 MB für Metadaten-Extraktion)",
         )
     try:
@@ -201,21 +201,6 @@ async def extract_file_metadata(
             "format": "unknown",
         }
     return metadata
-
-
-@router.get("/objects/{object_id:path}", response_model=DrsObject, status_code=status.HTTP_200_OK)
-async def get_drs_object(
-    object_id: str,
-    current_user: dict = Depends(get_current_user),
-) -> DrsObject:
-    """Get metadata for a DRS object by id. object_id is a relative path under DRS storage."""
-    obj = get_object(object_id)
-    if obj is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="The requested DRS object was not found.",
-        )
-    return obj
 
 
 @router.get(
@@ -294,3 +279,22 @@ async def stream_drs_object(
         media_type="application/octet-stream",
         headers={"Accept-Ranges": "bytes"},
     )
+
+
+@router.get("/objects/{object_id:path}", response_model=DrsObject, status_code=status.HTTP_200_OK)
+async def get_drs_object(
+    object_id: str,
+    current_user: dict = Depends(get_current_user),
+) -> DrsObject:
+    """Get metadata for a DRS object by id.
+
+    Registered after ``/access/`` and ``/stream`` so literal path segments like
+    ``stream`` are not absorbed by ``{object_id:path}`` (GA4GH Range downloads).
+    """
+    obj = get_object(object_id)
+    if obj is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="The requested DRS object was not found.",
+        )
+    return obj
