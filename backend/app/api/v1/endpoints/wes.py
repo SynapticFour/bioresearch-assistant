@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.schemas.wes import (
     RunId,
@@ -51,6 +52,7 @@ router = APIRouter(tags=["WES"])
 
 def _service_info() -> ServiceInfo:
     """Build static ServiceInfo; system_state_counts are filled per-request from DB."""
+    settings = get_settings()
     return ServiceInfo(
         id="org.ga4gh.bioresearch.wes",
         name="BioResearch Assistant WES",
@@ -61,6 +63,11 @@ def _service_info() -> ServiceInfo:
         ),
         version="0.1.0",
         description="GA4GH WES v1.1 for Nextflow workflows (on-premise).",
+        contactUrl="https://www.synapticfour.com",
+        documentationUrl="https://ga4gh.github.io/workflow-execution-service-schemas/",
+        createdAt="2024-01-01T00:00:00Z",
+        updatedAt="2024-01-01T00:00:00Z",
+        environment=settings.environment,
         workflow_type_versions={
             "NEXTFLOW": WorkflowTypeVersion(workflow_type_version=["DSL2"]),
             "CWL": WorkflowTypeVersion(workflow_type_version=["v1.0"]),
