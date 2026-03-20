@@ -52,11 +52,18 @@ class Service(BaseModel):
     organization: ServiceOrganization
     version: str = Field(..., description="Version of the service")
     description: str | None = None
-    contactUrl: str | None = None
-    documentationUrl: str | None = None
-    createdAt: str | None = None
-    updatedAt: str | None = None
-    environment: str | None = None
+    # GA4GH Service JSON Schema expects strings (not null) when fields are present.
+    contactUrl: str = Field(default="", description="Contact URL (RFC 3986)")
+    documentationUrl: str = Field(default="", description="Documentation URL (RFC 3986)")
+    createdAt: str = Field(
+        default="2024-01-01T00:00:00Z",
+        description="RFC 3339 timestamp when the service was created",
+    )
+    updatedAt: str = Field(
+        default="2024-01-01T00:00:00Z",
+        description="RFC 3339 timestamp when the service was last updated",
+    )
+    environment: str = Field(default="", description="Deployment environment identifier")
 
 
 class WorkflowTypeVersion(BaseModel):

@@ -11,6 +11,15 @@ async def test_wes_service_info_returns_200(async_client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data.get("id") == "org.ga4gh.bioresearch.wes"
+    # GA4GH official ServiceInfo JSON Schema: these must be strings, not null
+    for key in (
+        "contactUrl",
+        "createdAt",
+        "documentationUrl",
+        "environment",
+        "updatedAt",
+    ):
+        assert isinstance(data.get(key), str), f"{key} must be string for GA4GH schema"
     assert "supported_wes_versions" in data
     assert "1.1.0" in data["supported_wes_versions"]
     assert "1.1" in data["supported_wes_versions"]
