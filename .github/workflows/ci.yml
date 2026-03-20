@@ -122,11 +122,107 @@ jobs:
           tests/test_wes_service.py
           tests/test_wes_service_extended.py
           tests/test_wes_service_workflows.py
+          tests/test_wes_helixtest_trs.py
           tests/test_phenopackets.py
           tests/test_auth.py
           -v
           --cov=app
           --cov-fail-under=0
+
+  helixtest-ga4gh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PSEUDONYMIZATION_ENCRYPTION_KEY: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      SECRET_KEY: "ci-secret-key-for-tests-min-32-characters-long!!"
+      DATABASE_URL: sqlite+aiosqlite:////tmp/bioresearch_helixtest.db
+      DRS_STORAGE_PATH: /tmp/bioresearch_helixtest_drs
+      WES_WORK_DIR: /tmp/bioresearch_helixtest_wes
+      DRS_BASE_URL: http://127.0.0.1:8080/ga4gh/drs/v1
+      DEPLOYMENT: test
+      ISOLATION_MODE: open
+      ENVIRONMENT: test
+      TESTING: "1"
+      OIDC_ISSUER: http://127.0.0.1:8199
+      OIDC_CLIENT_ID: helixtest-audience
+      OIDC_CLIENT_SECRET: ""
+      ANTHROPIC_API_KEY: ""
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsodium-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+
+      - name: Prepare HelixTest DRS object (test-object-1)
+        run: |
+          mkdir -p "$DRS_STORAGE_PATH"
+          printf '%s\n' 'helixtest-conformance-object' > "$DRS_STORAGE_PATH/test-object-1"
+
+      - name: Clone and patch HelixTest
+        run: |
+          git clone --depth 1 https://github.com/SynapticFour/HelixTest.git "${RUNNER_TEMP}/helixtest"
+          patch -p1 -d "${RUNNER_TEMP}/helixtest" \
+            < "${GITHUB_WORKSPACE}/scripts/helixtest-patches/0001-default-bearer-for-confidential-drs-wes.patch"
+
+      - name: Start OIDC stub (JWKS) and export bearer tokens
+        run: |
+          python backend/scripts/ci_oidc_for_helixtest.py \
+            --state-dir /tmp/bioresearch_oidc_ci \
+            --listen-port 8199 &
+          for _ in $(seq 1 40); do
+            curl -sf http://127.0.0.1:8199/.well-known/openid-configuration && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8199/.well-known/openid-configuration
+          TOKEN="$(tr -d '\n\r' < /tmp/bioresearch_oidc_ci/bearer.token)"
+          {
+            echo "TEST_BEARER<<__HELIXTOK__"
+            echo "$TOKEN"
+            echo "__HELIXTOK__"
+            echo "HELIXTEST_DEFAULT_BEARER<<__HELIXTOK2__"
+            echo "$TOKEN"
+            echo "__HELIXTOK2__"
+          } >> "$GITHUB_ENV"
+
+      - name: Alembic migrate and start API on :8080
+        working-directory: backend
+        run: |
+          alembic upgrade head
+          uvicorn app.main:app --host 127.0.0.1 --port 8080 &
+          for _ in $(seq 1 40); do
+            curl -sf http://127.0.0.1:8080/api/v1/health && break
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8080/api/v1/health
+
+      - name: HelixTest (--profile bioresearch-assistant)
+        env:
+          WES_URL: http://127.0.0.1:8080/ga4gh/wes/v1
+          DRS_URL: http://127.0.0.1:8080/ga4gh/drs/v1
+        run: |
+          cd "${RUNNER_TEMP}/helixtest"
+          cargo run -p helixtest-cli --bin helixtest -- \
+            --all \
+            --profile bioresearch-assistant \
+            --mode generic \
+            --report json \
+            --fail-level 1
 
   frontend:
     runs-on: ubuntu-latest

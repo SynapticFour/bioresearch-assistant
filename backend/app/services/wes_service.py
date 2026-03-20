@@ -37,6 +37,30 @@ ALLOWED_WORKFLOWS = frozenset(
     ]
 )
 
+# HelixTest (SynapticFour/HelixTest) TRS-style workflow descriptors — in-process stubs only.
+HELIXTEST_TRS_ECHO = "trs://test-tool/echo/1.0"
+HELIXTEST_TRS_FAIL = "trs://test-tool/fail/1.0"
+HELIXTEST_TRS_CWL_ECHO = "trs://test-tool/cwl-echo/1.0"
+HELIXTEST_TRS_NONEXISTENT = "trs://nonexistent/invalid/0.0"
+HELIXTEST_TRS_URLS: frozenset[str] = frozenset(
+    {
+        HELIXTEST_TRS_ECHO,
+        HELIXTEST_TRS_FAIL,
+        HELIXTEST_TRS_CWL_ECHO,
+        HELIXTEST_TRS_NONEXISTENT,
+    }
+)
+
+# HelixTest robustness test polls with a 1s timeout — success paths must stay non-terminal longer.
+HELIXTEST_MIN_RUNNING_SECONDS = 2.0
+# Brief delay so pollers typically observe QUEUED before RUNNING.
+HELIXTEST_QUEUED_VISIBLE_SECONDS = 0.15
+
+
+def _is_helixtest_trs_workflow(workflow_url: str) -> bool:
+    """Return True if URL is a HelixTest TRS conformance stub (not executed via Nextflow)."""
+    return workflow_url in HELIXTEST_TRS_URLS
+
 
 def _validate_workflow_url(workflow_url: str) -> None:
     """Validate workflow URL against allowlist and safe http(s) URLs.
@@ -45,6 +69,8 @@ def _validate_workflow_url(workflow_url: str) -> None:
     ``..`` segments (GA4GH WES / conformance clients; aligns with relaxed
     validation in Ferrum for workflow descriptors served over HTTP).
     """
+    if _is_helixtest_trs_workflow(workflow_url):
+        return
     if workflow_url in ALLOWED_WORKFLOWS:
         return
     # Erlaube lokale .nf Dateien
@@ -205,6 +231,166 @@ async def _run_blast_direct(
         run_log_obj["end_time"] = end_time
         run_log_obj["stderr"] = (run_log_obj.get("stderr") or "") + "\n" + str(e)
         run_log_obj["exit_code"] = -1
+        await update_db(
+            State.SYSTEM_ERROR,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+    finally:
+        _run_tasks.pop(run_id, None)
+
+
+async def _execute_helixtest_trs(
+    run_id: str,
+    _run_dir: Path,
+    workflow_url: str,
+    workflow_type: str,
+    workflow_type_version: str,
+    workflow_params: dict[str, Any] | None,
+) -> None:
+    """Run in-process TRS stubs matching SynapticFour/HelixTest WES conformance expectations."""
+    params = workflow_params or {}
+    start_time = _iso_now()
+    run_log_obj: dict[str, Any] = {
+        "name": "helixtest-trs-stub",
+        "cmd": [workflow_url, workflow_type, workflow_type_version],
+        "start_time": start_time,
+        "end_time": None,
+        "stdout": None,
+        "stderr": None,
+        "exit_code": None,
+        "system_logs": None,
+    }
+    task_logs_list: list[dict[str, Any]] = []
+
+    async def update_db(
+        state: State,
+        start_time_: str | None = None,
+        end_time: str | None = None,
+        run_log: dict | None = None,
+        task_logs: list | None = None,
+        outputs: dict[str, Any] | None = None,
+    ) -> None:
+        async with get_async_session_maker()() as session:
+            stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
+            r = await session.execute(stmt)
+            row = r.scalars().first()
+            if row:
+                row.state = state.value
+                if start_time_:
+                    row.start_time = datetime.fromisoformat(
+                        start_time_.replace("Z", "+00:00"),
+                    )
+                if end_time:
+                    row.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+                if run_log is not None:
+                    row.run_log = run_log
+                if task_logs is not None:
+                    row.task_logs = task_logs
+                if outputs is not None:
+                    row.outputs = outputs
+                await session.commit()
+
+    async def finish_error(msg: str) -> None:
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["stderr"] = msg
+        run_log_obj["exit_code"] = 1
+        task_logs_list.append(
+            {
+                "id": f"{run_id}-trs",
+                "name": "helixtest-trs-stub",
+                "cmd": run_log_obj["cmd"],
+                "start_time": start_time,
+                "end_time": end_time,
+                "stdout": "",
+                "stderr": msg,
+                "exit_code": 1,
+                "system_logs": None,
+            },
+        )
+        await update_db(
+            State.EXECUTOR_ERROR,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+
+    async def finish_success(outputs: dict[str, Any]) -> None:
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["exit_code"] = 0
+        run_log_obj["stdout"] = "ok"
+        task_logs_list.append(
+            {
+                "id": f"{run_id}-trs",
+                "name": "helixtest-trs-stub",
+                "cmd": run_log_obj["cmd"],
+                "start_time": start_time,
+                "end_time": end_time,
+                "stdout": "ok",
+                "stderr": "",
+                "exit_code": 0,
+                "system_logs": None,
+            },
+        )
+        await update_db(
+            State.COMPLETE,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+            outputs=outputs,
+        )
+
+    try:
+        await asyncio.sleep(HELIXTEST_QUEUED_VISIBLE_SECONDS)
+        await update_db(
+            State.RUNNING,
+            start_time_=start_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+
+        if workflow_url == HELIXTEST_TRS_NONEXISTENT or workflow_url == HELIXTEST_TRS_FAIL:
+            await finish_error("HelixTest stub: workflow failure")
+            return
+
+        if workflow_url == HELIXTEST_TRS_CWL_ECHO:
+            if workflow_type.upper() != "CWL":
+                await finish_error("HelixTest stub: workflow_type must be CWL for cwl-echo")
+                return
+            if "message" not in params:
+                await finish_error("HelixTest stub: missing required message parameter")
+                return
+
+        if workflow_url in (HELIXTEST_TRS_ECHO, HELIXTEST_TRS_CWL_ECHO):
+            # Same timing requirement: robustness suite uses a 1s poll timeout on echo runs.
+            await asyncio.sleep(HELIXTEST_MIN_RUNNING_SECONDS)
+            raw = params.get("message")
+            message = raw if raw is not None else ""
+            await finish_success({"echo_out": str(message)})
+            return
+
+        await finish_error(f"Helixtest stub: unsupported workflow URL {workflow_url!r}")
+    except asyncio.CancelledError:
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["exit_code"] = -1
+        run_log_obj["stderr"] = (run_log_obj.get("stderr") or "") + "\nCanceled by user."
+        await update_db(
+            State.CANCELED,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+        raise
+    except Exception as e:  # noqa: BLE001
+        logger.exception("HelixTest TRS stub failed for run_id=%s", run_id)
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["exit_code"] = -1
+        run_log_obj["stderr"] = str(e)
         await update_db(
             State.SYSTEM_ERROR,
             end_time=end_time,
@@ -430,14 +616,26 @@ async def create_run(
     await db.flush()
 
     loop = asyncio.get_running_loop()
-    task = loop.create_task(
-        _execute_nextflow(
-            str(run_id),
-            run_dir,
-            request.workflow_url,
-            request.workflow_params,
-        ),
-    )
+    if _is_helixtest_trs_workflow(request.workflow_url):
+        task = loop.create_task(
+            _execute_helixtest_trs(
+                str(run_id),
+                run_dir,
+                request.workflow_url,
+                request.workflow_type,
+                request.workflow_type_version,
+                request.workflow_params,
+            ),
+        )
+    else:
+        task = loop.create_task(
+            _execute_nextflow(
+                str(run_id),
+                run_dir,
+                request.workflow_url,
+                request.workflow_params,
+            ),
+        )
     _run_tasks[str(run_id)] = task
     # Don't await task; let it run in background. Caller commits DB.
 

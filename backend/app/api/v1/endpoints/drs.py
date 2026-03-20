@@ -4,10 +4,11 @@ Reference: https://ga4gh.github.io/data-repository-service-schemas/
 """
 
 import logging
+import re
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import FileResponse, Response
 
 from app.core.auth import get_current_user
 from app.core.config import get_settings
@@ -62,6 +63,14 @@ async def list_drs_objects(
 
 MAX_DRS_UPLOAD_SIZE = 500 * 1024 * 1024  # 500 MB
 MAX_EXTRACT_METADATA_SIZE = 50 * 1024 * 1024  # 50 MB
+RANGE_HEADER_RE = re.compile(r"bytes=(\d+)-(\d*)", re.IGNORECASE)
+
+
+def _read_file_range_bytes(path: Path, start: int, end: int) -> bytes:
+    """Read inclusive byte range [start, end] from path."""
+    with path.open("rb") as fh:
+        fh.seek(start)
+        return fh.read(end - start + 1)
 
 
 @router.post(
@@ -231,14 +240,53 @@ async def get_drs_access(
 
 @router.get("/objects/{object_id:path}/stream", status_code=status.HTTP_200_OK)
 async def stream_drs_object(
+    request: Request,
     object_id: str,
     current_user: dict = Depends(get_current_user),
-) -> FileResponse:
-    """Stream object bytes (used by the URL returned in access_methods.access_url)."""
+) -> FileResponse | Response:
+    """Stream object bytes (used by the URL returned in access_methods.access_url).
+
+    Supports ``Range: bytes=START-END`` for conformance (HTTP 206 + ``Content-Range``).
+    """
     path = _safe_object_id(object_id)
     if path is None or not path.is_file():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The requested DRS object was not found.",
         )
-    return FileResponse(path, filename=path.name, media_type="application/octet-stream")
+    file_size = path.stat().st_size
+    range_header = request.headers.get("range")
+    if range_header:
+        match = RANGE_HEADER_RE.match(range_header.strip())
+        if not match:
+            raise HTTPException(
+                status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+                detail="Invalid Range header",
+            )
+        start = int(match.group(1))
+        end_part = match.group(2)
+        end = int(end_part) if end_part else file_size - 1
+        end = min(max(end, 0), file_size - 1)
+        if start < 0 or start >= file_size or start > end:
+            raise HTTPException(
+                status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+                detail="Range not satisfiable",
+            )
+        chunk = _read_file_range_bytes(path, start, end)
+        content_range = f"bytes {start}-{end}/{file_size}"
+        return Response(
+            content=chunk,
+            status_code=status.HTTP_206_PARTIAL_CONTENT,
+            media_type="application/octet-stream",
+            headers={
+                "Content-Range": content_range,
+                "Accept-Ranges": "bytes",
+            },
+        )
+
+    return FileResponse(
+        path,
+        filename=path.name,
+        media_type="application/octet-stream",
+        headers={"Accept-Ranges": "bytes"},
+    )

@@ -66,7 +66,8 @@ def _service_info() -> ServiceInfo:
             "CWL": WorkflowTypeVersion(workflow_type_version=["v1.0"]),
             "WDL": WorkflowTypeVersion(workflow_type_version=["1.0", "1.1"]),
         },
-        supported_wes_versions=["1.1.0"],
+        # HelixTest expects at least "1.0" or "1.1" in addition to patch versions.
+        supported_wes_versions=["1.1.0", "1.1", "1.0"],
         supported_filesystem_protocols=["file", "http", "https"],
         workflow_engine_versions={
             "nextflow": WorkflowEngineVersion(workflow_engine_version=["23.10.0", "24.04.0"]),

@@ -13,6 +13,7 @@ async def test_wes_service_info_returns_200(async_client: AsyncClient) -> None:
     assert data.get("id") == "org.ga4gh.bioresearch.wes"
     assert "supported_wes_versions" in data
     assert "1.1.0" in data["supported_wes_versions"]
+    assert "1.1" in data["supported_wes_versions"]
     assert "workflow_type_versions" in data
     assert "system_state_counts" in data
 

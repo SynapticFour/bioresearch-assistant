@@ -128,3 +128,9 @@ def test_validate_workflow_url_rejects_parent_segments_in_path() -> None:
     """Path traversal in workflow_url must be rejected."""
     with pytest.raises(ValueError, match="\\.\\."):
         wes_service._validate_workflow_url("https://example.org/../../etc/passwd")
+
+
+def test_validate_workflow_url_accepts_helixtest_trs_descriptors() -> None:
+    """SynapticFour/HelixTest TRS conformance stubs are allowlisted."""
+    for url in wes_service.HELIXTEST_TRS_URLS:
+        wes_service._validate_workflow_url(url)

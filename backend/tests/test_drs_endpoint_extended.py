@@ -124,6 +124,28 @@ async def test_get_drs_object_nested_path_segment(async_client: AsyncClient) -> 
 
 
 @pytest.mark.asyncio
+async def test_drs_stream_range_returns_206(async_client: AsyncClient) -> None:
+    """GET stream with Range returns 206 Partial Content (HelixTest DRS level 2)."""
+    content = b"y" * 1500
+    r1 = await async_client.post(
+        "/ga4gh/drs/v1/objects",
+        data={"name": "range.bin"},
+        files={"file": ("range.bin", content, "application/octet-stream")},
+    )
+    if r1.status_code != 201:
+        pytest.skip("DRS storage may not be writable")
+    obj_id = r1.json()["id"]
+    resp = await async_client.get(
+        f"/ga4gh/drs/v1/objects/{obj_id}/stream",
+        headers={"Range": "bytes=0-1023"},
+    )
+    assert resp.status_code == 206
+    cr = resp.headers.get("content-range")
+    assert cr is not None
+    assert cr.startswith("bytes 0-1023/")
+
+
+@pytest.mark.asyncio
 async def test_post_extract_metadata_not_shadowed_by_path_route(async_client: AsyncClient) -> None:
     """POST /objects/extract-metadata must not be captured as object_id (regression)."""
     from io import BytesIO

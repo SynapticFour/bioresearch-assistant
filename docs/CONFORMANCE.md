@@ -36,16 +36,53 @@ Die CI-Pipeline läuft bereits einen vollständigen Testlauf über `pytest tests
 |---|---|---|
 | `test` (bestehender Job) | `pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=0` (im Repo `backend/` Working Directory) | DRS, WES, Phenopackets, Auth (Passport-Claims) sowie weitere nicht-GA4GH Komponenten |
 | `conformance-ga4gh` (neuer Job) | `pytest tests/test_drs_*.py tests/test_wes_*.py tests/test_phenopackets.py tests/test_auth.py -v --cov=app --cov-fail-under=0` | DRS, WES, Phenopackets, Auth (Passport-Claims) |
+| `helixtest-ga4gh` | Siehe Abschnitt **HelixTest CI** unten | Externe Suite: Profil `bioresearch-assistant` (WES, DRS, token-only Auth) |
 
-## HelixTest: Machbar oder nicht?
-**HelixTest ist in diesem Repo nicht als vollständiger GA4GH Conformance Run vorgesehen**, weil:
+## HelixTest CI (Profil `bioresearch-assistant`)
+
+Die Pipeline führt **[SynapticFour/HelixTest](https://github.com/SynapticFour/HelixTest.git)**
+mit dem Profil **`bioresearch-assistant`** aus — kompatibel mit der Dokumentation in
+`helixtest/profiles/bioresearch-assistant.toml` und
+`helixtest/docs/subset-profiles.md`.
+
+**Befehl (analog zur HelixTest-README):**
+
+```bash
+cargo run -p helixtest-cli --bin helixtest -- \
+  --all \
+  --profile bioresearch-assistant \
+  --mode generic \
+  --report json \
+  --fail-level 1
+```
+
+**Setup in CI (Kurzfassung):**
+
+1. **API** auf Port **8080** (wie Profil-Defaults), SQLite-Datei + `alembic upgrade head`.
+2. **DRS:** Datei `test-object-1` unter `DRS_STORAGE_PATH` (Inhalt beliebig, z. B. eine Textzeile).
+3. **OIDC-Stubs:** `backend/scripts/ci_oidc_for_helixtest.py` liefert Discovery + JWKS; die App nutzt
+   `OIDC_ISSUER` / `OIDC_CLIENT_ID` passend zum Skript.
+4. **Tokens:** `TEST_BEARER` und `HELIXTEST_DEFAULT_BEARER` müssen **identisch** sein (gültiges RS256-JWT).
+   Dafür wird ein kleiner Patch auf Helixtest angewendet: `scripts/helixtest-patches/0001-default-bearer-for-confidential-drs-wes.patch`
+   (siehe `scripts/helixtest-patches/README.md`). Ziel: DRS/WES Contract-Calls authentifizieren, während
+   reine Auth-Negativtests weiterhin ohne Default-Bearer laufen.
+
+**WES / HelixTest:** Das Backend implementiert die in HelixTest verwendeten **`trs://...`-Stubs** (Echo / Fail / CWL-Echo / Invalid)
+in-process, inkl. Timing für den Robustness-Poll-Test (mindestens ~2 s bis zum Terminal-Complete beim Echo).
+
+**DRS / Range:** `GET …/stream` unterstützt `Range: bytes=…` mit **206** und `Content-Range` (HelixTest Level 2).
+
+## HelixTest: Machbar oder nicht? (Historisch)
+**Früher** war HelixTest hier **nicht** als vollständiger GA4GH Conformance Run vorgesehen, weil:
 | Grund | Auswirkung |
 |---|---|
 | Das Repo implementiert GA4GH **primär für DRS und WES** (Phenopackets ist vorhanden, aber nicht unter `/ga4gh/*` prefixiert) | HelixTest-Gesamtsuiten erfordern typischerweise mehr Services/Endpoints (z. B. TRS/TES/Beacon/Auth-Pfade) als in dieser Codebasis abgedeckt sind |
 | Kein HelixTest Runner/HelixTest-Setup ist in CI/Docs vorhanden | Es gibt keine garantierte, reproduzierbare externe Conformance Ausführung wie in Ferrum Mode |
 
+Die **Subset-Lösung** mit Profil `bioresearch-assistant` + CI-Job **`helixtest-ga4gh`** adressiert den Kern (WES+DRS+Auth-Token-Checks) ohne TES/TRS/Beacon/htsget.
+
 ### Konsequenz (Alternativen)
-Stattdessen setzen wir auf eine **automatisierte Smoke-/Contract-Conformance** via `pytest`:
+Weiterhin sinnvoll: **automatisierte Smoke-/Contract-Conformance** via `pytest`:
 - **DRS**: Response-Struktur, `object_id`-Pfadlogik (mehrsegmentige IDs), Zugriff/Stream-Routing.
 - **WES**: Routing (`/runs/.../status`, `/runs/.../cancel`), `POST /runs` Medien-Typen (`application/json` vs. multipart), Workflow-URL Validierung (Allowlist/SSRF-Schutz als implementierte Security-Grenze).
 - **Phenopackets**: Minimaler GA4GH-ähnlicher Workflow (List/Create) und Pseudonym-ID Annahme.
