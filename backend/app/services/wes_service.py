@@ -57,6 +57,24 @@ HELIXTEST_MIN_RUNNING_SECONDS = 2.0
 HELIXTEST_QUEUED_VISIBLE_SECONDS = 0.15
 
 
+def _normalize_workflow_type(workflow_type: str) -> str:
+    """Map client aliases to canonical GA4GH labels (aligned with Ferrum executor routing).
+
+    Some clients send ``NFL`` / ``NXF`` instead of ``NEXTFLOW``.
+    """
+    t = workflow_type.strip()
+    key = t.lower().replace(" ", "_").replace("-", "_")
+    if key in ("nfl", "nxf", "nextflow"):
+        return "NEXTFLOW"
+    if key == "wdl":
+        return "WDL"
+    if key == "cwl":
+        return "CWL"
+    if key in ("smk", "snakemake"):
+        return "SNAKEMAKE"
+    return t
+
+
 def _is_helixtest_trs_workflow(workflow_url: str) -> bool:
     """Return True if URL is a HelixTest TRS conformance stub (not executed via Nextflow)."""
     return workflow_url in HELIXTEST_TRS_URLS
@@ -484,7 +502,32 @@ async def _execute_nextflow(
             stderr=asyncio.subprocess.PIPE,
             cwd=str(run_dir),
         )
-        stdout_bytes, stderr_bytes = await process.communicate()
+        timeout = get_settings().wes_subprocess_timeout_seconds
+        try:
+            if timeout is not None:
+                stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                    process.communicate(),
+                    timeout=timeout,
+                )
+            else:
+                stdout_bytes, stderr_bytes = await process.communicate()
+        except TimeoutError:
+            process.kill()
+            await process.wait()
+            end_time = _iso_now()
+            run_log_obj["end_time"] = end_time
+            run_log_obj["exit_code"] = -1
+            run_log_obj["stderr"] = (
+                run_log_obj.get("stderr") or ""
+            ) + f"\nSubprocess exceeded timeout ({timeout}s)."
+            run_log_obj["system_logs"] = ["wes_subprocess_timeout"]
+            await update_db(
+                State.SYSTEM_ERROR,
+                end_time=end_time,
+                run_log=run_log_obj,
+                task_logs=task_logs_list,
+            )
+            return
         stdout_str = stdout_bytes.decode("utf-8", errors="replace") if stdout_bytes else ""
         stderr_str = stderr_bytes.decode("utf-8", errors="replace") if stderr_bytes else ""
         end_time = _iso_now()
@@ -585,6 +628,9 @@ async def create_run(
 ) -> UUID:
     """Create workflow run (QUEUED), stage files, start Nextflow. Returns run_id."""
     _validate_workflow_url(request.workflow_url)
+    normalized = request.model_copy(
+        update={"workflow_type": _normalize_workflow_type(request.workflow_type)},
+    )
     run_id = uuid4()
     run_dir = _run_dir(str(run_id))
     run_dir.mkdir(parents=True, exist_ok=True)
@@ -594,17 +640,17 @@ async def create_run(
             safe = _safe_filename(filename)
             (run_dir / safe).write_bytes(content)
 
-    request_dict = request.model_dump(mode="json")
+    request_dict = normalized.model_dump(mode="json")
     row = WorkflowRun(
         run_id=run_id,
         state=State.QUEUED.value,
-        workflow_url=request.workflow_url,
-        workflow_params=request.workflow_params,
-        workflow_type=request.workflow_type,
-        workflow_type_version=request.workflow_type_version,
-        workflow_engine=request.workflow_engine,
-        workflow_engine_version=request.workflow_engine_version,
-        tags=request.tags,
+        workflow_url=normalized.workflow_url,
+        workflow_params=normalized.workflow_params,
+        workflow_type=normalized.workflow_type,
+        workflow_type_version=normalized.workflow_type_version,
+        workflow_engine=normalized.workflow_engine,
+        workflow_engine_version=normalized.workflow_engine_version,
+        tags=normalized.tags,
         start_time=None,
         end_time=None,
         outputs=None,
@@ -616,15 +662,15 @@ async def create_run(
     await db.flush()
 
     loop = asyncio.get_running_loop()
-    if _is_helixtest_trs_workflow(request.workflow_url):
+    if _is_helixtest_trs_workflow(normalized.workflow_url):
         task = loop.create_task(
             _execute_helixtest_trs(
                 str(run_id),
                 run_dir,
-                request.workflow_url,
-                request.workflow_type,
-                request.workflow_type_version,
-                request.workflow_params,
+                normalized.workflow_url,
+                normalized.workflow_type,
+                normalized.workflow_type_version,
+                normalized.workflow_params,
             ),
         )
     else:
@@ -632,8 +678,8 @@ async def create_run(
             _execute_nextflow(
                 str(run_id),
                 run_dir,
-                request.workflow_url,
-                request.workflow_params,
+                normalized.workflow_url,
+                normalized.workflow_params,
             ),
         )
     _run_tasks[str(run_id)] = task
@@ -657,9 +703,12 @@ async def list_runs(
     db: AsyncSession,
     page_size: int = 100,
     page_token: str | None = None,
+    state_filter: str | None = None,
 ) -> tuple[list[WorkflowRun], str]:
     """List workflow runs with simple offset pagination. Returns (runs, next_page_token)."""
     stmt = select(WorkflowRun).order_by(WorkflowRun.created_at.desc())
+    if state_filter is not None:
+        stmt = stmt.where(WorkflowRun.state == state_filter)
     offset = int(page_token) if page_token else 0
     stmt = stmt.offset(offset).limit(page_size + 1)
     r = await db.execute(stmt)

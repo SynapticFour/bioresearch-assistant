@@ -152,3 +152,22 @@ Alle Commands in dieser Seite folgen dem Standard:
 - Exit-Code `0`: Conformance-Smoke ist erfolgreich
 - Exit-Code `!= 0`: Mindestens ein GA4GH Test ist fehlgeschlagen oder Setup fehlerhaft
 
+## Ferrum ([SynapticFour/Ferrum](https://github.com/SynapticFour/Ferrum)) — übernommene Patterns (ohne Crypt4GH)
+
+Die Rust-Referenzimplementierung liefert einige **betriebsreife** Ideen, die hier **teilweise** nachgebildet sind (Crypt4GH bleibt bewusst außen vor):
+
+### DRS
+| Thema | Umsetzung im BioResearch Assistant |
+|--------|--------------------------------------|
+| **Chunk-Streaming + Read-Timeout** | `GET …/stream` liefert Bytes über `iter_object_bytes()` (64 KiB-Chunks, `asyncio.to_thread`, Timeout pro Read) statt großer Range-Reads im RAM. |
+| **Strukturierte Access-Logs** | INFO-Logs mit `extra={drs_event, object_id, client_ip}` bei `get_object`, `get_access`, `stream_*` (kein Dateiinhalt). |
+| **`drs://`-Auflösung** | `resolve_object_identifier()` in `drs_service`: gleicher Host wie `drs_base_url` → interne Objekt-ID. |
+| **`access_url`-Normalisierung** | Modul `drs_access_url.py`: String vs. `{"url":…}` für künftige DB-/Import-Pfade (wie Ferrum `access_url.rs`). |
+
+### WES
+| Thema | Umsetzung |
+|--------|-----------|
+| **Workflow-Typ-Aliase** | `NFL` / `NXF` / `nextflow` → gespeichert als `NEXTFLOW` (analog Ferrum `RunManager::executor_for_type`). |
+| **Subprocess-Timeout (optional)** | `wes_subprocess_timeout_seconds` in Settings: `asyncio.wait_for(process.communicate(), …)`; `None` = unbegrenzt (Standard für lange Pipelines). |
+| **`GET /runs?state=`** | Optionaler Filter nach `State` (Ferrum-Liste mit `state`-Query). |
+
