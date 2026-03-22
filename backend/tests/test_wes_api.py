@@ -5,6 +5,12 @@ from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient
 
 
+async def test_wes_list_runs_invalid_state_returns_400(async_client: AsyncClient) -> None:
+    """GET /runs?state=invalid returns 400."""
+    response = await async_client.get("/ga4gh/wes/v1/runs?state=NOT_A_REAL_STATE")
+    assert response.status_code == 400
+
+
 async def test_wes_service_info_returns_200(async_client: AsyncClient) -> None:
     """GET /ga4gh/wes/v1/service-info returns 200 and ServiceInfo fields."""
     response = await async_client.get("/ga4gh/wes/v1/service-info")

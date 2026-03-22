@@ -106,6 +106,13 @@ class Settings(BaseSettings):
         default="/tmp/wes",
         description="Base directory for WES workflow run working files (e.g. /tmp/wes/{run_id}/)",
     )
+    wes_subprocess_timeout_seconds: float | None = Field(
+        default=None,
+        description=(
+            "Optional wall-clock limit for Nextflow subprocess communicate(); "
+            "None = no limit (long HPC-style runs). Set e.g. 86400 for 24h cap."
+        ),
+    )
 
     # BLAST pipeline (Nextflow path; default: pipelines/blast/blast_search.nf from project root)
     blast_workflow_path: str | None = Field(

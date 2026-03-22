@@ -5,10 +5,11 @@ Reference: https://ga4gh.github.io/data-repository-service-schemas/
 
 import logging
 import re
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
-from fastapi.responses import FileResponse, Response
+from starlette.responses import StreamingResponse
 
 from app.core.auth import get_current_user
 from app.core.config import get_settings
@@ -34,6 +35,7 @@ from app.services.drs_service import (
 from app.services.drs_service import (
     register_object_from_path as service_register_from_path,
 )
+from app.services.drs_streaming import iter_object_bytes
 from app.services.metadata_service import MetadataService
 
 logger = logging.getLogger(__name__)
@@ -66,11 +68,40 @@ MAX_EXTRACT_METADATA_SIZE = 50 * 1024 * 1024  # 50 MB
 RANGE_HEADER_RE = re.compile(r"bytes=(\d+)-(\d*)", re.IGNORECASE)
 
 
-def _read_file_range_bytes(path: Path, start: int, end: int) -> bytes:
-    """Read inclusive byte range [start, end] from path."""
-    with path.open("rb") as fh:
-        fh.seek(start)
-        return fh.read(end - start + 1)
+def _client_ip_for_audit(request: Request) -> str | None:
+    """Best-effort client IP (proxy headers first), for structured DRS access logs."""
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip() or None
+    xri = request.headers.get("x-real-ip")
+    if xri:
+        return xri.strip() or None
+    if request.client:
+        return request.client.host
+    return None
+
+
+def _log_drs_event(
+    event: str,
+    *,
+    object_id: str,
+    request: Request,
+    detail: str | None = None,
+) -> None:
+    """Structured INFO log for DRS byte/metadata access (audit-friendly, no file contents)."""
+    logger.info(
+        "drs.%s object_id=%s client_ip=%s%s",
+        event,
+        object_id,
+        _client_ip_for_audit(request) or "-",
+        f" {detail}" if detail else "",
+        extra={
+            "drs_event": event,
+            "object_id": object_id,
+            "client_ip": _client_ip_for_audit(request),
+            "detail": detail,
+        },
+    )
 
 
 @router.post(
@@ -209,6 +240,7 @@ async def extract_file_metadata(
     status_code=status.HTTP_200_OK,
 )
 async def get_drs_access(
+    request: Request,
     object_id: str,
     access_id: str,
     current_user: dict = Depends(get_current_user),
@@ -220,6 +252,12 @@ async def get_drs_access(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The requested DRS object or access method was not found.",
         )
+    _log_drs_event(
+        "get_access",
+        object_id=object_id,
+        request=request,
+        detail=f"access_id={access_id}",
+    )
     return access
 
 
@@ -232,9 +270,10 @@ async def stream_drs_object(
     request: Request,
     object_id: str,
     current_user: dict = Depends(get_current_user),
-) -> FileResponse | Response:
+) -> StreamingResponse:
     """Stream object bytes (used by the URL returned in access_methods.access_url).
 
+    Reads in fixed-size chunks with per-read timeouts (backpressure-friendly, Ferrum-style).
     Supports ``Range: bytes=START-END`` for conformance (HTTP 206 + ``Content-Range``).
     """
     path = _safe_object_id(object_id)
@@ -261,10 +300,20 @@ async def stream_drs_object(
                 status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
                 detail="Range not satisfiable",
             )
-        chunk = _read_file_range_bytes(path, start, end)
         content_range = f"bytes {start}-{end}/{file_size}"
-        return Response(
-            content=chunk,
+        _log_drs_event(
+            "stream_range",
+            object_id=object_id,
+            request=request,
+            detail=content_range,
+        )
+
+        async def ranged_body() -> AsyncIterator[bytes]:
+            async for chunk in iter_object_bytes(path, start=start, end_inclusive=end):
+                yield chunk
+
+        return StreamingResponse(
+            ranged_body(),
             status_code=status.HTTP_206_PARTIAL_CONTENT,
             media_type="application/octet-stream",
             headers={
@@ -273,16 +322,25 @@ async def stream_drs_object(
             },
         )
 
-    return FileResponse(
-        path,
-        filename=path.name,
+    _log_drs_event("stream_full", object_id=object_id, request=request, detail=f"bytes={file_size}")
+
+    async def full_body() -> AsyncIterator[bytes]:
+        async for chunk in iter_object_bytes(path):
+            yield chunk
+
+    return StreamingResponse(
+        full_body(),
         media_type="application/octet-stream",
-        headers={"Accept-Ranges": "bytes"},
+        headers={
+            "Accept-Ranges": "bytes",
+            "Content-Disposition": f'attachment; filename="{path.name}"',
+        },
     )
 
 
 @router.get("/objects/{object_id:path}", response_model=DrsObject, status_code=status.HTTP_200_OK)
 async def get_drs_object(
+    request: Request,
     object_id: str,
     current_user: dict = Depends(get_current_user),
 ) -> DrsObject:
@@ -297,4 +355,5 @@ async def get_drs_object(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The requested DRS object was not found.",
         )
+    _log_drs_event("get_object", object_id=object_id, request=request)
     return obj
