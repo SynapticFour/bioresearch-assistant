@@ -164,7 +164,12 @@ async def test_create_run_normalizes_workflow_type_alias(
 
 @pytest.mark.asyncio
 async def test_list_runs_filters_by_state(db_session) -> None:
-    """list_runs optional state_filter restricts rows."""
+    """list_runs optional state_filter restricts rows to that state.
+
+    Do not assert total row count: other tests may leave QUEUED rows in the
+    shared in-memory engine (StaticPool); we only verify our fixtures and
+    that every returned row matches the filter.
+    """
     r1 = uuid4()
     r2 = uuid4()
     db_session.add(
@@ -188,8 +193,10 @@ async def test_list_runs_filters_by_state(db_session) -> None:
     await db_session.flush()
     rows, _ = await wes_service.list_runs(
         db_session,
-        page_size=10,
+        page_size=100,
         state_filter=State.QUEUED.value,
     )
-    assert len(rows) == 1
-    assert rows[0].run_id == r2
+    returned_ids = {r.run_id for r in rows}
+    assert r2 in returned_ids
+    assert r1 not in returned_ids
+    assert all(r.state == State.QUEUED.value for r in rows)
