@@ -31,6 +31,13 @@ In diesem Repo sind (mindestens) folgende GA4GH-relevanten Bereiche implementier
 ## Was wird in CI getestet?
 Die CI-Pipeline läuft bereits einen vollständigen Testlauf über `pytest tests/`. Zusätzlich gibt es hier einen expliziten **Conformance-Job**, der die GA4GH-relevanten Tests gezielt ausführt.
 
+**Wann läuft CI?** (`.github/workflows/ci.yml`)
+- **Push** auf `main`, `develop` sowie Branches `feat/**`, `fix/**`, `chore/**`, `release/**`
+- **Pull requests** mit Zielbranch `main` oder `develop`
+- **Manuell:** GitHub → Actions → Workflow „CI“ → „Run workflow“ (`workflow_dispatch`)
+
+Ältere Konfigurationen haben nur `main`/`develop` getriggert — dann liefen Pushes auf reine Feature-Branches **ohne** sichtbare Pipeline.
+
 ### Mapping: CI Job / Befehl → GA4GH-Bereich
 | CI Job / Schritt | Befehl | Abgedeckte GA4GH Bereiche |
 |---|---|---|
