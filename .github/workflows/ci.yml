@@ -1,10 +1,22 @@
 name: CI
 
 on:
+  # Previously only main/develop — pushes to feat/* never ran CI (confusing for PR-less work).
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+      - "feat/**"
+      - "fix/**"
+      - "chore/**"
+      - "release/**"
   pull_request:
     branches: [main, develop]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -21,6 +33,8 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SECRET_KEY: ci-secret-key-for-tests
       ENVIRONMENT: test
+      # Avoid pyproject.toml addopts --cov-fail-under=75 fighting explicit CI flags
+      PYTEST_ADDOPTS: ""
 
     steps:
       - name: Free disk space
@@ -62,11 +76,11 @@ jobs:
         run: pip install ruff
 
       - name: Ruff check
-        run: ruff check app/
+        run: ruff check app/ tests/
         working-directory: backend
 
       - name: Ruff format check
-        run: ruff format --check app/
+        run: ruff format --check app/ tests/
         working-directory: backend
 
   conformance-ga4gh:
@@ -82,6 +96,7 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SECRET_KEY: ci-secret-key-for-tests
       ENVIRONMENT: test
+      PYTEST_ADDOPTS: ""
     steps:
       - uses: actions/checkout@v4
 
@@ -103,6 +118,7 @@ jobs:
           tests/test_drs_endpoints.py
           tests/test_drs_endpoint_extended.py
           tests/test_drs_service.py
+          tests/test_drs_access_url.py
           tests/test_wes_api.py
           tests/test_wes_service.py
           tests/test_wes_service_extended.py

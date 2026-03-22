@@ -26,6 +26,33 @@ logger = logging.getLogger(__name__)
 # DRS ID allowed chars per spec [A-Za-z0-9.-_~]; we allow / for path segments
 _ALLOWED_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_~/")
 
+
+def resolve_object_identifier(raw: str) -> str:
+    """Resolve ``drs://authority/object/path`` to ``object/path`` when authority matches this DRS.
+
+    If the URI targets another host or is not a ``drs://`` URI, returns ``raw`` unchanged
+    (validation may then reject invalid characters). Aligns with GA4GH clients that pass
+    ``self_uri`` / drs URIs as object identifiers.
+    """
+    s = raw.strip()
+    if not s or not s.lower().startswith("drs://"):
+        return s
+    rest = s[6:]
+    sep = rest.find("/")
+    if sep < 0:
+        return raw
+    authority = rest[:sep]
+    object_part = rest[sep + 1 :]
+    if not object_part.strip():
+        return raw
+    settings = get_settings()
+    base = settings.drs_base_url.rstrip("/")
+    configured_host = base.split("//")[-1].split("/")[0].lower()
+    if authority.lower() != configured_host:
+        return raw
+    return object_part
+
+
 # Safe filename chars for uploads (no path separators or ..)
 _SAFE_NAME_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-_")
 
@@ -34,7 +61,7 @@ def _safe_object_id(object_id: str) -> Path | None:
     """Resolve object_id to a Path under drs_storage_path; None if invalid."""
     if not object_id or not object_id.strip():
         return None
-    raw = object_id.strip()
+    raw = resolve_object_identifier(object_id.strip())
     if ".." in raw or any(c not in _ALLOWED_CHARS for c in raw):
         return None
     root = Path(get_settings().drs_storage_path).resolve()
@@ -138,12 +165,14 @@ def get_object(object_id: str) -> DrsObject | None:
     checksums = [Checksum(checksum=checksum_hex, type="md5")]
 
     settings = get_settings()
+    root = Path(settings.drs_storage_path).resolve()
+    canonical_id = str(path.relative_to(root)).replace("\\", "/")
     base = settings.drs_base_url.rstrip("/")
     # drs:// hostname-based URI per spec (e.g. drs://drs.example.org/314159)
     authority = base.split("//")[-1].split("/")[0] if "//" in base else base.split("/")[0]
-    self_uri = f"drs://{authority}/{object_id}"
+    self_uri = f"drs://{authority}/{canonical_id}"
 
-    stream_url = f"{base}/objects/{object_id}/stream"
+    stream_url = f"{base}/objects/{canonical_id}/stream"
     access_methods = [
         AccessMethod(
             type="https",
@@ -162,7 +191,7 @@ def get_object(object_id: str) -> DrsObject | None:
         mime_type = "text/plain"
 
     return DrsObject(
-        id=object_id,
+        id=canonical_id,
         self_uri=self_uri,
         size=size,
         created_time=created_time,
@@ -220,5 +249,5 @@ def get_access_url(object_id: str, access_id: str) -> AccessURL | None:
             return am.access_url
         if am.access_id == access_id:
             base = get_settings().drs_base_url.rstrip("/")
-            return AccessURL(url=f"{base}/objects/{object_id}/stream")
+            return AccessURL(url=f"{base}/objects/{obj.id}/stream")
     return None

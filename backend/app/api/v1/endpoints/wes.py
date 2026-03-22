@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, UploadFile, status
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +23,7 @@ from app.schemas.wes import (
     ServiceInfo,
     ServiceOrganization,
     ServiceType,
+    State,
     WorkflowEngineVersion,
     WorkflowTypeVersion,
 )
@@ -102,12 +103,31 @@ async def get_service_info(
 async def list_runs(
     page_size: int | None = 100,
     page_token: str | None = None,
+    state: str | None = Query(
+        default=None,
+        description="Optional filter by WES run state (e.g. COMPLETE, RUNNING, QUEUED)",
+    ),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> RunListResponse:
     """List workflow runs (paginated)."""
     size = min(max(1, page_size or 100), 1000)
-    runs, next_token = await service_list_runs(db, page_size=size, page_token=page_token)
+    state_filter: str | None = None
+    if state is not None:
+        key = state.strip().upper()
+        try:
+            state_filter = State(key).value
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid WES state: {state!r}",
+            ) from e
+    runs, next_token = await service_list_runs(
+        db,
+        page_size=size,
+        page_token=page_token,
+        state_filter=state_filter,
+    )
     summaries = [run_to_run_summary(r) for r in runs]
     return RunListResponse(runs=summaries, next_page_token=next_token)
 
