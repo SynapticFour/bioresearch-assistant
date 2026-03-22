@@ -10,6 +10,7 @@
 backend/.venv/
 backend/venv/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -51,5 +52,3 @@ docker-compose.override.yml
 # Local reference clone (not tracked)
 .ferrum-ref/
 .ferrum-peek/
-
-# docs/coverage-badge.svg is tracked (CI updates it)

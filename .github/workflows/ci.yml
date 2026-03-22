@@ -22,7 +22,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     # No postgres service — tests use SQLite in-memory and mocks
     env:
       TESTING: "1"
