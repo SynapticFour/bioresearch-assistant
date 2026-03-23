@@ -29,6 +29,12 @@ async def _isolate_phenoflow_rows(db_session) -> None:
     await db_session.execute(delete(PhenopacketAsset))
     await db_session.execute(delete(PatientRecordModel))
     await db_session.flush()
+    yield
+    await db_session.execute(delete(PhenoFlowRunItem))
+    await db_session.execute(delete(PhenoFlowRun))
+    await db_session.execute(delete(PhenopacketAsset))
+    await db_session.execute(delete(PatientRecordModel))
+    await db_session.flush()
 
 
 def test_extract_hpo_ids_parses_phenotypic_features() -> None:
