@@ -117,3 +117,86 @@ async def test_get_run_invalid_uuid_returns_none(db_session):
     """get_run with invalid UUID string returns None."""
     run = await wes_service.get_run(db_session, "not-a-uuid")
     assert run is None
+
+
+def test_validate_workflow_url_accepts_http_descriptor() -> None:
+    """Remote workflow descriptors over https are allowed (WES / Ferrum-aligned)."""
+    wes_service._validate_workflow_url("https://example.org/wf/main.nf")
+
+
+def test_validate_workflow_url_rejects_parent_segments_in_path() -> None:
+    """Path traversal in workflow_url must be rejected."""
+    with pytest.raises(ValueError, match="\\.\\."):
+        wes_service._validate_workflow_url("https://example.org/../../etc/passwd")
+
+
+def test_validate_workflow_url_accepts_helixtest_trs_descriptors() -> None:
+    """SynapticFour/HelixTest TRS conformance stubs are allowlisted."""
+    for url in wes_service.HELIXTEST_TRS_URLS:
+        wes_service._validate_workflow_url(url)
+
+
+def test_normalize_workflow_type_aliases() -> None:
+    """WES workflow_type aliases (Ferrum-style NFL/NXF → NEXTFLOW)."""
+    assert wes_service._normalize_workflow_type("NFL") == "NEXTFLOW"
+    assert wes_service._normalize_workflow_type("nxf") == "NEXTFLOW"
+    assert wes_service._normalize_workflow_type("cwl") == "CWL"
+    assert wes_service._normalize_workflow_type("custom") == "custom"
+
+
+@pytest.mark.asyncio
+async def test_create_run_normalizes_workflow_type_alias(
+    db_session, mock_nextflow, wes_work_dir
+) -> None:
+    """create_run persists canonical NEXTFLOW when client sends NFL."""
+    req = RunRequest(
+        workflow_url="main.nf",
+        workflow_type="NFL",
+        workflow_type_version="DSL2",
+    )
+    run_id = await wes_service.create_run(db_session, req)
+    await db_session.flush()
+    stmt = select(WorkflowRun).where(WorkflowRun.run_id == run_id)
+    row = (await db_session.execute(stmt)).scalars().first()
+    assert row is not None
+    assert row.workflow_type == "NEXTFLOW"
+
+
+@pytest.mark.asyncio
+async def test_list_runs_filters_by_state(db_session) -> None:
+    """list_runs optional state_filter restricts rows to that state.
+
+    Do not assert total row count: other tests may leave QUEUED rows in the
+    shared in-memory engine (StaticPool); we only verify our fixtures and
+    that every returned row matches the filter.
+    """
+    r1 = uuid4()
+    r2 = uuid4()
+    db_session.add(
+        WorkflowRun(
+            run_id=r1,
+            state=State.COMPLETE.value,
+            workflow_url="a.nf",
+            workflow_type="NEXTFLOW",
+            workflow_type_version="1.0",
+        )
+    )
+    db_session.add(
+        WorkflowRun(
+            run_id=r2,
+            state=State.QUEUED.value,
+            workflow_url="b.nf",
+            workflow_type="NEXTFLOW",
+            workflow_type_version="1.0",
+        )
+    )
+    await db_session.flush()
+    rows, _ = await wes_service.list_runs(
+        db_session,
+        page_size=100,
+        state_filter=State.QUEUED.value,
+    )
+    returned_ids = {r.run_id for r in rows}
+    assert r2 in returned_ids
+    assert r1 not in returned_ids
+    assert all(r.state == State.QUEUED.value for r in rows)

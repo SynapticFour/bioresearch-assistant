@@ -54,16 +54,10 @@ async def test_pubmed_api_timeout_handled() -> None:
     import httpx
 
     mock_client_instance = MagicMock()
-    mock_client_instance.get = AsyncMock(
-        side_effect=httpx.TimeoutException("timeout")
-    )
-    mock_client_instance.post = AsyncMock(
-        side_effect=httpx.TimeoutException("timeout")
-    )
+    mock_client_instance.get = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
+    mock_client_instance.post = AsyncMock(side_effect=httpx.TimeoutException("timeout"))
     mock_client_instance.aclose = AsyncMock(return_value=None)
-    with patch(
-        "app.services.pubmed_service.httpx.AsyncClient"
-    ) as MockClient:
+    with patch("app.services.pubmed_service.httpx.AsyncClient") as MockClient:
         # Service does self._client = httpx.AsyncClient(), so return_value is _client
         MockClient.return_value = mock_client_instance
         from app.services.pubmed_service import PubMedService

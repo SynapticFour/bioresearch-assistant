@@ -23,14 +23,10 @@ async def test_search_pubmed_returns_results(async_client: AsyncClient) -> None:
         ),
     ]
 
-    with patch(
-        "app.api.v1.endpoints.literature.PubMedService"
-    ) as MockPubmed:
+    with patch("app.api.v1.endpoints.literature.PubMedService") as MockPubmed:
         mock_instance = MagicMock()
         mock_instance.search_pubmed = AsyncMock(return_value=mock_articles)
-        MockPubmed.return_value.__aenter__ = AsyncMock(
-            return_value=mock_instance
-        )
+        MockPubmed.return_value.__aenter__ = AsyncMock(return_value=mock_instance)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
         resp = await async_client.post(
             "/api/v1/literature/search",
@@ -56,9 +52,7 @@ async def test_search_pubmed_empty_query_400(async_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_validate_query_no_pii(async_client: AsyncClient) -> None:
     """POST /literature/search/validate-query returns safe=True when no PII."""
-    with patch(
-        "app.services.pseudonymization_service.PseudonymizationService"
-    ) as MockPseudo:
+    with patch("app.services.pseudonymization_service.PseudonymizationService") as MockPseudo:
         mock_instance = MagicMock()
         mock_instance.analyze = AsyncMock(return_value=[])
         MockPseudo.return_value = mock_instance
@@ -73,9 +67,7 @@ async def test_validate_query_no_pii(async_client: AsyncClient) -> None:
 @pytest.mark.asyncio
 async def test_validate_query_with_person_name(async_client: AsyncClient) -> None:
     """Validate query with person name may return safe=False."""
-    with patch(
-        "app.services.pseudonymization_service.PseudonymizationService"
-    ) as MockPseudo:
+    with patch("app.services.pseudonymization_service.PseudonymizationService") as MockPseudo:
         mock_instance = MagicMock()
         mock_instance.analyze = AsyncMock(
             return_value=[
@@ -104,14 +96,10 @@ async def test_fetch_article_by_pmid_success(async_client: AsyncClient) -> None:
         journal="J",
         doi=None,
     )
-    with patch(
-        "app.api.v1.endpoints.literature.PubMedService"
-    ) as MockPubmed:
+    with patch("app.api.v1.endpoints.literature.PubMedService") as MockPubmed:
         mock_instance = MagicMock()
         mock_instance.fetch_article = AsyncMock(return_value=mock_article)
-        MockPubmed.return_value.__aenter__ = AsyncMock(
-            return_value=mock_instance
-        )
+        MockPubmed.return_value.__aenter__ = AsyncMock(return_value=mock_instance)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
         resp = await async_client.get("/api/v1/literature/papers/22222")
     assert resp.status_code == 200
@@ -123,20 +111,12 @@ async def test_fetch_article_not_found_404(async_client: AsyncClient) -> None:
     """GET /literature/papers/{pmid} returns 404 when not found."""
     from app.services.pubmed_service import PubMedServiceError
 
-    with patch(
-        "app.api.v1.endpoints.literature.PubMedService"
-    ) as MockPubmed:
+    with patch("app.api.v1.endpoints.literature.PubMedService") as MockPubmed:
         mock_instance = MagicMock()
-        mock_instance.fetch_article = AsyncMock(
-            side_effect=PubMedServiceError("Not found")
-        )
-        MockPubmed.return_value.__aenter__ = AsyncMock(
-            return_value=mock_instance
-        )
+        mock_instance.fetch_article = AsyncMock(side_effect=PubMedServiceError("Not found"))
+        MockPubmed.return_value.__aenter__ = AsyncMock(return_value=mock_instance)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
-        resp = await async_client.get(
-            "/api/v1/literature/papers/nonexistent-pmid"
-        )
+        resp = await async_client.get("/api/v1/literature/papers/nonexistent-pmid")
     assert resp.status_code == 404
 
 
@@ -147,9 +127,7 @@ async def test_search_pubmed_service_error_502(async_client: AsyncClient) -> Non
 
     with patch("app.api.v1.endpoints.literature.PubMedService") as MockPubmed:
         mock_instance = MagicMock()
-        mock_instance.search_pubmed = AsyncMock(
-            side_effect=PubMedServiceError("API error")
-        )
+        mock_instance.search_pubmed = AsyncMock(side_effect=PubMedServiceError("API error"))
         MockPubmed.return_value.__aenter__ = AsyncMock(return_value=mock_instance)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
         resp = await async_client.post(

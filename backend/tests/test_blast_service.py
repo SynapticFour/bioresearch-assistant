@@ -7,11 +7,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from app.schemas.blast import (
+    HSP,
     BLASTHit,
     BLASTParams,
     BLASTResults,
     BLASTStatistics,
-    HSP,
 )
 from app.schemas.wes import State
 from app.services import blast_service
@@ -194,11 +194,10 @@ async def test_get_blast_results_success(db_session) -> None:
 @pytest.mark.asyncio
 async def test_find_papers_for_hits_empty(db_session) -> None:
     """find_papers_for_hits returns empty when no hits."""
-    results = BLASTResults(
-        run_id="r1", hits=[], statistics=BLASTStatistics()
-    )
+    results = BLASTResults(run_id="r1", hits=[], statistics=BLASTStatistics())
     with patch("app.services.pubmed_service.PubMedService") as MockPubmed:
-        MockPubmed.return_value.__aenter__ = AsyncMock(return_value=MagicMock(search_pubmed=AsyncMock(return_value=[])))
+        inner = MagicMock(search_pubmed=AsyncMock(return_value=[]))
+        MockPubmed.return_value.__aenter__ = AsyncMock(return_value=inner)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
         out = await blast_service.find_papers_for_hits(db_session, results, max_papers_per_hit=5)
     assert out == []
@@ -227,21 +226,15 @@ async def test_find_papers_for_hits_calls_pubmed(db_session) -> None:
             )
         ],
     )
-    results = BLASTResults(
-        run_id="r1", hits=[hit], statistics=BLASTStatistics()
-    )
+    results = BLASTResults(run_id="r1", hits=[hit], statistics=BLASTStatistics())
     mock_article = MagicMock(pmid="11111")
     mock_pubmed_instance = MagicMock()
-    mock_pubmed_instance.search_pubmed = AsyncMock(
-        return_value=[mock_article]
-    )
+    mock_pubmed_instance.search_pubmed = AsyncMock(return_value=[mock_article])
     mock_result = MagicMock()
     mock_result.scalars.return_value.unique.return_value.all.return_value = []
 
     with patch("app.services.pubmed_service.PubMedService") as MockPubmed:
-        MockPubmed.return_value.__aenter__ = AsyncMock(
-            return_value=mock_pubmed_instance
-        )
+        MockPubmed.return_value.__aenter__ = AsyncMock(return_value=mock_pubmed_instance)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
         with patch.object(
             db_session,
@@ -249,7 +242,5 @@ async def test_find_papers_for_hits_calls_pubmed(db_session) -> None:
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
-            await blast_service.find_papers_for_hits(
-                db_session, results, max_papers_per_hit=2
-            )
+            await blast_service.find_papers_for_hits(db_session, results, max_papers_per_hit=2)
     mock_pubmed_instance.search_pubmed.assert_called()

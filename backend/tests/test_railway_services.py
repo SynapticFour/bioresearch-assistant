@@ -4,7 +4,6 @@ import pytest
 
 from app.schemas.pubmed import PubMedArticle
 
-
 # ─── EmbeddingService (Railway) ────────────────────────────────────────────
 
 
@@ -40,7 +39,6 @@ async def test_railway_find_similar_returns_empty(db_session):
 @pytest.mark.asyncio
 async def test_railway_store_paper_no_embedding(db_session):
     """Railway store_paper stores paper with embedding=None."""
-    from app.models.paper import Paper
     from app.services.embedding_service_railway import EmbeddingService
 
     svc = EmbeddingService()

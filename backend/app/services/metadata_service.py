@@ -14,7 +14,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "BioResearch/1.0 (mailto:info@synapticfour.de)"
+USER_AGENT = "BioResearch/1.0 (mailto:contact@synapticfour.com)"
 
 
 class MetadataService:

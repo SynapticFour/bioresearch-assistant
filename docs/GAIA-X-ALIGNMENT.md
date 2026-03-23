@@ -6,20 +6,25 @@ GAIA-X ist die europäische Initiative für souveräne, vertrauenswürdige Daten
 
 ## BioResearch Assistant GAIA-X Prinzipien
 
-| GAIA-X Prinzip   | Status | Implementierung                                                                 |
-|-----------------|--------|----------------------------------------------------------------------------------|
-| Datensouveränität | ✅     | On-Premise (Ollama) = volle Souveränität; Anthropic API = partiell (siehe README) |
-| DSGVO-Konformität | ✅     | Presidio Pseudonymisierung + Audit Logging                                       |
-| Offene Standards  | ✅     | GA4GH DRS, WES, Phenopackets v2                                                  |
-| Transparenz       | ✅     | Open Source, vollständige API-Dokumentation                                      |
-| Portabilität      | ✅     | Docker-basiert, läuft auf jeder Infrastruktur                                   |
-| Interoperabilität | ✅     | REST APIs, GA4GH Standards, JSON-LD                                              |
-| Föderierbarkeit   | 🔄     | Vorbereitet — multi-tenant Architektur geplant                                   |
-| Self-Description  | 🔄     | GAIA-X Self-Description in Vorbereitung                                          |
+| GAIA-X Prinzip   | Technische Ausrichtung (kein Label)                                             |
+|------------------|----------------------------------------------------------------------------------|
+| Datensouveränität | On-Premise (Ollama) als Standard; Anthropic API optional (Drittlandtransfer beachten) |
+| Datenschutz       | Pseudonymisierung, Audit Logging, On‑Premise‑Option                             |
+| Offene Standards  | GA4GH DRS, WES, Phenopackets v2                                                 |
+| Transparenz       | Open Source, API-Dokumentation, Self‑Description‑Endpoint                      |
+| Portabilität      | Docker-basiert, läuft auf gängiger Infrastruktur                               |
+| Interoperabilität | REST APIs, GA4GH Standards, JSON-LD                                             |
+| Föderierbarkeit   | Multi‑Tenant‑Isolation vorhanden; Inter‑Instanz‑Föderation in Planung          |
+| Self-Description  | GAIA‑X Self‑Description als JSON-Datei vorbereitet                             |
 
 ## Was bedeutet "GAIA-X Ready by Design"?
 
-"GAIA-X Ready by Design" ist **keine offizielle Zertifizierung** der GAIA-X Association. Es beschreibt, dass die Architektur des BioResearch Assistant von Grund auf nach GAIA-X Prinzipien gestaltet wurde: Datensouveränität im On-Premise-Modus (Ollama), DSGVO durch technische und organisatorische Maßnahmen, offene Standards und Transparenz durch Self-Description und Open Source.
+"GAIA-X Ready by Design" ist **keine offizielle Zertifizierung** der GAIA-X Association.
+Es beschreibt, dass die Architektur des BioResearch Assistant sich an GAIA‑X‑Prinzipien
+orientiert: Datensouveränität im On‑Premise‑Modus (Ollama), Datenschutz durch technische
+und organisatorische Maßnahmen, offene Standards und Transparenz durch Self‑Description
+und Open Source. Ob eine konkrete Installation GAIA‑X‑konform ist, hängt von weiteren
+technischen und rechtlichen Faktoren beim Betreiber ab.
 
 ## Authentifizierung & Identität
 

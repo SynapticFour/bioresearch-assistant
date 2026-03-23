@@ -98,8 +98,10 @@ async def health_check() -> dict[str, Any]:
         "status": "healthy",
         "version": settings.version,
         "developed_by": "Synaptic Four — proudly developed by individuals on the autism spectrum",
-        "ga4gh_compliant": True,
-        "gaia_x_ready": True,
+        # Hinweis: Diese Flags beschreiben die technische Ausrichtung,
+        # nicht den Ausgang einer externen Zertifizierung.
+        "ga4gh_alignment": True,
+        "gaia_x_alignment": True,
         "features": features,
         "deployment": (settings.deployment or "").lower(),
         "data_sovereignty": data_sovereignty,

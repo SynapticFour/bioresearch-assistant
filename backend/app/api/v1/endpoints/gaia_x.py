@@ -39,13 +39,19 @@ async def get_self_description() -> dict:
 
 @router.get("/compliance")
 async def get_compliance_status() -> dict:
-    """GAIA-X Compliance Status und implementierte Prinzipien."""
+    """GAIA-X Alignment-Status und implementierte Prinzipien (keine Zertifizierung).
+
+    Hinweis:
+        Dieses JSON beschreibt technische und architektonische Ausrichtung
+        an GAIA-X-Prinzipien. Es stellt **keine** formale Bestätigung von
+        GAIA-X-Compliance oder einer Zertifizierung dar.
+    """
     return {
         "gaia_x_ready": True,
         "version": "1.0.0",
         "principles": {
             "data_sovereignty": True,
-            "gdpr_compliant": True,
+            "gdpr_alignment": True,
             "open_standards": True,
             "transparency": True,
             "portability": True,

@@ -333,7 +333,8 @@ function InfoPanel({ entities, mappingId }: InfoPanelProps) {
         <ul className="space-y-1.5 text-xs text-slate-700">
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
-            Daten verlassen dieses System nicht
+            Bei Konfiguration mit lokalem LLM (Ollama) und ohne externe Dienste
+            verlassen die hier eingegebenen Texte das System nicht über KI-APIs.
           </li>
           <li className="flex items-start gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />

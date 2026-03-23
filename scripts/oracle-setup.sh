@@ -32,7 +32,7 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 sudo apt install -y caddy
 
 echo "✅ Setup fertig! Jetzt:"
-echo "1. git clone https://github.com/synapticfour/bioresearch-assistant.git"
+echo "1. git clone https://github.com/SynapticFour/bioresearch-assistant.git"
 echo "2. cd bioresearch-assistant"
 echo "3. cp .env.example .env && nano .env"
 echo "4. docker compose -f docker-compose.prod.yml up -d"

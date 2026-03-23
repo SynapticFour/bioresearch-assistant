@@ -32,5 +32,5 @@ async def test_gaia_x_compliance_shows_ready(async_client):
     assert response.status_code == 200
     data = response.json()
     assert data["gaia_x_ready"] is True
-    assert data["principles"]["gdpr_compliant"] is True
+    assert data["principles"]["gdpr_alignment"] is True
     assert data["principles"]["data_sovereignty"] is True

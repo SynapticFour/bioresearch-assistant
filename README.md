@@ -2,12 +2,12 @@
 
 **KI-gestützte Forschungsplattform für
 biomedizinische Forschung**
-DSGVO-konform · On-premise · Open Standards
+Für DSGVO-konforme Nutzung konzipiert · On-premise · Open Standards
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
-[![GA4GH Compliant](https://img.shields.io/badge/GA4GH-Compliant-green.svg)](https://ga4gh.org)
-[![GAIA-X Ready](https://img.shields.io/badge/GAIA--X-Ready-blue.svg)](https://gaia-x.eu)
-[![DSGVO](https://img.shields.io/badge/DSGVO-Konform-green.svg)](docs/COMPLIANCE.md)
+[![GA4GH Standards](https://img.shields.io/badge/GA4GH-Standards-blue.svg)](https://ga4gh.org)
+[![GAIA-X Ready (design)](https://img.shields.io/badge/GAIA--X-Ready%20(design)-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
+[![Datenschutz](https://img.shields.io/badge/Datenschutz-DSGVO%20orientiert-green.svg)](docs/COMPLIANCE.md)
 
 ---
 
@@ -15,10 +15,11 @@ DSGVO-konform · On-premise · Open Standards
 
 BioResearch Assistant verbindet Literaturrecherche,
 Pseudonymisierung, Phenotypisierung, Genomanalyse
-und KI in einer einzigen, DSGVO-konformen Plattform —
+und KI in einer Plattform, die technische Maßnahmen
+zur datenschutzfreundlichen Nutzung bereitstellt —
 vollständig on-premise betreibbar.
 
-Entwickelt von [Synaptic Four](https://synapticfour.de)
+Entwickelt von [Synaptic Four](https://www.synapticfour.com)
 für Unikliniken, Forschungsgruppen und Biotech-Startups
 im DACH-Raum.
 
@@ -35,28 +36,33 @@ im DACH-Raum.
 | 🗄️ Dateiverwaltung | GA4GH DRS v1.4 | ✅ |
 | 🧬 BLAST Sequenzsuche | NCBI BLAST+ | ✅ |
 | ⚙️ Pipelines | GA4GH WES v1.1 | ✅ |
+| 🔁 Search-to-Execution (PhenoFlow) | Phenopackets + DRS + WES | ✅ v0.1 |
 | 📓 Research Notebook (ELN) | Markdown + KI | ✅ |
 | 📦 FAIR Data Export | DataCite + Zenodo | ✅ |
 | 🌐 GAIA-X Self-Description | Gaia-X Standard | ✅ |
 
 ---
 
-## Compliance
+## Compliance (Überblick, keine Rechtsberatung)
 
-| Standard | Status |
-|----------|--------|
-| 🇪🇺 DSGVO / GDPR | ✅ |
-| 🇩🇪 BDSG + §393 SGB V | ✅ On-premise |
-| 🇩🇪 GDNG 2025 | ✅ |
-| 🌐 GAIA-X Standard | ✅ |
-| 🧬 GA4GH WES / DRS / Phenopackets | ✅ |
-| 📊 FAIR Prinzipien | ✅ |
-| 🔒 OWASP Top 10 | ✅ |
-| 🏥 HIPAA (technisch) | ✅ |
-| 📋 ICH GCP E6(R3) | ✅ |
-| 🏥 EHDS-ready | ✅ (Pflichten ab 2029) |
+Die Software wurde technisch so gestaltet, dass sie gängige
+Standards und gesetzliche Rahmenbedingungen **unterstützen kann**.
+Ob ein konkreter Einsatz „konform“ ist, hängt immer von
+Konfiguration, Betriebsumgebung und den Verantwortlichen vor Ort ab.
 
-Vollständige Dokumentation: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)
+| Bereich / Rahmen | Technische Ausrichtung (kein Zertifikat) |
+|------------------|-------------------------------------------|
+| 🇪🇺 DSGVO / GDPR | Pseudonymisierung, Audit-Logs, Isolation, Verschlüsselung (Details in `COMPLIANCE.md`) |
+| 🇩🇪 BDSG / §393 SGB V | Fokus auf On-Premise-Betrieb; Cloud-Einsatz erfordert separate Bewertung |
+| 🇩🇪 GDNG 2025 | Unterstützt pseudonymisierte Forschungs-Workflows, Audit-Trails |
+| 🌐 GAIA-X | Architektur „GAIA-X ready by design“, keine formale Zertifizierung |
+| 🧬 GA4GH WES / DRS / Phenopackets | Implementierung orientiert sich an den jeweiligen GA4GH-Spezifikationen |
+| 📊 FAIR Prinzipien | FAIR-Export, Metadaten & Compliance-Check als Hilfsmittel |
+| 🔒 OWASP Top 10 | Sicherheitsmaßnahmen an OWASP-Empfehlungen ausgerichtet |
+| 🏥 HIPAA / ICH GCP / EHDS | Ausgewählte technische Kontrollen vorhanden; rechtliche Bewertung bleibt Kund:in vorbehalten |
+
+Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)  
+Dieses Dokument ersetzt **keine** individuelle Rechtsberatung.
 
 ---
 
@@ -95,7 +101,9 @@ Danach erreichbar unter:
 |----------|-------------|
 | [USER-GUIDE.md](docs/USER-GUIDE.md) | Benutzerhandbuch (UI) |
 | [DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | API Referenz + curl Beispiele |
+| [PHENOFLOW.md](docs/PHENOFLOW.md) | PhenoFlow v0.1 (Search-to-Execution) |
 | [COMPLIANCE.md](docs/COMPLIANCE.md) | DSGVO, GAIA-X, GA4GH, NIS2, EHDS |
+| [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
@@ -125,8 +133,8 @@ Danach erreichbar unter:
 
 BUSL 1.1 — Business Source License
 Kostenlos für Forschung und Evaluation.
-Kommerzielle Nutzung: contact@synapticfour.de
+Kommerzielle Nutzung: contact@synapticfour.com
 
-© 2026 Synaptic Four · synapticfour.de
+© 2026 Synaptic Four · [www.synapticfour.com](https://www.synapticfour.com)
 
 ---

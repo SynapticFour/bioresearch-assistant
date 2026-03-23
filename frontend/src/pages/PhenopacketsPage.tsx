@@ -2,7 +2,13 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Dna, Plus, Search, Trash2 } from "lucide-react";
-import { phenopackets, type PhenopacketCreate, type PhenopacketItem } from "@/api/endpoints";
+import {
+  phenopackets,
+  type PhenopacketAssetFileType,
+  type PhenopacketCreate,
+  type PhenopacketItem,
+  type PhenopacketAssetSummary,
+} from "@/api/endpoints";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +118,41 @@ export function PhenopacketsPage() {
     diseases: [],
     genes_of_interest: [],
     notes: "",
+  });
+
+  const detailPseudonymId = detailItem ? getPseudonymId(detailItem) : "";
+  const {
+    data: linkedAssets = [],
+    isLoading: linkedAssetsLoading,
+    isError: linkedAssetsIsError,
+  } = useQuery({
+    queryKey: ["phenopacket-assets", detailPseudonymId],
+    queryFn: () => phenopackets.listAssets(detailPseudonymId),
+    enabled: !!detailItem,
+  });
+
+  const [assetDraft, setAssetDraft] = useState<{
+    drs_object_id: string;
+    file_type: PhenopacketAssetFileType;
+  }>({ drs_object_id: "", file_type: "bam" });
+
+  const linkAssetMutation = useMutation({
+    mutationFn: async () => {
+      if (!detailItem) throw new Error("No phenopacket selected");
+      return phenopackets.linkAsset(
+        detailPseudonymId,
+        assetDraft.drs_object_id,
+        assetDraft.file_type
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["phenopacket-assets", detailPseudonymId],
+      });
+      showSuccess("Asset verknüpft");
+      setAssetDraft({ drs_object_id: "", file_type: "bam" });
+    },
+    onError: (err: Error) => showError(err?.message ?? "Asset-Linking fehlgeschlagen"),
   });
 
   const { data: list = [], isLoading } = useQuery({
@@ -416,6 +457,81 @@ export function PhenopacketsPage() {
                 <div>
                   <span className="font-medium text-slate-700">Erkrankungen:</span>{" "}
                   {extractDiseases(detailItem).join(", ") || "—"}
+                </div>
+                <div>
+                  <span className="font-medium text-slate-700">Linked DRS Assets:</span>{" "}
+                  {linkedAssetsLoading ? (
+                    "…"
+                  ) : linkedAssetsIsError ? (
+                    <span className="text-red-600">Fehler beim Laden</span>
+                  ) : linkedAssets.length ? (
+                    <div className="mt-2 space-y-1">
+                      {linkedAssets.map((a: PhenopacketAssetSummary) => (
+                        <div key={a.asset_id} className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">{a.file_type}</Badge>
+                          <span className="text-xs text-slate-600 break-all">
+                            {a.drs_object_id}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    "—"
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="text-sm font-medium text-slate-800">Asset verknüpfen</div>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex flex-wrap gap-3">
+                      <div className="flex-1 min-w-[220px] space-y-1">
+                        <label className="text-xs text-slate-600">DRS object_id</label>
+                        <input
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+                          value={assetDraft.drs_object_id}
+                          onChange={(e) =>
+                            setAssetDraft((d) => ({ ...d, drs_object_id: e.target.value }))
+                          }
+                          placeholder="drs://object/path or relative object_id"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-[160px] space-y-1">
+                        <label className="text-xs text-slate-600">file_type</label>
+                        <select
+                          className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm"
+                          value={assetDraft.file_type}
+                          onChange={(e) =>
+                            setAssetDraft((d) => ({
+                              ...d,
+                              file_type: e.target.value as PhenopacketAssetFileType,
+                            }))
+                          }
+                        >
+                          <option value="bam">bam</option>
+                          <option value="cram">cram</option>
+                          <option value="vcf">vcf</option>
+                          <option value="fastq">fastq</option>
+                          <option value="other">other</option>
+                        </select>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => linkAssetMutation.mutate()}
+                      disabled={
+                        linkAssetMutation.isPending ||
+                        !assetDraft.drs_object_id.trim() ||
+                        !detailItem
+                      }
+                      className="w-full"
+                      type="button"
+                      variant="outline"
+                    >
+                      {linkAssetMutation.isPending ? "…" : "Asset verknüpfen"}
+                    </Button>
+                    <p className="text-xs text-slate-500">
+                      Hinweis: DRS object_id muss im DRS verfügbar sein.
+                    </p>
+                  </div>
                 </div>
                 <pre className="max-h-48 overflow-auto rounded bg-slate-100 p-2 text-xs">
                   {JSON.stringify(detailItem, null, 2)}

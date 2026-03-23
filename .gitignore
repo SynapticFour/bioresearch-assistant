@@ -10,6 +10,7 @@
 backend/.venv/
 backend/venv/
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -48,4 +49,6 @@ Thumbs.db
 # Docker (optional local overrides)
 docker-compose.override.yml
 
-# docs/coverage-badge.svg is tracked (CI updates it)
+# Local reference clone (not tracked)
+.ferrum-ref/
+.ferrum-peek/

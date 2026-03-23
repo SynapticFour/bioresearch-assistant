@@ -8,6 +8,7 @@ from app.services.drs_service import (
     get_access_url,
     get_object,
     get_service_info,
+    resolve_object_identifier,
 )
 
 
@@ -71,3 +72,30 @@ def test_get_service_info_returns_drs_service_info():
     assert info.name == "BioResearch Assistant DRS"
     assert info.drs.objectCount == 5
     assert info.drs.totalObjectSize == 1000
+    assert info.organization.url == "https://www.synapticfour.com"
+
+
+def test_get_object_nested_path_under_storage(drs_storage):
+    """object_id may contain slashes (relative path under DRS root)."""
+    (drs_storage / "a").mkdir()
+    (drs_storage / "a" / "b.txt").write_text("nested")
+    obj = get_object("a/b.txt")
+    assert obj is not None
+    assert obj.id == "a/b.txt"
+
+
+def test_resolve_object_identifier_matching_drs_uri(drs_storage):
+    """drs://host/path resolves to object id when host matches drs_base_url."""
+    (drs_storage / "by-uri.txt").write_text("x")
+    uri = "drs://localhost:8000/by-uri.txt"
+    assert resolve_object_identifier(uri) == "by-uri.txt"
+    obj = get_object(uri)
+    assert obj is not None
+    assert obj.id == "by-uri.txt"
+
+
+def test_resolve_object_identifier_foreign_host_unchanged(drs_storage):
+    """drs://other-host/... is left unchanged (path validation will reject ':' etc.)."""
+    raw = "drs://other.example.com/obj1"
+    assert resolve_object_identifier(raw) == raw
+    assert get_object(raw) is None

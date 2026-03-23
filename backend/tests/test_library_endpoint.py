@@ -7,7 +7,6 @@ from httpx import AsyncClient
 
 from app.models.paper import Paper
 from app.schemas.llm import PaperSummary
-from app.schemas.pubmed import PubMedArticle
 
 
 @pytest.mark.asyncio
@@ -47,9 +46,7 @@ async def test_list_papers_with_journal_filter(async_client: AsyncClient) -> Non
             "journal": "Nature Genetics",
         },
     )
-    resp = await async_client.get(
-        "/api/v1/library/papers?journal=Nature&limit=50"
-    )
+    resp = await async_client.get("/api/v1/library/papers?journal=Nature&limit=50")
     assert resp.status_code == 200
     data = resp.json()
     if data:
@@ -79,9 +76,7 @@ async def test_store_paper_duplicate_pmid_updates(async_client: AsyncClient) -> 
 @pytest.mark.asyncio
 async def test_delete_paper_not_found_404(async_client: AsyncClient) -> None:
     """DELETE /library/papers/nonexistent returns 404."""
-    resp = await async_client.delete(
-        "/api/v1/library/papers/nonexistent-pmid-999"
-    )
+    resp = await async_client.delete("/api/v1/library/papers/nonexistent-pmid-999")
     assert resp.status_code == 404
 
 
@@ -280,7 +275,10 @@ async def test_summarize_paper_language_en(async_client: AsyncClient) -> None:
 
 @pytest.mark.asyncio
 async def test_semantic_search_returns_results(async_client: AsyncClient) -> None:
-    """POST /library/search/semantic returns list (mocked EmbeddingService; SQLite has no pgvector)."""
+    """POST /library/search/semantic returns list.
+
+    EmbeddingService is mocked; SQLite has no pgvector.
+    """
     with patch("app.api.v1.endpoints.library.EmbeddingService") as MockEmb:
         mock_svc = MagicMock()
         mock_svc.find_similar = AsyncMock(return_value=[])
@@ -488,11 +486,16 @@ async def test_bulk_import_zip_success(async_client: AsyncClient) -> None:
     import zipfile
 
     buf = io.BytesIO()
+    zip_paper = {
+        "pmid": "zip-1",
+        "title": "ZIP Paper",
+        "abstract": "A",
+        "authors": [],
+        "year": 2024,
+        "journal": "J",
+    }
     with zipfile.ZipFile(buf, "w") as zf:
-        zf.writestr(
-            "papers.json",
-            json_mod.dumps([{"pmid": "zip-1", "title": "ZIP Paper", "abstract": "A", "authors": [], "year": 2024, "journal": "J"}]),
-        )
+        zf.writestr("papers.json", json_mod.dumps([zip_paper]))
     buf.seek(0)
     files = {"file": ("data.zip", buf.read(), "application/zip")}
     resp = await async_client.post(

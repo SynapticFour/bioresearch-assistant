@@ -114,7 +114,7 @@ Falls du von `open` zu `user`/`team` wechselst:
 ```bash
 python backend/scripts/migrate_isolation.py \
   --mode user \
-  --assign-to dev@synapticfour.de
+  --assign-to dev@synapticfour.com
 ```
 
 (Skript bei Bedarf anlegen.)

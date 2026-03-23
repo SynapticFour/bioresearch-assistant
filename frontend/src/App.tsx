@@ -10,6 +10,7 @@ import { LibraryPage } from "@/pages/LibraryPage";
 import { LiteraturePage } from "@/pages/LiteraturePage";
 import NotebookPage from "@/pages/NotebookPage";
 import { PhenopacketsPage } from "@/pages/PhenopacketsPage";
+import { PhenoFlowPage } from "@/pages/PhenoFlowPage";
 import { LoginPage } from "@/components/auth/LoginPage";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PseudonymizePage } from "@/pages/PseudonymizePage";
@@ -31,6 +32,7 @@ function App() {
           <Route path="/workflows" element={<WorkflowsPage />} />
           <Route path="/drs" element={<DRSPage />} />
           <Route path="/phenopackets" element={<PhenopacketsPage />} />
+          <Route path="/phenoflow" element={<PhenoFlowPage />} />
           <Route path="/fair-export" element={<FAIRExportPage />} />
           <Route path="/audit" element={<AuditPage />} />
         </Route>

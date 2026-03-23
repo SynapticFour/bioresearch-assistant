@@ -10,7 +10,7 @@
 
 ### Was ist das System?
 
-BioResearch Assistant ist ein on-premise KI-System für Forschungsinstitute und Unikliniken. Es verbindet **Literature Mining** (PubMed), **persönliche Bibliothek** mit semantischer Suche, **DSGVO-konforme Pseudonymisierung**, **Phenopackets**, **DRS-Dateiverwaltung**, **BLAST/WES-Pipelines**, **Research Notebook (ELN)** und **FAIR Data Export** in einer Anwendung.
+BioResearch Assistant ist ein on-premise KI-System für Forschungsinstitute und Unikliniken. Es verbindet **Literature Mining** (PubMed), **persönliche Bibliothek** mit semantischer Suche, Pseudonymisierung, **Phenopackets**, **DRS-Dateiverwaltung**, **BLAST/WES-Pipelines**, **Research Notebook (ELN)** und **FAIR Data Export** in einer Anwendung. Die Software stellt technische Funktionen zur datenschutzfreundlichen Nutzung bereit; ob ein Einsatz rechtlich zulässig ist, hängt vom jeweiligen Szenario und den Verantwortlichen ab.
 
 ### Erste Schritte nach Installation
 
@@ -35,8 +35,9 @@ BioResearch Assistant ist ein on-premise KI-System für Forschungsinstitute und 
 | Dashboard              | Übersicht Papers, Phenopackets, WES-Runs, Health | Einstieg, Systemstatus, schnelle Links              |
 | Literatursuche         | PubMed-Suche, Paper speichern, PII-Prüfung    | Literaturrecherche, Paper in Bibliothek übernehmen  |
 | Bibliothek             | Paper verwalten, Keyword/Semantik, KI-Summary | Suche in gespeicherten Papers, Zusammenfassungen   |
-| Pseudonymisierung      | Text anonymisieren, Restore, Audit           | Klinische Texte DSGVO-konform nutzen                |
+| Pseudonymisierung      | Text anonymisieren, Restore, Audit           | Klinische Texte für weitere Nutzung vorbereiten (unter Beachtung der DSGVO durch Verantwortliche) |
 | Phenopackets           | HPO-Suche, Phenopacket erstellen/exportieren  | Seltene Erkrankungen, GA4GH-Austausch               |
+| PhenoFlow             | HPO Query -> DRS Match -> WES Submit          | Search-to-Execution für Kohortenanalyse              |
 | DRS                    | Dateien hochladen/registrieren, Download     | VCF, FASTA, BAM etc. verwalten                      |
 | BLAST                  | Sequenzsuche (nt/nr)                          | DNA/Protein gegen Datenbanken                      |
 | Pipelines / Workflows  | WES: Nextflow starten, Status, Logs           | BLAST oder Custom-Pipelines ausführen              |
@@ -125,7 +126,7 @@ Verwaltet **gespeicherte Papers** (aus Literatursuche oder manuell/Bulk). Ermög
 
 ### Was macht es?
 
-Ersetzt **personenbezogene und sensible Daten** in Texten durch Platzhalter (DSGVO-konform, reversibel). Mappings werden verschlüsselt gespeichert; **Restore** (Original wiederherstellen) und **De-Pseudonymisierung** (reverse) mit Berechtigungen und Audit.
+Ersetzt **personenbezogene und sensible Daten** in Texten durch Platzhalter (reversibel). Mappings werden verschlüsselt gespeichert; **Restore** (Original wiederherstellen) und **De-Pseudonymisierung** (reverse) mit Berechtigungen und Audit. Die Pseudonymisierung ist als technische Maßnahme zur Unterstützung von DSGVO‑Anforderungen gedacht, ersetzt aber keine rechtliche Bewertung des konkreten Einsatzes.
 
 ### Wann verwenden?
 
@@ -235,6 +236,47 @@ Das System verknüpft **VCF-Varianten NICHT automatisch mit PubMed-Artikeln**. F
 3. **Große Dateien:** Wenn die Datei bereits auf dem Server liegt, kann ein Admin sie über Pfad registrieren (siehe Developer Guide).
 4. **Objekte auflisten:** Die Seite zeigt die registrierten DRS-Objekte; über Objekt-ID oder Aktionen **Download** starten (Stream).
 5. **Download:** Auf das gewünschte Objekt klicken und die Download- bzw. Stream-Option nutzen.
+
+---
+
+## 6.5 PhenoFlow (Search-to-Execution)
+
+### Was macht es?
+
+**PhenoFlow v0.1** verbindet drei bestehende Bereiche:
+
+1. Phenopackets (HPO-basierte Fallbeschreibung)
+2. DRS (Datei-Objekte wie BAM/VCF)
+3. WES (Workflow-Ausführung)
+
+Damit kannst du eine phänotypische Anfrage direkt in eine Workflow-Ausführung übersetzen.
+
+### Typischer Anwendungsfall
+
+"Finde alle Fälle mit `HP:0001250`, die ein verknüpftes BAM-Asset haben, und starte den Workflow."
+
+### Voraussetzungen
+
+- Phenopacket existiert (z. B. `DEMO-P001`)
+- Mindestens ein DRS-Asset ist mit dem Phenopacket verknüpft
+- WES/Workflow-Backend ist erreichbar (Health/Workflows prüfen)
+
+### Schritt-für-Schritt (UI)
+
+1. **Phenopackets** öffnen und einen Fall auswählen.
+2. Im Detaildialog unter **Linked DRS Assets** prüfen, ob Assets verknüpft sind.
+3. Falls nötig: im Detaildialog `drs_object_id` + `file_type` eintragen und **Asset verknüpfen**.
+4. In der Navigation **PhenoFlow** öffnen.
+5. HPO-Terme eingeben (z. B. `HP:0001250`), optional `file_type` setzen.
+6. Workflow-Descriptor + `workflow_params_template` prüfen.
+7. **PhenoFlow Run starten**.
+8. Unter **Matches/History** die erzeugten WES Run IDs und Zustände kontrollieren.
+
+### Hinweise für kliniknahe Forschung
+
+- Es werden nur Identifier/Provenance gespeichert (`pseudonym_id`, `drs_object_id`, `wes_run_id`).
+- Keine dekodierten Genomdaten werden persistent in PhenoFlow gespeichert.
+- Für produktive Nutzung weiterhin klinische Governance und lokale SOPs beachten.
 
 ---
 
@@ -594,6 +636,6 @@ Ja. Wenn keine OIDC-Anmeldung konfiguriert ist, kannst du die Anwendung ohne Log
 - [INSTALL.md](INSTALL.md) — Installation
 - [docs/COMPLIANCE.md](COMPLIANCE.md) — Compliance (DSGVO, NIS2, FAIR, …)
 - [SECURITY.md](../SECURITY.md) — Sicherheit, Meldung von Lücken  
-- **Synaptic Four:** info@synapticfour.de
+- **Synaptic Four:** contact@synapticfour.com · https://www.synapticfour.com
 
 *Letzte Aktualisierung: März 2026, Version 1.0.0*

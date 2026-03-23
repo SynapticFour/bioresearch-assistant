@@ -14,8 +14,15 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        # SQLite (e.g. HelixTest CI): 001 already uses String(36); no ALTER TYPE.
+        return
     op.execute("ALTER TABLE notebooks ALTER COLUMN id TYPE UUID USING id::uuid")
 
 
 def downgrade() -> None:
+    bind = op.get_bind()
+    if bind.dialect.name != "postgresql":
+        return
     op.execute("ALTER TABLE notebooks ALTER COLUMN id TYPE VARCHAR(36) USING id::varchar")

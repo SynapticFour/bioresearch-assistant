@@ -504,7 +504,7 @@ async def bulk_import(
     content = await file.read()
     if len(content) > MAX_BULK_IMPORT_SIZE:
         raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
             detail="Datei zu groß (max. 50 MB)",
         )
     scope_values = get_scope_values(current_user)

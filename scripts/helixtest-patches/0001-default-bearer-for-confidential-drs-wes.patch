@@ -1,0 +1,104 @@
+diff --git a/helixtest/crates/common/src/http.rs b/helixtest/crates/common/src/http.rs
+index f8e62d5..5ec382e 100644
+--- a/helixtest/crates/common/src/http.rs
++++ b/helixtest/crates/common/src/http.rs
+@@ -30,6 +30,20 @@ impl HttpClient {
+         &self.inner
+     }
+ 
++    fn attach_default_bearer(
++        &self,
++        builder: reqwest::RequestBuilder,
++    ) -> reqwest::RequestBuilder {
++        match std::env::var("HELIXTEST_DEFAULT_BEARER") {
++            Ok(token) if !token.trim().is_empty() => builder.bearer_auth(token.trim()),
++            _ => builder,
++        }
++    }
++
++    pub fn get_builder(&self, url: &str) -> reqwest::RequestBuilder {
++        self.attach_default_bearer(self.inner.get(url))
++    }
++
+     #[instrument(skip(self))]
+     pub async fn get_json(&self, url: &str) -> Result<serde_json::Value> {
+         let resp = self.get_with_retry(url).await?;
+@@ -54,9 +68,9 @@ impl HttpClient {
+         let strategy = ExponentialBackoff::from_millis(200).map(jitter).take(5);
+         let resp = Retry::spawn(strategy, || async {
+             let r = self
+-                .inner
+-                .post(url)
+-                .header("Content-Type", "application/json")
++                .attach_default_bearer(
++                    self.inner.post(url).header("Content-Type", "application/json"),
++                )
+                 .body(body_str.clone())
+                 .send()
+                 .await;
+@@ -78,7 +92,10 @@ impl HttpClient {
+         info!(%url, "GET with retry");
+         let strategy = ExponentialBackoff::from_millis(200).map(jitter).take(5);
+         let resp = Retry::spawn(strategy, || async {
+-            let r = self.inner.get(url).send().await;
++            let r = self
++                .attach_default_bearer(self.inner.get(url))
++                .send()
++                .await;
+             r
+         })
+         .await?;
+diff --git a/helixtest/crates/framework/src/drs.rs b/helixtest/crates/framework/src/drs.rs
+index f6c6599..775bdc0 100644
+--- a/helixtest/crates/framework/src/drs.rs
++++ b/helixtest/crates/framework/src/drs.rs
+@@ -33,7 +33,7 @@ async fn level0_reachable(cfg: &TestConfig, client: &HttpClient) -> TestCaseResu
+         cfg.services.drs_url.trim_end_matches('/'),
+         "test-object-1"
+     );
+-    let res = client.inner().get(&url).send().await;
++    let res = client.get_builder(&url).send().await;
+     match res {
+         Ok(resp) => TestCaseResult {
+             name: "DRS object endpoint reachable".into(),
+@@ -156,7 +156,7 @@ async fn level2_checksum_correctness(
+             .and_then(|x| x.as_str())
+             .ok_or_else(|| anyhow::anyhow!("access_methods[0].access_url.url missing: {}", v))?;
+ 
+-        let resp = client.inner().get(access_url).send().await?;
++        let resp = client.get_builder(access_url).send().await?;
+         if !resp.status().is_success() {
+             anyhow::bail!(
+                 "Failed to download DRS object for checksum validation: {}",
+@@ -211,8 +211,7 @@ async fn level2_range_request(cfg: &TestConfig, client: &HttpClient) -> TestCase
+             .ok_or_else(|| anyhow::anyhow!("access_methods[0].access_url.url missing: {}", v))?;
+ 
+         let resp = client
+-            .inner()
+-            .get(url)
++            .get_builder(url)
+             .header("Range", "bytes=0-1023")
+             .send()
+             .await?;
+@@ -296,7 +295,7 @@ async fn level5_invalid_id_404(cfg: &TestConfig, client: &HttpClient) -> TestCas
+         cfg.services.drs_url.trim_end_matches('/'),
+         "nonexistent-object-id-for-conformance"
+     );
+-    let res = client.inner().get(&url).send().await;
++    let res = client.get_builder(&url).send().await;
+     let result = res.map_err(anyhow::Error::from).and_then(|resp| {
+         if resp.status().as_u16() == 404 {
+             Ok(())
+diff --git a/helixtest/crates/framework/src/wes.rs b/helixtest/crates/framework/src/wes.rs
+index 833cf1c..3d43249 100644
+--- a/helixtest/crates/framework/src/wes.rs
++++ b/helixtest/crates/framework/src/wes.rs
+@@ -43,7 +43,7 @@ async fn level0_service_info_reachable(cfg: &TestConfig, client: &HttpClient) ->
+         "{}/service-info",
+         cfg.services.wes_url.trim_end_matches('/')
+     );
+-    let res = client.inner().get(&url).send().await;
++    let res = client.get_builder(&url).send().await;
+     match res {
+         Ok(resp) => TestCaseResult {
+             name: "WES service-info reachable".into(),
