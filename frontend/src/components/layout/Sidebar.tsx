@@ -30,6 +30,7 @@ const navItems: { to: string; labelKey: string; icon: typeof Home }[] = [
   { to: "/blast", labelKey: "blast", icon: FileSearch },
   { to: "/drs", labelKey: "drs", icon: FolderOpen },
   { to: "/phenopackets", labelKey: "phenopackets", icon: Dna },
+  { to: "/phenoflow", labelKey: "phenoflow", icon: Dna },
   { to: "/fair-export", labelKey: "fairExport", icon: Upload },
   { to: "/audit", labelKey: "audit", icon: ClipboardList },
 ];

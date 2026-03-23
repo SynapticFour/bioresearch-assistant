@@ -499,6 +499,18 @@ export const drs = {
 
 export type PhenopacketItem = Record<string, unknown>;
 
+export type PhenopacketAssetFileType = "bam" | "cram" | "vcf" | "fastq" | "other";
+
+export interface PhenopacketAssetSummary {
+  asset_id: number;
+  drs_object_id: string;
+  file_type: PhenopacketAssetFileType;
+}
+
+export interface PhenopacketAssetLinkResponse extends PhenopacketAssetSummary {
+  pseudonym_id: string;
+}
+
 export interface PhenopacketCreate {
   pseudonym_id: string;
   phenotypes?: string[];
@@ -551,6 +563,81 @@ export const phenopackets = {
       { text }
     );
     return data ?? { terms: [], genes: [] };
+  },
+  async listAssets(pseudonymId: string): Promise<PhenopacketAssetSummary[]> {
+    const { data } = await apiClient.get<PhenopacketAssetSummary[]>(
+      `${API_V1}/phenopackets/${encodeURIComponent(pseudonymId)}/assets`
+    );
+    return Array.isArray(data) ? data : [];
+  },
+  async linkAsset(
+    pseudonymId: string,
+    drsObjectId: string,
+    fileType: PhenopacketAssetFileType
+  ): Promise<PhenopacketAssetLinkResponse> {
+    const { data } = await apiClient.post<PhenopacketAssetLinkResponse>(
+      `${API_V1}/phenopackets/${encodeURIComponent(pseudonymId)}/assets`,
+      { drs_object_id: drsObjectId, file_type: fileType }
+    );
+    return data;
+  },
+  async deleteAsset(pseudonymId: string, assetId: number): Promise<void> {
+    await apiClient.delete(
+      `${API_V1}/phenopackets/${encodeURIComponent(pseudonymId)}/assets/${assetId}`
+    );
+  },
+};
+
+// ----- PhenoFlow (Phenopackets -> WES via DRS) -----
+
+export type PhenoFlowFileType = PhenopacketAssetFileType;
+
+export interface PhenoFlowRunRequest {
+  hpo_terms: string[];
+  file_type?: PhenoFlowFileType | null;
+  limit_matches: number;
+  workflow_url: string;
+  workflow_type: string;
+  workflow_type_version: string;
+  workflow_params_template: Record<string, unknown>;
+}
+
+export interface PhenoFlowRunItemSubmission {
+  pseudonym_id: string;
+  drs_object_id: string;
+  file_type: PhenoFlowFileType;
+  wes_run_id: string | null;
+  state_snapshot: string;
+  error: string | null;
+}
+
+export interface PhenoFlowRunResponse {
+  phenoflow_run_id: string;
+  matched_count: number;
+  submitted_count: number;
+  items: PhenoFlowRunItemSubmission[];
+  errors: string[];
+}
+
+export interface PhenoFlowRunDetailResponse extends PhenoFlowRunResponse {
+  status: string;
+  query_spec: Record<string, unknown>;
+  workflow_spec: Record<string, unknown>;
+}
+
+export const phenoflow = {
+  async createRun(payload: PhenoFlowRunRequest): Promise<PhenoFlowRunResponse> {
+    const { data } = await apiClient.post<PhenoFlowRunResponse>(
+      `${API_V1}/phenoflow/runs`,
+      payload
+    );
+    return data;
+  },
+  async getRun(phenoflowRunId: string): Promise<PhenoFlowRunDetailResponse> {
+    const { data } = await apiClient.get<PhenoFlowRunDetailResponse>(
+      `${API_V1}/phenoflow/runs/${encodeURIComponent(phenoflowRunId)}`
+    );
+    return data;
   },
 };
 

@@ -2,6 +2,19 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import delete
+
+from app.models.patient_record import PatientRecordModel
+
+
+@pytest.fixture(autouse=True)
+async def _isolate_phenopackets_rows(db_session) -> None:
+    """Make phenopackets tests deterministic across full-suite ordering."""
+    await db_session.execute(delete(PatientRecordModel))
+    await db_session.flush()
+    yield
+    await db_session.execute(delete(PatientRecordModel))
+    await db_session.flush()
 
 
 @pytest.mark.asyncio

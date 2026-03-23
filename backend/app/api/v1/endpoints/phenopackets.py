@@ -20,6 +20,13 @@ from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.patient_record import PatientRecordModel
+from app.models.phenopacket_asset import PhenopacketAsset
+from app.schemas.phenoflow import (
+    PhenopacketAssetFileType,
+    PhenopacketAssetLinkRequest,
+    PhenopacketAssetLinkResponse,
+    PhenopacketAssetSummary,
+)
 from app.schemas.phenopackets import (
     DiseaseTerm,
     GeneOfInterest,
@@ -27,6 +34,7 @@ from app.schemas.phenopackets import (
     PatientData,
     ValidationResult,
 )
+from app.services.drs_service import get_object as drs_get_object
 from app.services.hpo_service import HPOService
 from app.services.phenopacket_service import (
     create_phenopacket,
@@ -149,6 +157,142 @@ async def list_phenopackets(
         return json.loads(raw) if isinstance(raw, str) else raw
 
     return [_to_dict(r) for r in rows]
+
+
+def _apply_scope_assets(
+    stmt: object,
+    current_user: dict[str, object],
+) -> object:
+    """Apply isolation scope to asset mapping queries."""
+    scope = get_scope_filter(current_user)
+    if "user_id" in scope and scope["user_id"]:
+        return stmt.where(PhenopacketAsset.user_id == scope["user_id"])
+    if "team_id" in scope and scope["team_id"]:
+        return stmt.where(PhenopacketAsset.team_id == scope["team_id"])
+    return stmt
+
+
+@router.get(
+    "/{id}/assets",
+    response_model=list[PhenopacketAssetSummary],
+    status_code=status.HTTP_200_OK,
+)
+async def list_phenopacket_assets(
+    id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> list[PhenopacketAssetSummary]:
+    """List DRS assets linked to a phenopacket (by pseudonym_id)."""
+    scope = get_scope_filter(current_user)
+    stmt_pp = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
+    if "user_id" in scope and scope["user_id"]:
+        stmt_pp = stmt_pp.where(PatientRecordModel.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt_pp = stmt_pp.where(PatientRecordModel.team_id == scope["team_id"])
+    r = await db.execute(stmt_pp)
+    row = r.scalars().first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phenopacket not found")
+
+    stmt = (
+        select(PhenopacketAsset)
+        .where(PhenopacketAsset.pseudonym_id == id)
+        .order_by(PhenopacketAsset.id)
+    )
+    stmt = _apply_scope_assets(stmt, current_user)
+    assets_r = await db.execute(stmt)
+    assets = list(assets_r.scalars().all())
+
+    return [
+        PhenopacketAssetSummary(
+            asset_id=a.id,
+            drs_object_id=a.drs_object_id,
+            file_type=PhenopacketAssetFileType(a.file_type),
+        )
+        for a in assets
+    ]
+
+
+@router.post(
+    "/{id}/assets",
+    response_model=PhenopacketAssetLinkResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def link_phenopacket_asset(
+    id: str,
+    body: PhenopacketAssetLinkRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> PhenopacketAssetLinkResponse:
+    """Link a DRS object to a stored phenopacket (creates phenopacket_assets row)."""
+    # Ensure phenopacket exists in current isolation scope.
+    scope = get_scope_filter(current_user)
+    stmt_pp = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
+    if "user_id" in scope and scope["user_id"]:
+        stmt_pp = stmt_pp.where(PatientRecordModel.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt_pp = stmt_pp.where(PatientRecordModel.team_id == scope["team_id"])
+    r = await db.execute(stmt_pp)
+    row = r.scalars().first()
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phenopacket not found")
+
+    # Validate that the DRS object exists (no actual byte streaming here).
+    obj = drs_get_object(body.drs_object_id)
+    if obj is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DRS object not found")
+
+    scope_values = get_scope_values(current_user)
+    asset = PhenopacketAsset(
+        pseudonym_id=id,
+        drs_object_id=body.drs_object_id,
+        file_type=body.file_type.value,
+        user_id=scope_values.get("user_id"),
+        team_id=scope_values.get("team_id"),
+    )
+    db.add(asset)
+    try:
+        await db.flush()
+        await db.commit()
+    except IntegrityError as err:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="DRS asset already linked to this phenopacket",
+        ) from err
+
+    return PhenopacketAssetLinkResponse(
+        asset_id=asset.id,
+        pseudonym_id=asset.pseudonym_id,
+        drs_object_id=asset.drs_object_id,
+        file_type=PhenopacketAssetFileType(asset.file_type),
+    )
+
+
+@router.delete(
+    "/{id}/assets/{asset_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_phenopacket_asset(
+    id: str,
+    asset_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> None:
+    """Delete a linked DRS asset from a phenopacket mapping."""
+    stmt = (
+        select(PhenopacketAsset)
+        .where(PhenopacketAsset.id == asset_id)
+        .where(PhenopacketAsset.pseudonym_id == id)
+    )
+    stmt = _apply_scope_assets(stmt, current_user)
+    r = await db.execute(stmt)
+    asset = r.scalars().first()
+    if asset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset mapping not found")
+    await db.delete(asset)
+    await db.commit()
+    return None
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
