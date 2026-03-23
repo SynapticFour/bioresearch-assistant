@@ -266,6 +266,12 @@ def mock_encryption_key(monkeypatch):
 @pytest.fixture(autouse=True, scope="session")
 def load_spacy_models() -> None:
     """Lade spaCy-Modelle für Presidio (Pseudonymisierung). Optional, Skip wenn nicht vorhanden."""
+    # In the sandboxed execution environment, loading the spaCy model can
+    # crash the interpreter (native dependency incompatibility).
+    # Our `TESTING=1` mode uses a regex-based pseudonymization fallback, so
+    # spaCy models are not required for unit tests.
+    if os.environ.get("ENABLE_SPACY_MODELS", "0") != "1":
+        return
     try:
         import spacy
 
