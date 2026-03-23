@@ -49,6 +49,18 @@ def test_extract_hpo_ids_parses_phenotypic_features() -> None:
     assert "HP:0000707" in out
 
 
+def test_extract_hpo_ids_supports_camelcase_and_excluded() -> None:
+    phenopacket_json: dict[str, Any] = {
+        "phenotypicFeatures": [
+            {"type": {"id": "HP:0001250", "label": "Seizures"}, "excluded": True},
+            {"type": {"id": "HP:0000707", "label": "Seizure disorder"}},
+        ]
+    }
+    out = _extract_hpo_ids(phenopacket_json)
+    assert "HP:0001250" not in out
+    assert "HP:0000707" in out
+
+
 @pytest.mark.asyncio
 async def test_submit_pheno_flow_run_submits_matching_pairs(
     db_session,

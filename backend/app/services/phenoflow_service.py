@@ -54,6 +54,7 @@ HPO_ID_KEYS_CANDIDATES = (
     "id",
     "hpo_id",
 )
+EXCLUDED_KEYS_CANDIDATES = ("excluded", "is_excluded")
 
 PLACEHOLDER_DRS_OBJECT_ID = "{{drs_object_id}}"
 PLACEHOLDER_DRS_STREAM_URL = "{{drs_stream_url}}"
@@ -90,6 +91,9 @@ def _extract_hpo_ids(phenopacket_json: object) -> set[str]:
 
     for feature in phenotypic_features:
         if not isinstance(feature, dict):
+            continue
+        if any(feature.get(key) is True for key in EXCLUDED_KEYS_CANDIDATES):
+            # Phenopacket v2 allows negated/excluded features; skip them in positive matching.
             continue
         term_type: dict[str, Any] = {}
         for tk in TYPE_KEYS_CANDIDATES:

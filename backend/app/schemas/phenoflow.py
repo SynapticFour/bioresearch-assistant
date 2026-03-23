@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import re
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PhenopacketAssetFileType(str, Enum):
@@ -96,6 +97,23 @@ class PhenoFlowRunRequest(BaseModel):
         ),
     )
 
+    @field_validator("hpo_terms")
+    @classmethod
+    def validate_hpo_terms(cls, value: list[str]) -> list[str]:
+        """Require canonical HPO CURIE format and normalize case."""
+        pattern = re.compile(r"^HP:\d{7}$")
+        normalized = [term.strip().upper() for term in value if term and term.strip()]
+        if not normalized:
+            raise ValueError("At least one HPO term is required.")
+        invalid = [term for term in normalized if not pattern.match(term)]
+        if invalid:
+            raise ValueError(
+                "Invalid HPO terms: "
+                + ", ".join(invalid)
+                + ". Expected format HP:0000001 (7 digits)."
+            )
+        return sorted(set(normalized))
+
 
 class PhenoFlowRunItemSubmission(BaseModel):
     """Per-match submission record returned for POST /phenoflow/runs."""
@@ -138,3 +156,19 @@ class PhenoFlowRunDetailResponse(BaseModel):
     query_spec: dict[str, Any]
     workflow_spec: dict[str, Any]
     items: list[PhenoFlowRunItemResponse] = Field(default_factory=list)
+
+
+class PhenoFlowRunListItem(BaseModel):
+    """List item for GET /phenoflow/runs."""
+
+    phenoflow_run_id: str
+    status: str
+    created_at: str | None = None
+    matched_count: int
+    submitted_count: int
+
+
+class PhenoFlowRunListResponse(BaseModel):
+    """Paginated-like response for listing PhenoFlow runs."""
+
+    items: list[PhenoFlowRunListItem] = Field(default_factory=list)
