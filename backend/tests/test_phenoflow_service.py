@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from app.models.patient_record import PatientRecordModel
 from app.models.phenoflow_run import PhenoFlowRun
@@ -19,6 +19,16 @@ from app.schemas.phenoflow import (
     PhenopacketAssetFileType,
 )
 from app.services.phenoflow_service import _extract_hpo_ids, submit_pheno_flow_run
+
+
+@pytest.fixture(autouse=True)
+async def _isolate_phenoflow_rows(db_session) -> None:
+    """Ensure PhenoFlow tests do not leak fixtures across test files."""
+    await db_session.execute(delete(PhenoFlowRunItem))
+    await db_session.execute(delete(PhenoFlowRun))
+    await db_session.execute(delete(PhenopacketAsset))
+    await db_session.execute(delete(PatientRecordModel))
+    await db_session.flush()
 
 
 def test_extract_hpo_ids_parses_phenotypic_features() -> None:

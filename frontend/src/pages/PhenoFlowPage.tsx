@@ -7,7 +7,6 @@ import { ClipboardList, Dna, Search, Upload } from "lucide-react";
 import type {
   PhenoFlowRunRequest,
   PhenoFlowRunResponse,
-  PhenoFlowRunDetailResponse,
   PhenoFlowFileType,
 } from "@/api/endpoints";
 import { phenoflow } from "@/api/endpoints";

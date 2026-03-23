@@ -7,14 +7,27 @@ from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import delete
 
 from app.models.patient_record import PatientRecordModel
+from app.models.phenoflow_run import PhenoFlowRun
+from app.models.phenoflow_run_item import PhenoFlowRunItem
 from app.models.phenopacket_asset import PhenopacketAsset
 from app.schemas.phenoflow import (
     PhenoFlowRunRequest,
     PhenopacketAssetFileType,
     PhenopacketAssetLinkRequest,
 )
+
+
+@pytest.fixture(autouse=True)
+async def _isolate_phenoflow_rows(db_session) -> None:
+    """Ensure API tests do not pollute global test DB state."""
+    await db_session.execute(delete(PhenoFlowRunItem))
+    await db_session.execute(delete(PhenoFlowRun))
+    await db_session.execute(delete(PhenopacketAsset))
+    await db_session.execute(delete(PatientRecordModel))
+    await db_session.flush()
 
 
 @pytest.mark.asyncio

@@ -10,10 +10,11 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
+from sqlalchemy import Uuid
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-from sqlalchemy import Uuid
+
+from alembic import op
 
 revision: str = "003"
 down_revision: str | None = "002"
@@ -64,7 +65,7 @@ def upgrade() -> None:
     op.create_table(
         "phenoflow_runs",
         sa.Column("phenoflow_run_id", uuid_type, primary_key=True, nullable=False),
-        sa.Column("status", sa.String(32), nullable=False, index=True),
+        sa.Column("status", sa.String(32), nullable=False),
         sa.Column("query_spec", json_type, nullable=False),
         sa.Column("workflow_spec", json_type, nullable=False),
         sa.Column("user_id", sa.String(128), nullable=True),
@@ -92,7 +93,7 @@ def upgrade() -> None:
     op.create_table(
         "phenoflow_run_items",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column("phenoflow_run_id", uuid_type, nullable=False, index=True),
+        sa.Column("phenoflow_run_id", uuid_type, nullable=False),
         sa.Column("pseudonym_id", sa.String(128), nullable=False),
         sa.Column("drs_object_id", sa.String(2048), nullable=False),
         sa.Column("file_type", sa.String(32), nullable=False),
@@ -106,7 +107,11 @@ def upgrade() -> None:
             nullable=False,
         ),
     )
-    op.create_index("ix_phenoflow_run_items_phenoflow_run_id", "phenoflow_run_items", ["phenoflow_run_id"])
+    op.create_index(
+        "ix_phenoflow_run_items_phenoflow_run_id",
+        "phenoflow_run_items",
+        ["phenoflow_run_id"],
+    )
     op.create_index("ix_phenoflow_run_items_pseudonym_id", "phenoflow_run_items", ["pseudonym_id"])
     op.create_index("ix_phenoflow_run_items_wes_run_id", "phenoflow_run_items", ["wes_run_id"])
 
@@ -133,4 +138,3 @@ def downgrade() -> None:
     op.drop_index("ix_phenopacket_assets_drs_object_id", table_name="phenopacket_assets")
     op.drop_index("ix_phenopacket_assets_pseudonym_id", table_name="phenopacket_assets")
     op.drop_table("phenopacket_assets")
-
