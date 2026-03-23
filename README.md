@@ -36,6 +36,7 @@ im DACH-Raum.
 | 🗄️ Dateiverwaltung | GA4GH DRS v1.4 | ✅ |
 | 🧬 BLAST Sequenzsuche | NCBI BLAST+ | ✅ |
 | ⚙️ Pipelines | GA4GH WES v1.1 | ✅ |
+| 🔁 Search-to-Execution (PhenoFlow) | Phenopackets + DRS + WES | ✅ v0.1 |
 | 📓 Research Notebook (ELN) | Markdown + KI | ✅ |
 | 📦 FAIR Data Export | DataCite + Zenodo | ✅ |
 | 🌐 GAIA-X Self-Description | Gaia-X Standard | ✅ |
@@ -100,6 +101,7 @@ Danach erreichbar unter:
 |----------|-------------|
 | [USER-GUIDE.md](docs/USER-GUIDE.md) | Benutzerhandbuch (UI) |
 | [DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | API Referenz + curl Beispiele |
+| [PHENOFLOW.md](docs/PHENOFLOW.md) | PhenoFlow v0.1 (Search-to-Execution) |
 | [COMPLIANCE.md](docs/COMPLIANCE.md) | DSGVO, GAIA-X, GA4GH, NIS2, EHDS |
 | [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
