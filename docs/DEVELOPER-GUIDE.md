@@ -410,6 +410,99 @@ Response: 204 No Content.
 
 ---
 
+#### GET /api/v1/phenopackets/{id}/assets
+
+Gelinkte DRS-Assets zu einem Phenopacket auflisten.
+
+```bash
+curl -s "http://localhost:8000/api/v1/phenopackets/P-2024-001/assets"
+```
+
+Response:
+
+```json
+[
+  {
+    "asset_id": 1,
+    "drs_object_id": "demo_BRCA1_exon10.fasta",
+    "file_type": "other"
+  }
+]
+```
+
+---
+
+#### POST /api/v1/phenopackets/{id}/assets
+
+DRS-Asset mit Phenopacket verknüpfen.
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/phenopackets/P-2024-001/assets" \
+  -H "Content-Type: application/json" \
+  -d '{"drs_object_id": "demo_variants.vcf", "file_type": "vcf"}'
+```
+
+---
+
+#### DELETE /api/v1/phenopackets/{id}/assets/{asset_id}
+
+Asset-Link entfernen.
+
+```bash
+curl -s -X DELETE "http://localhost:8000/api/v1/phenopackets/P-2024-001/assets/1"
+```
+
+Response: 204 No Content.
+
+---
+
+### PhenoFlow (API-Prefix: /api/v1)
+
+#### POST /api/v1/phenoflow/runs
+
+Search-to-Execution starten (HPO Query -> DRS Resolution -> WES Submit).
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/phenoflow/runs" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "hpo_terms": ["HP:0001250"],
+    "file_type": "bam",
+    "limit_matches": 50,
+    "workflow_url": "nextflow",
+    "workflow_type": "NEXTFLOW",
+    "workflow_type_version": "DSL2",
+    "workflow_params_template": {
+      "input_bam": "{{drs_stream_url}}",
+      "sample_id": "{{pseudonym_id}}"
+    }
+  }'
+```
+
+Response: `phenoflow_run_id`, `matched_count`, `submitted_count`, `items[]`.
+
+---
+
+#### GET /api/v1/phenoflow/runs
+
+PhenoFlow-Runs (scoped) auflisten.
+
+```bash
+curl -s "http://localhost:8000/api/v1/phenoflow/runs"
+```
+
+---
+
+#### GET /api/v1/phenoflow/runs/{phenoflow_run_id}
+
+Details eines PhenoFlow-Runs inkl. Item-Provenance und WES-State.
+
+```bash
+curl -s "http://localhost:8000/api/v1/phenoflow/runs/<phenoflow_run_id>"
+```
+
+---
+
 ### DRS (Basis-URL: /ga4gh/drs/v1)
 
 #### GET /ga4gh/drs/v1/service-info

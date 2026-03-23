@@ -178,6 +178,7 @@ async def seed() -> None:
         from app.models.notebook import Notebook
         from app.models.paper import Paper
         from app.models.patient_record import PatientRecordModel
+        from app.models.phenopacket_asset import PhenopacketAsset
 
         print("🌱 Seeding demo data...")
 
@@ -240,6 +241,31 @@ async def seed() -> None:
         else:
             print("  ⏭ Demo notebook already exists")
 
+        # Phenopacket -> DRS asset links (needed for PhenoFlow demo)
+        for drs_id, file_type in [
+            ("demo_BRCA1_exon10.fasta", "other"),
+            ("demo_variants.vcf", "vcf"),
+        ]:
+            r = await session.execute(
+                select(PhenopacketAsset)
+                .where(PhenopacketAsset.pseudonym_id == "DEMO-P001")
+                .where(PhenopacketAsset.drs_object_id == drs_id)
+            )
+            existing_link = r.scalar_one_or_none()
+            if not existing_link:
+                session.add(
+                    PhenopacketAsset(
+                        pseudonym_id="DEMO-P001",
+                        drs_object_id=drs_id,
+                        file_type=file_type,
+                        user_id="dev-user",
+                        team_id="domain:synapticfour.com",
+                    ),
+                )
+                print(f"  ✓ PhenoFlow asset link: DEMO-P001 -> {drs_id}")
+            else:
+                print(f"  ⏭ PhenoFlow asset link already exists: {drs_id}")
+
         await session.commit()
 
     # DRS files via DRS Service registrieren (register_object schreibt unter drs_storage_path)
@@ -263,8 +289,18 @@ async def seed() -> None:
     print("  👤 1 Phenopacket (CDKL5 Patient)")
     print("  📓 1 Notebook (CRISPR Notizen)")
     print("  🧬 2 DRS Files (FASTA, VCF)")
+    print("  🔁 2 PhenoFlow Links (DEMO-P001 -> DRS assets)")
     print("\nRun reembed-all to generate embeddings:")
     print("  curl -X POST http://localhost:8000/api/v1/library/reembed-all")
+    print("\nOptional PhenoFlow demo call:")
+    print("  curl -X POST http://localhost:8000/api/v1/phenoflow/runs \\")
+    print('    -H "Content-Type: application/json" \\')
+    print(
+        '    -d \'{"hpo_terms":["HP:0001250"],"file_type":"vcf",'
+        '"workflow_url":"nextflow","workflow_type":"NEXTFLOW",'
+        '"workflow_type_version":"DSL2",'
+        '"workflow_params_template":{"input_vcf":"{{drs_stream_url}}"}}\''
+    )
 
 
 if __name__ == "__main__":

@@ -15,6 +15,8 @@ from app.models.phenoflow_run_item import PhenoFlowRunItem
 from app.models.workflow_run import WorkflowRun
 from app.schemas.phenoflow import (
     PhenoFlowRunDetailResponse,
+    PhenoFlowRunListItem,
+    PhenoFlowRunListResponse,
     PhenoFlowRunRequest,
     PhenoFlowRunResponse,
 )
@@ -36,6 +38,41 @@ async def create_pheno_flow_run(
     response = await submit_pheno_flow_run(db, body, current_user=current_user)
     await db.commit()
     return response
+
+
+@router.get("/runs", response_model=PhenoFlowRunListResponse, status_code=status.HTTP_200_OK)
+async def list_pheno_flow_runs(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+) -> PhenoFlowRunListResponse:
+    """List recent PhenoFlow runs in current isolation scope."""
+    stmt = select(PhenoFlowRun).order_by(PhenoFlowRun.created_at.desc())
+    scope = get_scope_filter(current_user)
+    if "user_id" in scope and scope["user_id"]:
+        stmt = stmt.where(PhenoFlowRun.user_id == scope["user_id"])
+    elif "team_id" in scope and scope["team_id"]:
+        stmt = stmt.where(PhenoFlowRun.team_id == scope["team_id"])
+    r = await db.execute(stmt)
+    runs = list(r.scalars().all())
+
+    items: list[PhenoFlowRunListItem] = []
+    for run in runs:
+        items_stmt = select(PhenoFlowRunItem).where(
+            PhenoFlowRunItem.phenoflow_run_id == run.phenoflow_run_id,
+        )
+        items_r = await db.execute(items_stmt)
+        run_items = list(items_r.scalars().all())
+        submitted_count = sum(1 for i in run_items if i.wes_run_id is not None)
+        items.append(
+            PhenoFlowRunListItem(
+                phenoflow_run_id=str(run.phenoflow_run_id),
+                status=run.status,
+                created_at=run.created_at.isoformat() if run.created_at else None,
+                matched_count=len(run_items),
+                submitted_count=submitted_count,
+            ),
+        )
+    return PhenoFlowRunListResponse(items=items)
 
 
 @router.get(
