@@ -67,8 +67,8 @@ def header():
 ╔═══════════════════════════════════════════════════╗
 ║   BioResearch Assistant — Installer v1.0.0        ║
 ║   Synaptic Four                                   ║
-║   Proudly built by individuals on the             ║
-║   autism spectrum                                 ║
+║   Proudly developed by individuals on the         ║
+║   autism spectrum in Germany                      ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}"""
     )

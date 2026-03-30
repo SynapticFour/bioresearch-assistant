@@ -149,6 +149,7 @@ jobs:
       OIDC_CLIENT_ID: helixtest-audience
       OIDC_CLIENT_SECRET: ""
       ANTHROPIC_API_KEY: ""
+      HELIXTEST_REF: 04d22024f95972f26d0d7555fce8e6136e4f866d
 
     steps:
       - uses: actions/checkout@v4
@@ -177,9 +178,12 @@ jobs:
 
       - name: Clone and patch HelixTest
         run: |
-          git clone --depth 1 https://github.com/SynapticFour/HelixTest.git "${RUNNER_TEMP}/helixtest"
-          patch -p1 -d "${RUNNER_TEMP}/helixtest" \
-            < "${GITHUB_WORKSPACE}/scripts/helixtest-patches/0001-default-bearer-for-confidential-drs-wes.patch"
+          git clone https://github.com/SynapticFour/HelixTest.git "${RUNNER_TEMP}/helixtest"
+          git -C "${RUNNER_TEMP}/helixtest" checkout "${HELIXTEST_REF}"
+          git -C "${RUNNER_TEMP}/helixtest" apply --check \
+            "${GITHUB_WORKSPACE}/scripts/helixtest-patches/0001-default-bearer-for-confidential-drs-wes.patch"
+          git -C "${RUNNER_TEMP}/helixtest" apply \
+            "${GITHUB_WORKSPACE}/scripts/helixtest-patches/0001-default-bearer-for-confidential-drs-wes.patch"
 
       - name: Start OIDC stub (JWKS) and export bearer tokens
         run: |
