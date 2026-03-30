@@ -2,7 +2,7 @@
 
 **KI-gestützte Forschungsplattform für
 biomedizinische Forschung**
-Für DSGVO-konforme Nutzung konzipiert · On-premise · Open Standards
+Für datenschutzfreundliche Nutzung konzipiert (technisch, kein Rechtsrat) · On-premise · Open Standards
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
 [![GA4GH Standards](https://img.shields.io/badge/GA4GH-Standards-blue.svg)](https://ga4gh.org)
@@ -33,7 +33,7 @@ im DACH-Raum.
 | 🧠 RAG — Frag deine Bibliothek | Ollama / Claude | ✅ |
 | 🔒 DSGVO Pseudonymisierung | Presidio + AES-256 | ✅ |
 | 👤 Phenopackets | GA4GH v2.0 | ✅ |
-| 🗄️ Dateiverwaltung | GA4GH DRS v1.4 | ✅ |
+| 🗄️ Dateiverwaltung | GA4GH DRS v1.3 | ✅ |
 | 🧬 BLAST Sequenzsuche | NCBI BLAST+ | ✅ |
 | ⚙️ Pipelines | GA4GH WES v1.1 | ✅ |
 | 🔁 Search-to-Execution (PhenoFlow) | Phenopackets + DRS + WES | ✅ v0.1 |
@@ -107,6 +107,7 @@ Danach erreichbar unter:
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
+| [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) | Open-core Lizenz- und Nutzungsmodell (BUSL) |
 
 ---
 

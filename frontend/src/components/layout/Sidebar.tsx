@@ -149,7 +149,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
       {!collapsed && (
         <div className="px-4 py-3 border-t border-gray-100">
           <p className="text-xs text-gray-400 leading-relaxed">
-            Proudly developed by individuals on the autism spectrum in Germany 🇩🇪
+            Proudly developed by individuals on the autism spectrum in Germany.
           </p>
           <p className="text-xs text-gray-400 mt-1">
             © 2026 Synaptic Four, Stuttgart

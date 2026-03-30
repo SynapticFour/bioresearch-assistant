@@ -56,7 +56,7 @@ export function LoginPage() {
           BioResearch Assistant
         </h1>
         <p className="mb-6 text-center text-sm text-slate-500">
-          Synaptic Four — Sicher. Compliant. Open.
+          Synaptic Four — Sicher. Standards-orientiert. Open.
         </p>
 
         {authStatus?.mode === "development" && (
@@ -112,7 +112,7 @@ export function LoginPage() {
 
         <footer className="mt-8 space-y-1 border-t border-slate-100 pt-6 text-center text-xs text-slate-400">
           <p>
-            Proudly developed by individuals on the autism spectrum in Germany 🇩🇪
+            Proudly developed by individuals on the autism spectrum in Germany.
           </p>
           <p className="max-w-xl mx-auto text-[11px] text-slate-500">
             BioResearch Assistant unterstützt Forschung und Dokumentation und ersetzt weder
