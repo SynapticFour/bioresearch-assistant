@@ -14,8 +14,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend
-  FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend
+  BACKEND_IMAGE: ghcr.io/synapticfour/bioresearch-assistant/backend
+  FRONTEND_IMAGE: ghcr.io/synapticfour/bioresearch-assistant/frontend
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
 jobs:
@@ -52,8 +52,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/backend:latest
-            ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+            ghcr.io/synapticfour/bioresearch-assistant/backend:latest
+            ghcr.io/synapticfour/bioresearch-assistant/backend:${{ github.sha }}
 
       - name: Build and push Backend (Docker Hub)
         if: ${{ env.DOCKERHUB_USERNAME != '' }}
@@ -72,8 +72,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/frontend:latest
-            ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
+            ghcr.io/synapticfour/bioresearch-assistant/frontend:latest
+            ghcr.io/synapticfour/bioresearch-assistant/frontend:${{ github.sha }}
 
       - name: Build and push Frontend (Docker Hub)
         if: ${{ env.DOCKERHUB_USERNAME != '' }}
