@@ -35,7 +35,7 @@ async def get_current_user(
             )
         return {
             "sub": "dev-user",
-            "email": "dev@synapticfour.com",
+            "email": "contact@synapticfour.com",
             "name": "Developer",
             "roles": ["admin"],
         }
