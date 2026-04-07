@@ -30,7 +30,7 @@ async def test_get_me_dev_mode(async_client: AsyncClient) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["sub"] == "dev-user"
-    assert data["email"] == "dev@synapticfour.com"
+    assert data["email"] == "contact@synapticfour.com"
     assert "admin" in data["roles"]
 
 
