@@ -43,7 +43,6 @@ export function AuditPage() {
     queryKey: ["audit-log"],
     queryFn: async () => {
       const data = await pseudonymizeApi.getAuditLog();
-      console.log("Audit entries:", data);
       return data;
     },
     refetchInterval: REFETCH_MS,
