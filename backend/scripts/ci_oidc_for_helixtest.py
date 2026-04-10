@@ -61,7 +61,7 @@ def _prepare_state(issuer: str, audience: str, state_dir: Path) -> str:
     claims = {
         "sub": "helixtest-ci-user",
         "aud": audience,
-        "email": "helixtest@synapticfour.com",
+        "email": "contact@synapticfour.com",
         "ga4gh_passport_v1": [],
     }
     token: str = jwt.encode(

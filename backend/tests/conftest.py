@@ -87,7 +87,7 @@ async def db_session(engine, create_tables) -> AsyncGenerator[AsyncSession, None
 # Matches app dev-user shape so tests expecting dev mode pass
 DEV_USER = {
     "sub": "dev-user",
-    "email": "dev@synapticfour.com",
+    "email": "contact@synapticfour.com",
     "name": "Developer",
     "roles": ["admin"],
     "passports": [],

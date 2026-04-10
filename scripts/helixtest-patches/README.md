@@ -5,6 +5,9 @@ The `bioresearch-assistant` GitHub Actions job **`helixtest-ga4gh`** clones
 
 - **`0001-default-bearer-for-confidential-drs-wes.patch`**
 
+The workflow pins HelixTest to a fixed commit (`HELIXTEST_REF`) before applying
+the patch to avoid CI drift from upstream `main` changes.
+
 ## Why this patch exists
 
 The `bioresearch-assistant` profile enables **OIDC-backed Bearer auth** on GA4GH
