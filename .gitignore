@@ -52,3 +52,13 @@ docker-compose.override.yml
 # Local reference clone (not tracked)
 .ferrum-ref/
 .ferrum-peek/
+
+# Generated artifacts and caches
+.svelte-kit/
+.astro/
+coverage/
+dist/
+build/
+target/
+.pytest_cache/
+.ruff_cache/
