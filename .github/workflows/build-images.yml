@@ -36,7 +36,7 @@ jobs:
 
       - name: Extract backend image metadata
         id: meta_backend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/synapticfour/bioresearch-assistant-backend
           tags: |
@@ -45,7 +45,7 @@ jobs:
 
       - name: Extract frontend image metadata
         id: meta_frontend
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ghcr.io/synapticfour/bioresearch-assistant-frontend
           tags: |
