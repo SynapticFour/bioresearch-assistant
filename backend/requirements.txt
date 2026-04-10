@@ -44,7 +44,7 @@ phenopackets>=2.0.0,<3.0
 anthropic>=0.39.0,<1.0
 
 # Embeddings (local)
-sentence-transformers>=2.2.0,<3.0
+sentence-transformers>=2.2.0,<6.0
 
 # Bioinformatik (BLAST XML parsing)
 biopython>=1.81,<2.0
