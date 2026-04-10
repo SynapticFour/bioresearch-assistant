@@ -63,7 +63,7 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
 
       - name: Update Container Instance
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           inlineScript: |
             az container restart \
