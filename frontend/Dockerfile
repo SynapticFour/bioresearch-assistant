@@ -1,5 +1,5 @@
 # node:20-alpine hat offizielle ARM64 Unterstützung ✓
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 WORKDIR /app
 ARG VITE_API_URL=http://localhost:8000
 ARG VITE_APP_VERSION=1.3.0
