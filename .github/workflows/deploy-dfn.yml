@@ -38,7 +38,7 @@ jobs:
       github.event.inputs.confirm == 'DEPLOY' ||
       github.event_name == 'workflow_call'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1

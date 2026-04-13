@@ -30,10 +30,10 @@ jobs:
       github.event.inputs.confirm == 'DEPLOY' ||
       github.event_name == 'workflow_call'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Azure Login
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
@@ -45,7 +45,7 @@ jobs:
           password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push Backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./backend
           push: true
@@ -54,7 +54,7 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER }}/backend:${{ github.sha }}
 
       - name: Build and push Frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
         with:
           context: ./frontend
           push: true
@@ -63,7 +63,7 @@ jobs:
             ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
 
       - name: Update Container Instance
-        uses: azure/cli@v2
+        uses: azure/cli@v3
         with:
           inlineScript: |
             az container restart \
