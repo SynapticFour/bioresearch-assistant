@@ -17,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: npm
@@ -33,7 +33,7 @@ jobs:
             fi
           done
           if [ "$found" -eq 0 ]; then echo "No npm lockfiles found; skipping npm smoke."; fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
       - name: Python smoke
@@ -47,6 +47,6 @@ jobs:
           done
           if [ "$found" -eq 0 ]; then echo "No requirements.txt found; skipping install."; fi
           python -m pip check || true
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
       - name: Terraform smoke
         run: terraform fmt -check -recursive
