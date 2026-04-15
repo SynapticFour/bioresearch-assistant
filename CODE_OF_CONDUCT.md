@@ -18,7 +18,7 @@ We are committed to a respectful, inclusive, and constructive collaboration envi
 
 ## Enforcement
 
-Maintainers may remove comments, reject contributions, or restrict participation for violations.
+Project maintainers may remove comments, reject contributions, or restrict participation for behavior that violates this Code of Conduct.
 
 ## Contact
 
