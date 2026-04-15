@@ -56,5 +56,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_terminology_mapping_overrides_module", table_name="terminology_mapping_overrides")
+    op.drop_index(
+        "ix_terminology_mapping_overrides_module",
+        table_name="terminology_mapping_overrides",
+    )
     op.drop_table("terminology_mapping_overrides")

@@ -160,7 +160,10 @@ class Settings(BaseSettings):
     # MII-KDS / FHIR export (FDPG/DIZ-oriented defaults; override via env)
     mii_kds_release: str = Field(
         default="2026",
-        description="MII Kerndatensatz release label for Bundle.meta and artifacts (align with ig_manifest)",
+        description=(
+            "MII Kerndatensatz release label for Bundle.meta and artifacts "
+            "(align with ig_manifest)"
+        ),
         validation_alias="MII_KDS_RELEASE",
     )
     mii_bundle_attach_meta_profile: bool = Field(

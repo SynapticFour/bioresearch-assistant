@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.database import get_db
 from app.core.limiter import limiter
+from app.models.terminology_mapping_override import TerminologyMappingOverride
 from app.schemas.terminology_override import (
     TerminologyOverrideCreate,
     TerminologyOverrideListResponse,
@@ -16,7 +17,7 @@ from app.services import terminology_override_service as tov_svc
 router = APIRouter(prefix="/terminology", tags=["terminology"])
 
 
-def _row_to_read(row) -> TerminologyOverrideRead:
+def _row_to_read(row: TerminologyMappingOverride) -> TerminologyOverrideRead:
     return TerminologyOverrideRead(
         id=str(row.id),
         module=row.module,
@@ -45,7 +46,11 @@ async def list_terminology_overrides(
     return TerminologyOverrideListResponse(items=items, total=len(items))
 
 
-@router.post("/overrides", response_model=TerminologyOverrideRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/overrides",
+    response_model=TerminologyOverrideRead,
+    status_code=status.HTTP_201_CREATED,
+)
 @limiter.limit("30/minute")
 async def create_terminology_override(
     request: Request,

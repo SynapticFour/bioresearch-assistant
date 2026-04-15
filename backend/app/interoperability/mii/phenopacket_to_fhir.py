@@ -19,7 +19,9 @@ def _slug(s: str) -> str:
     return _SAFE_ID.sub("-", s)[:64].strip("-") or "id"
 
 
-def build_patient(pseudonym_id: str, attach_profile: bool, profile_url: str | None) -> dict[str, Any]:
+def build_patient(
+    pseudonym_id: str, attach_profile: bool, profile_url: str | None
+) -> dict[str, Any]:
     """Patient with pseudonym-only identifier (no real PII)."""
     pid = f"patient-{_slug(pseudonym_id)}"
     pat: dict[str, Any] = {
@@ -254,7 +256,11 @@ def build_genomic_observations_from_interpretations(
             }
             variant_info = gi.get("variant_interpretation") or gi.get("variant") or {}
             components: list[dict[str, Any]] = []
-            hgvs = variant_info.get("hgvs") or variant_info.get("hgvs_c") or variant_info.get("hgvs_p")
+            hgvs = (
+                variant_info.get("hgvs")
+                or variant_info.get("hgvs_c")
+                or variant_info.get("hgvs_p")
+            )
             if hgvs:
                 components.append(
                     {
@@ -321,13 +327,13 @@ def build_laboratory_observations_from_measurements(
         "A": ("A", "Abnormal"),
     }
 
-    def _to_quantity(raw: Any) -> dict[str, Any] | None:
+    def _to_quantity(raw: object) -> dict[str, object] | None:
         if not isinstance(raw, dict):
             return None
         qv = raw.get("value")
         if not isinstance(qv, (int, float)):
             return None
-        out_q: dict[str, Any] = {"value": qv}
+        out_q: dict[str, object] = {"value": qv}
         if raw.get("unit"):
             out_q["unit"] = raw.get("unit")
         if raw.get("system"):

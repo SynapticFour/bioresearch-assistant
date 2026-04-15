@@ -10,7 +10,6 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select
 
-from app.core.config import get_settings
 from app.interoperability.mii import constants as mii_c
 from app.models.patient_record import PatientRecordModel
 from app.models.research_consent import ResearchConsent, ResearchConsentEvent

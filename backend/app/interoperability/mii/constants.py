@@ -1,11 +1,18 @@
 """MII / FHIR defaults (Zielgruppe: deutsche Forschungslabore, FDPG/DIZ, MII).
 
 Entscheidungen (Market + regulatorischer Kontext):
-- **FHIR R4**: De-facto-Standard fuer MII und nationale Plattformen; beste Tooling-/Validator-Unterstuetzung.
-- **MII-KDS-Release**: Konfigurierbar; Default ein aktuelles Jahres-Release — Profile-URLs folgen dem offiziellen MII-IG.
-- **Export v1**: Datei-basierter FHIR-Bundle-Download (kein FHIR-Server-Push), da FDPG/DIZ-Einreichung typischerweise Pakete/Dateien nutzt.
-- **Broad Consent**: Max. eine **aktive** Erklaerung pro (pseudonym_id, policy_id); neuere Version **ersetzt** die vorherige (Status inactive/superseded).
-- **Genomics**: Aus Phenopacket (Interpretationen/Gen-Symbole) als FHIR-Observations; VCF/DRS optional als DocumentReference-Verweise (wenn Assets vorhanden).
+- **FHIR R4**: De-facto-Standard fuer MII und nationale Plattformen;
+  beste Tooling-/Validator-Unterstuetzung.
+- **MII-KDS-Release**: Konfigurierbar; Default ein aktuelles Jahres-Release;
+  Profile-URLs folgen dem offiziellen MII-IG.
+- **Export v1**: Datei-basierter FHIR-Bundle-Download (kein FHIR-Server-Push),
+  da FDPG/DIZ-Einreichung typischerweise Pakete/Dateien nutzt.
+- **Broad Consent**: Max. eine **aktive** Erklaerung pro
+  (pseudonym_id, policy_id); neuere Version **ersetzt** die vorherige
+  (Status inactive/superseded).
+- **Genomics**: Aus Phenopacket (Interpretationen/Gen-Symbole) als
+  FHIR-Observations; VCF/DRS optional als DocumentReference-Verweise
+  (wenn Assets vorhanden).
 """
 
 # FHIR

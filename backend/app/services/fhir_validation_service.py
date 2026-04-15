@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from app.interoperability.mii import constants as mii_c
-
 from app.interoperability.mii.ig_loader import profile_by_module
 
 
@@ -105,12 +104,15 @@ def validate_bundle(
                 rid = str(resource.get("id", ""))
                 category = (((resource.get("category") or [{}])[0]).get("coding") or [{}])[0]
                 cat_code = str(category.get("code") or "")
-                code_system = str((((resource.get("code") or {}).get("coding") or [{}])[0]).get("system") or "")
+                coding = ((resource.get("code") or {}).get("coding") or [{}])[0]
+                code_system = str(coding.get("system") or "")
                 if rid.startswith("observation-phenotype-"):
                     binding_checks += 1
                     if code_system != "http://purl.obolibrary.org/obo/hp.owl":
                         errors.append(
-                            f"entry[{idx}] phenotype Observation requires HP system, got {code_system}"
+                            "entry["
+                            f"{idx}] phenotype Observation requires HP system, "
+                            f"got {code_system}"
                         )
                 elif rid.startswith("observation-lab-") or cat_code == "laboratory":
                     binding_checks += 1
@@ -120,13 +122,17 @@ def validate_bundle(
                     }
                     if code_system not in allowed:
                         errors.append(
-                            f"entry[{idx}] laboratory Observation.code.system not in allowed set: {code_system}"
+                            "entry["
+                            f"{idx}] laboratory Observation.code.system not in "
+                            f"allowed set: {code_system}"
                         )
                 elif rid.startswith("observation-genomics-"):
                     binding_checks += 1
                     if code_system != mii_c.MII_FHIR_CANONICAL_BASE:
                         errors.append(
-                            f"entry[{idx}] genomics Observation.code.system expected {mii_c.MII_FHIR_CANONICAL_BASE}, got {code_system}"
+                            "entry["
+                            f"{idx}] genomics Observation.code.system expected "
+                            f"{mii_c.MII_FHIR_CANONICAL_BASE}, got {code_system}"
                         )
 
     return {

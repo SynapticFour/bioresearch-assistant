@@ -40,7 +40,12 @@ def upgrade() -> None:
         sa.Column("status", sa.String(32), nullable=False),
         sa.Column("valid_from", sa.DateTime(timezone=True), nullable=False),
         sa.Column("valid_to", sa.DateTime(timezone=True), nullable=True),
-        sa.Column("covered_project_ids", json_type, nullable=False, server_default=json_empty_array),
+        sa.Column(
+            "covered_project_ids",
+            json_type,
+            nullable=False,
+            server_default=json_empty_array,
+        ),
         sa.Column("purpose_codes", json_type, nullable=False, server_default=json_empty_array),
         sa.Column("source", sa.String(32), nullable=False, server_default="manual"),
         sa.Column("meta_json", json_type, nullable=False, server_default=json_empty_object),

@@ -28,8 +28,14 @@ def upgrade() -> None:
         "mii_export_jobs",
         sa.Column("max_attempts", sa.Integer(), nullable=False, server_default="3"),
     )
-    op.add_column("mii_export_jobs", sa.Column("next_run_at", sa.DateTime(timezone=True), nullable=True))
-    op.add_column("mii_export_jobs", sa.Column("started_at", sa.DateTime(timezone=True), nullable=True))
+    op.add_column(
+        "mii_export_jobs",
+        sa.Column("next_run_at", sa.DateTime(timezone=True), nullable=True),
+    )
+    op.add_column(
+        "mii_export_jobs",
+        sa.Column("started_at", sa.DateTime(timezone=True), nullable=True),
+    )
 
 
 def downgrade() -> None:

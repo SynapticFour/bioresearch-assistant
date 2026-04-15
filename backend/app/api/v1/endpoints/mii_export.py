@@ -10,6 +10,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
 from app.core.limiter import limiter
+from app.models.mii_export import MiiExportArtifact, MiiExportJob
 from app.schemas.mii_export import (
     MiiBundleExportRequest,
     MiiBundleExportResponse,
@@ -23,7 +24,7 @@ from app.services.mii_export_worker import run_mii_export_job_task
 router = APIRouter(prefix="/mii-export", tags=["mii-export"])
 
 
-def _job_to_read(job, art=None) -> MiiExportJobRead:
+def _job_to_read(job: MiiExportJob, art: MiiExportArtifact | None = None) -> MiiExportJobRead:
     return MiiExportJobRead(
         id=str(job.id),
         status=job.status,

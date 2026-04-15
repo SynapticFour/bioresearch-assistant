@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
-from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
 from app.core.limiter import limiter
