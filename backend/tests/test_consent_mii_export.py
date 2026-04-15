@@ -193,7 +193,9 @@ async def test_mii_bundle_laboratory_from_measurements(
     obs = [e["resource"] for e in entries if e["resource"]["resourceType"] == "Observation"]
     assert len(obs) >= 1
     loinc_obs = next(
-        o for o in obs if o.get("code", {}).get("coding", [{}])[0].get("system") == "http://loinc.org"
+        o
+        for o in obs
+        if o.get("code", {}).get("coding", [{}])[0].get("system") == "http://loinc.org"
     )
     assert loinc_obs["effectiveDateTime"] == "2026-01-02T10:15:00Z"
     assert loinc_obs["valueQuantity"]["value"] == 13.5

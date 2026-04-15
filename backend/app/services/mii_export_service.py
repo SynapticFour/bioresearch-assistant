@@ -262,9 +262,7 @@ async def enqueue_mii_export_job(
     return job
 
 
-async def load_mii_export_job_for_worker(
-    db: AsyncSession, job_id: UUID
-) -> MiiExportJob | None:
+async def load_mii_export_job_for_worker(db: AsyncSession, job_id: UUID) -> MiiExportJob | None:
     """Load job row by id (worker; no user filter)."""
     stmt = select(MiiExportJob).where(MiiExportJob.id == job_id)
     result = await db.execute(stmt)
@@ -306,9 +304,7 @@ async def persist_job_success(
     return art
 
 
-async def mark_job_permanent_failure(
-    db: AsyncSession, job: MiiExportJob, message: str
-) -> None:
+async def mark_job_permanent_failure(db: AsyncSession, job: MiiExportJob, message: str) -> None:
     job.status = "failed"
     job.error_message = message
     job.finished_at = datetime.now(UTC)
@@ -326,9 +322,7 @@ async def mark_job_dead_letter(db: AsyncSession, job: MiiExportJob, message: str
     await db.commit()
 
 
-async def mark_job_queued_retry(
-    db: AsyncSession, job: MiiExportJob, message: str
-) -> None:
+async def mark_job_queued_retry(db: AsyncSession, job: MiiExportJob, message: str) -> None:
     job.status = "queued"
     job.error_message = message
     job.started_at = None

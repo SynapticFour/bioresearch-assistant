@@ -55,12 +55,16 @@ async def export_mii_bundle(
     settings = get_settings()
     scope = get_scope_filter(current_user)
     policy_id = body.policy_id or settings.mii_default_consent_policy_id
-    modules = list(body.modules) if body.modules else [
-        "diagnosis",
-        "laboratory",
-        "biospecimen",
-        "genomics",
-    ]
+    modules = (
+        list(body.modules)
+        if body.modules
+        else [
+            "diagnosis",
+            "laboratory",
+            "biospecimen",
+            "genomics",
+        ]
+    )
     try:
         bundle, summary, validation_summary = await mii_svc.build_mii_bundle_for_pseudonyms(
             db,
@@ -125,12 +129,16 @@ async def create_mii_export_job(
     scope = get_scope_filter(current_user)
     scope_values = get_scope_values(current_user)
     policy_id = body.policy_id or settings.mii_default_consent_policy_id
-    modules = list(body.modules) if body.modules else [
-        "diagnosis",
-        "laboratory",
-        "biospecimen",
-        "genomics",
-    ]
+    modules = (
+        list(body.modules)
+        if body.modules
+        else [
+            "diagnosis",
+            "laboratory",
+            "biospecimen",
+            "genomics",
+        ]
+    )
     summ, errs = await mii_svc.run_consent_gate(
         db,
         body.pseudonym_ids,

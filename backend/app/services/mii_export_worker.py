@@ -56,9 +56,7 @@ async def run_mii_export_job_task(job_id: UUID) -> None:
                 return
             except Exception as e:
                 logger.exception("MII export job %s transient error", job_id)
-                await mii_svc.mark_job_queued_retry(
-                    db, job, f"transient:{type(e).__name__}:{e!s}"
-                )
+                await mii_svc.mark_job_queued_retry(db, job, f"transient:{type(e).__name__}:{e!s}")
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2.0, 300.0)
                 continue

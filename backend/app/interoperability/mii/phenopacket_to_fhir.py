@@ -257,9 +257,7 @@ def build_genomic_observations_from_interpretations(
             variant_info = gi.get("variant_interpretation") or gi.get("variant") or {}
             components: list[dict[str, Any]] = []
             hgvs = (
-                variant_info.get("hgvs")
-                or variant_info.get("hgvs_c")
-                or variant_info.get("hgvs_p")
+                variant_info.get("hgvs") or variant_info.get("hgvs_c") or variant_info.get("hgvs_p")
             )
             if hgvs:
                 components.append(

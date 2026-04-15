@@ -161,8 +161,7 @@ class Settings(BaseSettings):
     mii_kds_release: str = Field(
         default="2026",
         description=(
-            "MII Kerndatensatz release label for Bundle.meta and artifacts "
-            "(align with ig_manifest)"
+            "MII Kerndatensatz release label for Bundle.meta and artifacts (align with ig_manifest)"
         ),
         validation_alias="MII_KDS_RELEASE",
     )

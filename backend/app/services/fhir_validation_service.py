@@ -76,9 +76,7 @@ def validate_bundle(
             profile_checks += 1
             profiles = ((resource.get("meta") or {}).get("profile")) or []
             if expected_profile not in profiles:
-                errors.append(
-                    f"entry[{idx}] missing expected profile {expected_profile}"
-                )
+                errors.append(f"entry[{idx}] missing expected profile {expected_profile}")
         elif strict_profile_validation and expected_profile is None:
             warnings.append(
                 f"entry[{idx}] has no mapped module/profile for {resource.get('resourceType')}"
