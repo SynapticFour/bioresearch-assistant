@@ -1,0 +1,9 @@
+[allowlist]
+description = "Allow example placeholders in .env.example"
+paths = [
+  '''^\.env\.example$'''
+]
+regexes = [
+  '''^JWT_SECRET=MINDESTENS_64_ZEICHEN_ZUFAELLIG$''',
+  '''^PSEUDONYMIZATION_ENCRYPTION_KEY=64_HEX_ZEICHEN_ZUFAELLIG$'''
+]
