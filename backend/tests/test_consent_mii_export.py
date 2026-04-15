@@ -411,7 +411,9 @@ async def test_mii_bundle_strict_intention_fields_per_module(
                             "genomic_interpretations": [
                                 {
                                     "gene": {"symbol": "BRCA1", "value_id": "HGNC:1100"},
-                                    "variant_interpretation": {"clinical_significance": "pathogenic"},
+                                    "variant_interpretation": {
+                                        "clinical_significance": "pathogenic"
+                                    },
                                 }
                             ]
                         }

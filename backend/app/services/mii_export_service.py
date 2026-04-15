@@ -9,24 +9,26 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.interoperability.fhir.bundle_builder import build_collection_bundle
-from app.interoperability.mii.ig_loader import profile_by_module
 from app.interoperability.mii import phenopacket_to_fhir as pp2f
+from app.interoperability.mii.ig_loader import profile_by_module
 from app.models.mii_export import MiiExportArtifact, MiiExportJob
 from app.models.patient_record import PatientRecordModel
+from app.services import consent_service as cs
 from app.services.fhir_validation_service import validate_bundle
 from app.services.terminology_mapping_service import summarize_coding_quality
 from app.services.terminology_override_service import load_active_override_maps
-from app.services import consent_service as cs
 
 logger = logging.getLogger(__name__)
 
 
-def _apply_scope_patient(stmt, scope: dict):
+def _apply_scope_patient(
+    stmt: Select[tuple[PatientRecordModel]], scope: dict[str, str | None]
+) -> Select[tuple[PatientRecordModel]]:
     if "user_id" in scope and scope["user_id"]:
         return stmt.where(PatientRecordModel.user_id == scope["user_id"])
     if "team_id" in scope and scope["team_id"]:
