@@ -29,7 +29,7 @@ os.environ.setdefault("ISOLATION_MODE", "open")
 os.environ.setdefault("DEPLOYMENT", "test")
 
 from app.core.auth import get_current_user
-from app.core.database import Base, get_db, get_engine
+from app.core.database import Base, get_db, get_engine_instance
 from app.main import app
 
 
@@ -48,10 +48,10 @@ def event_loop() -> asyncio.AbstractEventLoop:
 @pytest.fixture(scope="session")
 def engine():
     """
-    SQLite In-Memory Engine für Tests (app.core.database.get_engine).
-    Kein PostgreSQL nötig — läuft überall.
+    Same lazy engine as the app (get_engine_instance) so background tasks and
+    HTTP tests share one SQLite :memory: database (StaticPool).
     """
-    return get_engine("sqlite+aiosqlite:///:memory:")
+    return get_engine_instance()
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -67,20 +67,21 @@ async def create_tables(engine):
 @pytest_asyncio.fixture
 async def db_session(engine, create_tables) -> AsyncGenerator[AsyncSession, None]:
     """
-    Isolierte DB-Session pro Test.
-    Nutzt Savepoints statt Rollback auf bereits geschlossener Transaktion.
+    Isolierte DB-Session pro Test (Rollback am Ende).
+
+    Keine verschachtelten Savepoints auf derselben StaticPool-Verbindung: sonst
+    können Hintergrundjobs (z. B. MII-Export-Worker) per Commit die Savepoints
+    der Test-Session ungültig machen.
     """
-    async with engine.connect() as conn:
-        await conn.begin()
-        async_session_factory = async_sessionmaker(
-            bind=conn,
-            class_=AsyncSession,
-            expire_on_commit=False,
-            join_transaction_mode="create_savepoint",
-        )
-        async with async_session_factory() as session:
-            yield session
-        await conn.rollback()
+    async_session_factory = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+    async with async_session_factory() as session:
+        yield session
+        await session.rollback()
 
 
 # ── Dev User Mock ─────────────────────────────────────────────────────────

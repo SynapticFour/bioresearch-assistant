@@ -11,6 +11,8 @@ import {
   Settings,
   Shield,
   Upload,
+  FileKey,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHealth } from "@/hooks/useHealth";
@@ -32,6 +34,8 @@ const navItems: { to: string; labelKey: string; icon: typeof Home }[] = [
   { to: "/phenopackets", labelKey: "phenopackets", icon: Dna },
   { to: "/phenoflow", labelKey: "phenoflow", icon: Dna },
   { to: "/fair-export", labelKey: "fairExport", icon: Upload },
+  { to: "/consent", labelKey: "consentTracker", icon: FileKey },
+  { to: "/mii-export", labelKey: "miiExport", icon: Share2 },
   { to: "/audit", labelKey: "audit", icon: ClipboardList },
 ];
 

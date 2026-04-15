@@ -27,6 +27,9 @@ build/
 # Ruff / Linting
 .ruff_cache/
 
+# FHIR validator (scripts/validate_fhir_bundle.sh)
+.cache/
+
 # Node / Frontend
 node_modules/
 frontend/dist/

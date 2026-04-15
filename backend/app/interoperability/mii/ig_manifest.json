@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MII Kerndatensatz IG pin (BioResearch Assistant)",
+  "fhir_version": "4.0.1",
+  "implementation_guide": {
+    "package_id": "de.medizininformatikinitiative.kerndatensatz.meta",
+    "package_version": "2026.0.0",
+    "description": "MII Kerndatensatz Meta (modulübergreifend); FHIR R4. Bei MII-Release-Wechsel Version hier und in CI anpassen."
+  },
+  "validator_cli": {
+    "org_hl7_fhir_core_release": "6.9.6",
+    "download_url": "https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.9.6/validator_cli.jar",
+    "sha256": "b09adfeb7829836150813d2ab63a0dfec3898e3ded7ccd112733752d50576859"
+  }
+}

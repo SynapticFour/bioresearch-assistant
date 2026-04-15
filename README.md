@@ -36,6 +36,7 @@ im DACH-Raum.
 | 🗄️ Dateiverwaltung | GA4GH DRS v1.3 | ✅ |
 | 🧬 BLAST Sequenzsuche | NCBI BLAST+ | ✅ |
 | ⚙️ Pipelines | GA4GH WES v1.1 | ✅ |
+| 🏥 MII-KDS Export + Broad Consent Tracker | FHIR R4 / MII-KDS-orientiert | ✅ (operational, partial profile mapping) |
 | 🔁 Search-to-Execution (PhenoFlow) | Phenopackets + DRS + WES | ✅ v0.1 |
 | 📓 Research Notebook (ELN) | Markdown + KI | ✅ |
 | 📦 FAIR Data Export | DataCite + Zenodo | ✅ |
@@ -63,6 +64,23 @@ Konfiguration, Betriebsumgebung und den Verantwortlichen vor Ort ab.
 
 Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)  
 Dieses Dokument ersetzt **keine** individuelle Rechtsberatung.
+
+---
+
+## MII-KDS Export (technischer Scope)
+
+BioResearch Assistant enthält einen MII-KDS-orientierten Exportpfad:
+
+- Pseudonymisierte Forschungsdaten können als FHIR `Bundle` für MII-nahe Module exportiert werden
+- Broad-Consent-Informationen können pro Pseudonym erfasst und als FHIR `Consent` ausgegeben werden
+- Terminologie-Overrides sind für kuratierte Mapping-Korrekturen verfügbar
+- Exporte können synchron oder als asynchroner Job mit Status/Artefakt erfolgen
+
+Wichtig zur Einordnung:
+
+- Die Implementierung ist **MII-KDS-orientiert**, aber kein Ersatz für eine formale standortbezogene Konformitätsprüfung.
+- Profile/Bindings sind in Teilen implementiert; einzelne Mappings sind weiterhin als `partial` dokumentiert.
+- Der produktive Einsatz in FDPG-/DIZ-Prozessen erfordert in der Regel zusätzliche organisatorische und fachliche Qualitätssicherungen durch die verantwortliche Institution.
 
 ---
 
@@ -104,6 +122,7 @@ Danach erreichbar unter:
 | [PHENOFLOW.md](docs/PHENOFLOW.md) | PhenoFlow v0.1 (Search-to-Execution) |
 | [COMPLIANCE.md](docs/COMPLIANCE.md) | DSGVO, GAIA-X, GA4GH, NIS2, EHDS |
 | [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
+| [MII-EXPORT.md](docs/MII-EXPORT.md) | MII-Export, Consent, Async-Jobs, Terminologie-Overrides |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |

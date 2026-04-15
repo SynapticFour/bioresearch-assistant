@@ -45,6 +45,30 @@ Die CI-Pipeline läuft bereits einen vollständigen Testlauf über `pytest tests
 | `conformance-ga4gh` (neuer Job) | `pytest tests/test_drs_*.py tests/test_wes_*.py tests/test_phenopackets.py tests/test_auth.py -v --cov=app --cov-fail-under=0` | DRS, WES, Phenopackets, Auth (Passport-Claims) |
 | `helixtest-ga4gh` | Siehe Abschnitt **HelixTest CI** unten | Externe Suite: Profil `bioresearch-assistant` (WES, DRS, token-only Auth) |
 
+## MII-KDS-orientierte Conformance (intern)
+
+Zusätzlich zu den GA4GH-Checks enthält das Backend interne Conformance-Tests für den MII-orientierten Exportpfad:
+
+- `tests/test_consent_mii_export.py`
+  - Consent-Gate (403 ohne aktive Einwilligung)
+  - Modulspezifische Mapping-Checks (Diagnose, Labor, Genomik)
+  - Strict-Profile-Mode inkl. erwarteter `meta.profile`
+  - Mapping-Incomplete-Verhalten (`fail_on_partial_mapping`)
+  - Async-Job-Flow inkl. Artefakt und Metrics
+  - Terminologie-Override-Anwendung
+- `tests/test_mii_intention_quality.py`
+  - Intention-level Validierung für Terminologie-Bindings
+  - Worker-Retry/Dead-Letter/Perma-Fail Fehlerpfade
+- `tests/test_mii_ig_manifest.py`
+  - IG-Pinning + Mapping-Matrix-Integrität
+
+Siehe auch: `docs/MII-EXPORT.md` für die operative Beschreibung von Export/Consent/Queue/Terminologie.
+
+### Wichtige Grenze (bewusst)
+
+Diese Tests sind **eine technische Qualitätssicherung**, keine offizielle MII-/FHIR-Zertifizierung.  
+Für produktive Einreichungsprozesse (z. B. FDPG/DIZ) sind zusätzlich standort- und release-spezifische Validatorläufe sowie fachliche Freigaben erforderlich.
+
 ## HelixTest CI (Profil `bioresearch-assistant`)
 
 Die Pipeline führt **[SynapticFour/HelixTest](https://github.com/SynapticFour/HelixTest.git)**
@@ -100,10 +124,11 @@ Diese Liste definiert die Grenzen für Entscheidungsträger:
 
 1. **Keine formale GA4GH-Zertifizierung**: Die Tests sind technische Contract-/Integrations-Checks, keine offizielle Conformance-Bestätigung.
 2. **Keine externe HelixTest-Suite**: Externe Conformance Coverage (z. B. vollständige Schema/Edge-Case Matrizen über alle GA4GH Services) ist nicht integriert.
-3. **Implementierungsvereinfachungen**:  
+3. **Keine formale MII-Zertifizierung**: MII-orientierte Tests reduzieren Risiko, ersetzen aber keine institutionelle/fachliche Endabnahme.
+4. **Implementierungsvereinfachungen**:  
    - DRS nutzt Datei-basierte Storage-Logik; exakte Spezifikationsdetails zu Storage-Backends (z. B. s3-presigned Varianten, komplexe Access Headers) werden hier nur soweit über die API-Contract-Tests abgedeckt.
    - WES führt in der Testumgebung keine echten Nextflow-Workflows aus; Prozess-/Subprocess-Interaktionen werden gemockt und prüfen damit Contract + Zustandsübergänge.
-4. **Auth-Realismus im Testkontext**:  
+5. **Auth-Realismus im Testkontext**:  
    In CI/Test-Läufen wird `get_current_user` typischerweise über Dependency Overrides ersetzt. Das prüft Token-/Passport-Extraktion separat über die Auth-Tests, ersetzt aber keinen echten OIDC-Flow.
 
 ## Wie du es reproduzieren kannst (clean checkout)

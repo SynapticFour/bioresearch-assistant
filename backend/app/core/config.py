@@ -157,6 +157,48 @@ class Settings(BaseSettings):
         description="Data isolation: user (own only), team (institution), open (all)",
     )
 
+    # MII-KDS / FHIR export (FDPG/DIZ-oriented defaults; override via env)
+    mii_kds_release: str = Field(
+        default="2026",
+        description="MII Kerndatensatz release label for Bundle.meta and artifacts (align with ig_manifest)",
+        validation_alias="MII_KDS_RELEASE",
+    )
+    mii_bundle_attach_meta_profile: bool = Field(
+        default=False,
+        description="If true, add meta.profile canonicals to resources (stricter validation)",
+        validation_alias="MII_BUNDLE_ATTACH_META_PROFILE",
+    )
+    mii_default_consent_policy_id: str = Field(
+        default="mii-broad-consent",
+        description="Default MII broad consent policy_id for export checks",
+        validation_alias="MII_DEFAULT_CONSENT_POLICY_ID",
+    )
+    # Pinned IG (keep in sync with app/interoperability/mii/ig_manifest.json)
+    mii_ig_package_id: str = Field(
+        default="de.medizininformatikinitiative.kerndatensatz.meta",
+        description="MII Kerndatensatz Meta package id for FHIR validator -ig",
+        validation_alias="MII_IG_PACKAGE_ID",
+    )
+    mii_ig_package_version: str = Field(
+        default="2026.0.0",
+        description="MII Kerndatensatz Meta package version (pin with manifest)",
+        validation_alias="MII_IG_PACKAGE_VERSION",
+    )
+    mii_export_max_attempts: int = Field(
+        default=3,
+        ge=1,
+        le=20,
+        description="Max retries for async MII export jobs (transient failures only)",
+        validation_alias="MII_EXPORT_MAX_ATTEMPTS",
+    )
+    mii_export_retry_base_seconds: float = Field(
+        default=2.0,
+        ge=0.5,
+        le=3600.0,
+        description="Base delay for exponential backoff between export job retries",
+        validation_alias="MII_EXPORT_RETRY_BASE_SECONDS",
+    )
+
     @property
     def auth_enabled(self) -> bool:
         """True if OIDC is configured (production auth)."""

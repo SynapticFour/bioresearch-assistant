@@ -6,6 +6,8 @@ import { BlastPage } from "@/pages/BlastPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DRSPage } from "@/pages/DRSPage";
 import FAIRExportPage from "@/pages/FAIRExportPage";
+import { ConsentPage } from "@/pages/ConsentPage";
+import MIIExportPage from "@/pages/MIIExportPage";
 import { LibraryPage } from "@/pages/LibraryPage";
 import { LiteraturePage } from "@/pages/LiteraturePage";
 import NotebookPage from "@/pages/NotebookPage";
@@ -34,6 +36,8 @@ function App() {
           <Route path="/phenopackets" element={<PhenopacketsPage />} />
           <Route path="/phenoflow" element={<PhenoFlowPage />} />
           <Route path="/fair-export" element={<FAIRExportPage />} />
+          <Route path="/consent" element={<ConsentPage />} />
+          <Route path="/mii-export" element={<MIIExportPage />} />
           <Route path="/audit" element={<AuditPage />} />
         </Route>
       </Routes>
