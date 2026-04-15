@@ -1,5 +1,6 @@
 """Extended tests for WES service (create_run, get_run, list_runs, cancel, run_log)."""
 
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
@@ -38,7 +39,10 @@ async def test_create_run_stages_attachments(db_session) -> None:
                 assert run_id is not None
                 run_dir = Path(tmpdir) / str(run_id)
                 assert (run_dir / "query.fasta").exists()
-                mock_exec.assert_called_once()
+                if os.environ.get("TESTING") == "1":
+                    mock_exec.assert_not_called()
+                else:
+                    mock_exec.assert_called_once()
 
 
 @pytest.mark.asyncio

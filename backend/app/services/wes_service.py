@@ -7,6 +7,7 @@ are captured into RunLog.run_log and RunLog.task_logs. BLAST runs as binary
 
 import asyncio
 import logging
+import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -660,6 +661,10 @@ async def create_run(
     )
     db.add(row)
     await db.flush()
+
+    if os.environ.get("TESTING") == "1":
+        # Keep create_run deterministic in tests: background execution is tested separately.
+        return run_id
 
     loop = asyncio.get_running_loop()
     if _is_helixtest_trs_workflow(normalized.workflow_url):

@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 # Set env before any app import (so get_settings() and Paper model use test config)
@@ -82,6 +83,15 @@ async def db_session(engine, create_tables) -> AsyncGenerator[AsyncSession, None
     async with async_session_factory() as session:
         yield session
         await session.rollback()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def reset_database_between_tests(engine, create_tables) -> AsyncGenerator[None, None]:
+    """Hard-reset all tables between tests to avoid cross-test contamination."""
+    yield
+    async with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(delete(table))
 
 
 # ── Dev User Mock ─────────────────────────────────────────────────────────
