@@ -809,6 +809,83 @@ export const fairExport = {
   },
 };
 
+// ----- Consent (MII Broad Consent) -----
+
+export interface ResearchConsent {
+  id: string;
+  pseudonym_id: string;
+  policy_id: string;
+  policy_version: string;
+  status: string;
+  valid_from: string;
+  valid_to: string | null;
+  covered_project_ids: string[];
+  purpose_codes: unknown[];
+  source: string;
+  meta_json: Record<string, unknown>;
+  user_id: string | null;
+  team_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const consent = {
+  async create(body: {
+    pseudonym_id: string;
+    policy_id?: string;
+    policy_version: string;
+    status?: string;
+    valid_from: string;
+    valid_to?: string | null;
+    covered_project_ids?: string[];
+    purpose_codes?: { system?: string; code: string; display?: string }[];
+    source?: string;
+    meta_json?: Record<string, unknown>;
+  }): Promise<ResearchConsent> {
+    const { data } = await apiClient.post<ResearchConsent>(
+      `${API_V1}/consents`,
+      body
+    );
+    return data;
+  },
+  async listByPseudonym(pseudonymId: string): Promise<ResearchConsent[]> {
+    const { data } = await apiClient.get<ResearchConsent[]>(
+      `${API_V1}/consents/by-pseudonym/${encodeURIComponent(pseudonymId)}`
+    );
+    return data;
+  },
+  async list(pseudonymId?: string): Promise<ResearchConsent[]> {
+    const { data } = await apiClient.get<ResearchConsent[]>(
+      `${API_V1}/consents`,
+      { params: pseudonymId ? { pseudonym_id: pseudonymId } : undefined }
+    );
+    return data;
+  },
+};
+
+// ----- MII-KDS FHIR export -----
+
+export const miiExport = {
+  async exportBundle(body: {
+    pseudonym_ids: string[];
+    policy_id?: string | null;
+    modules?: ("diagnosis" | "laboratory" | "biospecimen" | "genomics")[];
+    research_project_ids?: string[];
+    fail_on_partial_mapping?: boolean;
+  }): Promise<{
+    bundle: Record<string, unknown>;
+    consent_check_summary: Record<string, unknown>;
+    profile_set_version: string;
+  }> {
+    const { data } = await apiClient.post<{
+      bundle: Record<string, unknown>;
+      consent_check_summary: Record<string, unknown>;
+      profile_set_version: string;
+    }>(`${API_V1}/mii-export/bundles`, body);
+    return data;
+  },
+};
+
 // ----- Health -----
 
 export const health = {

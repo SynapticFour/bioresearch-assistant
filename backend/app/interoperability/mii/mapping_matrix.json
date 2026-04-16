@@ -1,0 +1,65 @@
+{
+  "version": "1",
+  "mii_ig": {
+    "package_id": "de.medizininformatikinitiative.kerndatensatz.meta",
+    "package_version": "2026.0.0"
+  },
+  "mappings": [
+    {
+      "module": "person",
+      "internal_source": "patient_records.phenopacket_json / subject.id",
+      "fhir_resource": "Patient",
+      "target_profile_canonical": "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/Patient",
+      "implementation_status": "partial",
+      "notes": "Identifier = Pseudonym; meta.profile wenn MII_BUNDLE_ATTACH_META_PROFILE=true"
+    },
+    {
+      "module": "diagnosis",
+      "internal_source": "phenopacket_json.diseases[].term",
+      "fhir_resource": "Condition",
+      "target_profile_canonical": "https://www.medizininformatik-initiative.de/fhir/core/modul-diagnose/StructureDefinition/Condition",
+      "implementation_status": "partial",
+      "notes": "Codierung je nach Ontologie (MONDO/ORPHA/ICD); optional server-side Overrides via /terminology/overrides; recordedDate aus meta_data wenn vorhanden"
+    },
+    {
+      "module": "phenotype",
+      "internal_source": "phenopacket_json.phenotypic_features[].type",
+      "fhir_resource": "Observation",
+      "target_profile_canonical": "https://www.medizininformatik-initiative.de/fhir/core/modul-problem/StructureDefinition/Observation",
+      "implementation_status": "partial",
+      "notes": "HPO-Observation; Kategorie exam"
+    },
+    {
+      "module": "laboratory",
+      "internal_source": "phenopacket_json.measurements[]",
+      "fhir_resource": "Observation",
+      "target_profile_canonical": "https://www.medizininformatik-initiative.de/fhir/core/modul-labor/StructureDefinition/ObservationLab",
+      "implementation_status": "partial",
+      "notes": "MVP: Measurements -> Observation; LOINC aus assay.id; optionale Overrides pro assay-raw_id via /terminology/overrides"
+    },
+    {
+      "module": "biospecimen",
+      "internal_source": "phenopacket_json.biosamples[]",
+      "fhir_resource": "Specimen",
+      "target_profile_canonical": "https://www.medizininformatik-initiative.de/fhir/core/modul-biobank/StructureDefinition/Specimen",
+      "implementation_status": "partial",
+      "notes": "Minimalfelder identifier, subject, type"
+    },
+    {
+      "module": "genomics",
+      "internal_source": "phenopacket_json.interpretations[].diagnosis.genomic_interpretations",
+      "fhir_resource": "Observation",
+      "target_profile_canonical": "https://www.medizininformatik-initiative.de/fhir/core/modul-molgen/StructureDefinition/Observation",
+      "implementation_status": "partial",
+      "notes": "Gen-Symbol als valueString; HGVS/VCF später"
+    },
+    {
+      "module": "consent",
+      "internal_source": "research_consents",
+      "fhir_resource": "Consent",
+      "target_profile_canonical": "http://hl7.org/fhir/StructureDefinition/Consent",
+      "implementation_status": "partial",
+      "notes": "FHIR R4 Basis; MII-Consent-Profil falls gefordert nachziehen"
+    }
+  ]
+}

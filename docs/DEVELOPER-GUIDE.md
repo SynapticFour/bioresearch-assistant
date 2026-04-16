@@ -830,6 +830,97 @@ Response: deposition_id, doi, record_url, message.
 
 ---
 
+### MII Export, Consent, Terminology (API-Prefix: /api/v1)
+
+#### POST /api/v1/consents
+
+Broad-Consent-Eintrag für ein Pseudonym anlegen.
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/consents" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pseudonym_id": "P-2026-001",
+    "policy_version": "2026-1",
+    "status": "active",
+    "valid_from": "2026-01-01T00:00:00Z",
+    "covered_project_ids": ["proj-a"]
+  }'
+```
+
+#### POST /api/v1/mii-export/bundles
+
+Synchroner MII-orientierter FHIR-Bundle-Export.
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/mii-export/bundles" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pseudonym_ids": ["P-2026-001"],
+    "modules": ["diagnosis", "laboratory", "biospecimen", "genomics"],
+    "strict_profile_validation": true
+  }'
+```
+
+#### POST /api/v1/mii-export/jobs
+
+Asynchronen Exportjob starten (202 Accepted).
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/mii-export/jobs" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pseudonym_ids": ["P-2026-001"],
+    "modules": ["diagnosis", "laboratory"]
+  }'
+```
+
+#### GET /api/v1/mii-export/jobs/{job_id}
+
+Jobstatus (queued/running/succeeded/failed/dead_letter) inkl. Validator-Metadaten.
+
+#### GET /api/v1/mii-export/jobs/{job_id}/artifact
+
+FHIR-Bundle-Artefakt eines abgeschlossenen Jobs herunterladen.
+
+#### GET /api/v1/mii-export/jobs/metrics
+
+Per-User Jobzahlen nach Status.
+
+#### POST /api/v1/terminology/overrides
+
+Kuratierte Override-Regel für Terminologie-Mapping anlegen/ersetzen.
+
+```bash
+curl -s -X POST "http://localhost:8000/api/v1/terminology/overrides" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "module": "diagnosis",
+    "raw_id": "ORPHA:558",
+    "target_system": "http://snomed.info/sct",
+    "target_code": "999001",
+    "target_display": "Governed override"
+  }'
+```
+
+#### GET /api/v1/terminology/overrides
+
+Alle aktiven/inaktiven Terminologie-Overrides listen.
+
+#### DELETE /api/v1/terminology/overrides/{override_id}
+
+Override deaktivieren (soft delete).
+
+---
+
+**Rechtlich sichere Einordnung (für technische Doku):**
+
+- Die Endpunkte liefern technische Unterstützung für MII-nahe Workflows, sind aber **keine rechtsverbindliche Compliance-Aussage**.
+- MII/FHIR-Exporte sind **implementierungsabhängig zu validieren** (lokale Prozesse, IG-Versionen, Governance).
+- Dieses Dokument ersetzt **keine** medizinische, regulatorische oder rechtliche Bewertung durch die verantwortliche Stelle.
+
+---
+
 ### Auth (API-Prefix: /api/v1)
 
 #### GET /api/v1/auth/login
@@ -958,6 +1049,14 @@ Alle relevanten Umgebungsvariablen (`.env`) — aus `backend/app/core/config.py`
 | ZENODO_TOKEN | Zenodo API Token | optional |
 | **Isolation** | | |
 | ISOLATION_MODE | Sichtbarkeit der Daten | `user` \| `team` \| `open` |
+| **MII Export / Consent** | | |
+| MII_KDS_RELEASE | Ziel-Release für MII-KDS Profilset | `2026` |
+| MII_IG_PACKAGE_ID | IG-Package-ID für Validator/Metadaten | `de.medizininformatikinitiative.kerndatensatz.meta` |
+| MII_IG_PACKAGE_VERSION | IG-Package-Version | `2026.0.0` |
+| MII_DEFAULT_CONSENT_POLICY_ID | Default Policy-ID für Broad Consent | `mii-broad-consent` |
+| MII_BUNDLE_ATTACH_META_PROFILE | Profile-CANONICAL in `meta.profile` anhängen | `true` |
+| MII_EXPORT_MAX_ATTEMPTS | Max. Retry-Versuche für async Exportjobs | `3` |
+| MII_EXPORT_RETRY_BASE_SECONDS | Basis für Exponential-Backoff | `2.0` |
 
 ---
 
@@ -986,4 +1085,4 @@ Weitere Details: [INSTALL.md](INSTALL.md), [SECURITY.md](../SECURITY.md).
 
 ---
 
-*Letzte Aktualisierung: 2026-02-24, Version 1.4.2*
+*Letzte Aktualisierung: 2026-04-15, Version 1.4.2*

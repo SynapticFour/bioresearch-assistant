@@ -23,6 +23,8 @@ export const translations = {
       drs: "DRS Files",
       phenopackets: "Phenopackets",
       fairExport: "FAIR Export",
+      consentTracker: "Consent",
+      miiExport: "MII Export",
       audit: "Audit Log",
     },
     status: {
@@ -55,6 +57,8 @@ export const translations = {
       drs: "DRS Files",
       phenopackets: "Phenopackets",
       fairExport: "FAIR Export",
+      consentTracker: "Consent",
+      miiExport: "MII Export",
       audit: "Audit Log",
     },
     status: {

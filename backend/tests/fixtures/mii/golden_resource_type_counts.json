@@ -1,0 +1,15 @@
+{
+  "diagnosis": {
+    "Patient": 1,
+    "Condition": 1,
+    "Observation": 1
+  },
+  "laboratory": {
+    "Patient": 1,
+    "Observation": 1
+  },
+  "genomics": {
+    "Patient": 1,
+    "Observation": 1
+  }
+}

@@ -20,6 +20,8 @@ function getRouteLabelKey(pathname: string): string {
     drs: "drs",
     phenopackets: "phenopackets",
     "fair-export": "fairExport",
+    consent: "consentTracker",
+    "mii-export": "miiExport",
     audit: "audit",
   };
   return keyMap[segment] ?? "dashboard";

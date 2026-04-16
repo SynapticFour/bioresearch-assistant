@@ -12,6 +12,11 @@
 > individuelle rechtliche Beratung. Ob eine Verarbeitung „DSGVO-konform“
 > ist, hängt von Nutzungskontext, Verantwortlichen, Verträgen und
 > weiteren Umständen ab.
+>
+> Zusätzlich: Diese Software ist in dieser Dokumentation als
+> Forschungs-/Datenplattform beschrieben und nicht als automatisch
+> zertifiziertes Medizinprodukt deklariert. Eine etwaige regulatorische
+> Einordnung ist durch die verantwortliche Organisation gesondert zu prüfen.
 
 ---
 
