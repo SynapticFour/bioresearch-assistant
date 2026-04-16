@@ -662,8 +662,9 @@ async def create_run(
     db.add(row)
     await db.flush()
 
-    if os.environ.get("TESTING") == "1":
-        # Keep create_run deterministic in tests: background execution is tested separately.
+    # Pytest sets WES_DEFER_BACKGROUND_EXECUTION=1 (see tests/conftest.py) so create_run stays
+    # deterministic; HelixTest / production omit it so WES tasks actually run.
+    if os.environ.get("WES_DEFER_BACKGROUND_EXECUTION") == "1":
         return run_id
 
     loop = asyncio.get_running_loop()

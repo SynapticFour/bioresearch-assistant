@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 # Set env before any app import (so get_settings() and Paper model use test config)
 os.environ["TESTING"] = "1"
+os.environ["WES_DEFER_BACKGROUND_EXECUTION"] = "1"
 os.environ.setdefault(
     "DATABASE_URL",
     "sqlite+aiosqlite:///:memory:",

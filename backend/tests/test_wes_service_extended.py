@@ -39,7 +39,7 @@ async def test_create_run_stages_attachments(db_session) -> None:
                 assert run_id is not None
                 run_dir = Path(tmpdir) / str(run_id)
                 assert (run_dir / "query.fasta").exists()
-                if os.environ.get("TESTING") == "1":
+                if os.environ.get("WES_DEFER_BACKGROUND_EXECUTION") == "1":
                     mock_exec.assert_not_called()
                 else:
                     mock_exec.assert_called_once()

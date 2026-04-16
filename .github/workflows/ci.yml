@@ -173,7 +173,6 @@ jobs:
       DEPLOYMENT: test
       ISOLATION_MODE: open
       ENVIRONMENT: test
-      TESTING: "1"
       OIDC_ISSUER: http://127.0.0.1:8199
       OIDC_CLIENT_ID: helixtest-audience
       OIDC_CLIENT_SECRET: ""
@@ -234,11 +233,8 @@ jobs:
             echo "__HELIXTOK2__"
           } >> "$GITHUB_ENV"
 
-      # Job-level TESTING=1 would leave WES runs stuck in QUEUED (create_run skips background work).
       - name: Alembic migrate and start API on :8080
         working-directory: backend
-        env:
-          TESTING: "0"
         run: |
           alembic upgrade head
           uvicorn app.main:app --host 127.0.0.1 --port 8080 &
