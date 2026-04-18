@@ -529,6 +529,8 @@ Empfehlung: Mit 1.0 starten, dann anpassen.
 
 ### 🧠 Frag deine Bibliothek (RAG)
 
+**Hinweis „Locus“:** Synaptic Four fasst den **On-Premise-RAG-Stack** für den **klinisch-bioinformatischen** Kontext (inkl. optionaler **kuratierter Indizes**, z. B. Leitlinien, MII-KDS, GA4GH-Dokumentation) unter dem **Modulnamen Locus** in der Produkt- und Websitedokumentation zusammen — funktional gehört das zur gleichen Plattform **BioResearch Assistant**. Details: [LOCUS-MODULE.md](LOCUS-MODULE.md).
+
 **So verwendest du RAG:**
 
 1. Bibliothek öffnen
@@ -600,6 +602,7 @@ Empfehlung: Mit 1.0 starten, dann anpassen.
 | Feature | Version | Status |
 |---------|---------|--------|
 | RAG — Frag deine Bibliothek | v1.0.0 | ✅ Enthalten |
+| Locus (RAG + Domänen-Indizes, siehe [LOCUS-MODULE.md](LOCUS-MODULE.md)) | laufend | ✅ / optional Abo |
 | Hybrid Search (Vektor + Keyword) | v1.1.0 | Geplant |
 | Team Collaboration im ELN | v1.1.0 | Geplant |
 | VCF → Literatursuche Button | v1.1.0 | Geplant |
