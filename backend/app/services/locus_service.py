@@ -109,9 +109,7 @@ class LocusService:
                 raw = json.loads(raw)
             if not isinstance(raw, list) or len(raw) != len(qemb):
                 continue
-            d = _cosine_distance_1_minus_dot(
-                [float(x) for x in raw], [float(x) for x in qemb]
-            )
+            d = _cosine_distance_1_minus_dot([float(x) for x in raw], [float(x) for x in qemb])
             if d > threshold:
                 continue
             scored.append((ch, d))
