@@ -111,9 +111,12 @@ ollama serve &
 ollama pull mistral
 
 ### Docker
-Im docker-compose.yml bereits konfiguriert:
-docker compose up -d ollama
+Ollama ist im `docker-compose.yml` mit **Profil** `ollama` definiert (startet nicht bei `docker compose up` ohne Profil):
+```bash
+docker compose --profile ollama up -d ollama
 docker compose exec ollama ollama pull mistral
+```
+Für Locus + Backend in Docker: im `.env` z. B. `OLLAMA_URL=http://ollama:11434` setzen, Backend und Ollama gemeinsam starten (`--profile ollama` plus `backend`) und `LOCUS_ENABLED=1` nach Index-Seed.
 
 In .env eintragen:
 OLLAMA_URL=http://localhost:11434

@@ -92,6 +92,10 @@ Wichtig zur Einordnung:
 - 8 GB RAM (16 GB empfohlen)
 - 10 GB freier Speicher
 
+**Backend-Entwicklung (venv, z. B. Python 3.12):** im Verzeichnis `backend/`  
+`python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`  
+Tests: `pytest` (siehe `backend/pytest.ini` / `pyproject.toml` für Coverage-Grenze).
+
 ### Installation
 
 ```bash

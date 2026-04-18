@@ -51,3 +51,17 @@ These results illustrate **feasibility** of local deployment; your institution m
 ## Operational disclaimer
 
 Locus **does not** make clinical decisions, **does not** output diagnoses, and **does not** replace PACS/LIS workflows or qualified review. Treat outputs as **drafts** for human verification in your governance model.
+
+---
+
+## Implementation in this repository (BRA)
+
+| Piece | What it does today |
+|-------|-------------------|
+| **Table** `locus_chunks` | Curated text segments + **768-dim** embeddings (same model family as the Paper library) — **shared** (no per-user `user_id`); not your personal “Frag die Bibliothek” corpus. |
+| **Config** | `LOCUS_ENABLED` (default `false`) — if off, `POST /api/v1/locus/rag` returns 403. |
+| **API** | `GET /api/v1/locus/status` — enabled flag + `chunk_count` + distinct `corpus_id` values. `POST /api/v1/locus/rag` — same Ollama/Claude path as the rest of BRA, with a stricter Locus system prompt (documentation / explanation only). |
+| **Ingestion** | Subscription / bulk import for PubMed, guidelines, MII, GA4GH is **out of band**; use `python scripts/seed_locus_demo.py` for a tiny **demo** install only. |
+| **Overlap** | `POST /library/rag` stays on **your saved papers**; Locus is **separate** retrieval to avoid mixing governance of user library vs. institution bundles. (Optional **merge** of contexts can be a later feature.) |
+| **System prompt (LLM)** | Implemented in code as `LLMService.rag_answer_locus` — DACH/university context, MDR “not a device” boundary, VUS/Path/LP only if supported by excerpts, Drittmittel/MTB phrasing, plain text by default. Adjust there for your governance review. |
+| **Next steps (product)** | HNSW tuning on PostgreSQL, signed index bundles, admin UI for import/versioning, and subscription delivery mechanics. |

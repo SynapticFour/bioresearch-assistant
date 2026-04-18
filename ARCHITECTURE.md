@@ -24,4 +24,5 @@ Describe trust boundaries, secret handling, and failure modes that contributors 
 
 ## Key extension points
 
-List where new integrations, endpoints, or jobs should be added.
+- **Locus (curated RAG):** `locus_chunks` in PostgreSQL, `POST/GET` under `/api/v1/locus/*` — add ingestion jobs or admin UIs to load subscription bundles; keep separate from the user `papers` RAG path (`/library/rag`).
+- **Library RAG (your papers):** `papers` + `POST /api/v1/library/rag` — unchanged; do not conflate with Locus retrieval.

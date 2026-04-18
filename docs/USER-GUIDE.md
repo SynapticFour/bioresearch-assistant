@@ -531,6 +531,8 @@ Empfehlung: Mit 1.0 starten, dann anpassen.
 
 **Hinweis „Locus“:** Synaptic Four fasst den **On-Premise-RAG-Stack** für den **klinisch-bioinformatischen** Kontext (inkl. optionaler **kuratierter Indizes**, z. B. Leitlinien, MII-KDS, GA4GH-Dokumentation) unter dem **Modulnamen Locus** in der Produkt- und Websitedokumentation zusammen — funktional gehört das zur gleichen Plattform **BioResearch Assistant**. Details: [LOCUS-MODULE.md](LOCUS-MODULE.md).
 
+**Locus im Backend (API):** Mit `LOCUS_ENABLED=1` (nach `alembic` und Index-Daten) nutzt `POST /api/v1/locus/rag` die Tabelle `locus_chunks` — geteilte, kuratierte Korpusschnitte, **nicht** deine persönliche Paper-Bibliothek (`/library/rag` bleibt dafür). `GET /api/v1/locus/status` zeigt, ob Locus an ist und ob Chunks existieren. Demo-Seed: `python scripts/seed_locus_demo.py` im Backend.
+
 **So verwendest du RAG:**
 
 1. Bibliothek öffnen
