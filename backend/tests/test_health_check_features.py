@@ -12,14 +12,17 @@ async def test_check_features_returns_all_keys() -> None:
     """check_features returns dict with all expected feature keys."""
     with patch("app.api.v1.endpoints.health.get_settings") as mock_settings:
         mock_settings.return_value.anthropic_api_key = "sk-ant-x" + "x" * 25
+        mock_settings.return_value.locus_enabled = False
     with patch("app.api.v1.endpoints.health.shutil.which", return_value=None):
         features = await health.check_features()
     assert "embeddings" in features
     assert "semantic_search" in features
     assert "llm_summaries" in features
+    assert "locus_rag" in features
     assert "spacy_ner" in features
     assert "blast" in features
     assert "nextflow" in features
+    assert features["locus_rag"] is False
 
 
 @pytest.mark.asyncio

@@ -75,6 +75,13 @@ class Settings(BaseSettings):
         description="Ollama model name for fallback",
     )
 
+    # Locus (curated on-prem RAG; optional module — see docs/LOCUS-MODULE.md)
+    locus_enabled: bool = Field(
+        default=False,
+        description="Expose POST /locus/rag and status when Locus index rows exist",
+        validation_alias="LOCUS_ENABLED",
+    )
+
     # Pseudonymization (DSGVO)
     pseudonymization_encryption_key: str = Field(
         ...,

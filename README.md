@@ -30,7 +30,7 @@ im DACH-Raum.
 | Feature | Standard | Status |
 |---------|----------|--------|
 | 📚 Literaturrecherche | PubMed API | ✅ |
-| 🧠 RAG — Frag deine Bibliothek | Ollama / Claude | ✅ |
+| 🧠 **Locus** — On-Premise RAG (Retrieval-Augmented Generation) | Ollama (lokal); optional kuratierte Indizes | ✅ siehe [docs/LOCUS-MODULE.md](docs/LOCUS-MODULE.md) |
 | 🔒 DSGVO Pseudonymisierung | Presidio + AES-256 | ✅ |
 | 👤 Phenopackets | GA4GH v2.0 | ✅ |
 | 🗄️ Dateiverwaltung | GA4GH DRS v1.3 | ✅ |
@@ -92,6 +92,10 @@ Wichtig zur Einordnung:
 - 8 GB RAM (16 GB empfohlen)
 - 10 GB freier Speicher
 
+**Backend-Entwicklung (venv, z. B. Python 3.12):** im Verzeichnis `backend/`  
+`python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`  
+Tests: `pytest` (siehe `backend/pytest.ini` / `pyproject.toml` für Coverage-Grenze).
+
 ### Installation
 
 ```bash
@@ -127,6 +131,7 @@ Danach erreichbar unter:
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
 | [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) | Open-core Lizenz- und Nutzungsmodell (BUSL) |
+| [LOCUS-MODULE.md](docs/LOCUS-MODULE.md) | **Locus**: On-Premise-RAG-Modul (Domäne klinische Bioinformatik, Indizes, BUSL) |
 
 ---
 

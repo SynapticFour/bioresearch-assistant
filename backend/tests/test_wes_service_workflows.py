@@ -5,7 +5,7 @@ import tempfile
 from collections.abc import Awaitable
 from datetime import UTC
 from pathlib import Path
-from typing import Never, TypeVar
+from typing import Never
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -15,10 +15,8 @@ from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import State
 from app.services import wes_service
 
-_T = TypeVar("_T")
 
-
-async def _await_coro(coro: Awaitable[_T], timeout: float | None = None) -> _T:
+async def _await_coro[T](coro: Awaitable[T], timeout: float | None = None) -> T:
     """Await the given coroutine (for mocking asyncio.wait_for).
 
     The real ``asyncio.wait_for`` passes ``timeout``; the mock ignores it.

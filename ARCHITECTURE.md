@@ -10,7 +10,9 @@ This document explains the system at a level that helps contributors reason abou
 
 ## High-level structure
 
-Describe the major modules/services and their responsibilities here.
+- **Web UI + API**: FastAPI backend, React/TypeScript frontend (see repository layout).
+- **BioResearch Assistant core**: literature workflows, pseudonymisation, GA4GH-oriented services, MII export paths, notebooks, etc.
+- **Locus (RAG module)**: optional on-premise RAG stack (Ollama-class local inference, curated indexes for domain retrieval — PubMed/guidelines/MII/GA4GH-oriented corpora as productized subscriptions). **Not** a medical device; assistive research/documentation only. See [docs/LOCUS-MODULE.md](docs/LOCUS-MODULE.md).
 
 ## Data and control flows
 
@@ -22,4 +24,5 @@ Describe trust boundaries, secret handling, and failure modes that contributors 
 
 ## Key extension points
 
-List where new integrations, endpoints, or jobs should be added.
+- **Locus (curated RAG):** `locus_chunks` in PostgreSQL, `POST/GET` under `/api/v1/locus/*` — add ingestion jobs or admin UIs to load subscription bundles; keep separate from the user `papers` RAG path (`/library/rag`).
+- **Library RAG (your papers):** `papers` + `POST /api/v1/library/rag` — unchanged; do not conflate with Locus retrieval.

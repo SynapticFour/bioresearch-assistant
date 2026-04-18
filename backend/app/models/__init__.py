@@ -1,6 +1,7 @@
 """SQLAlchemy models."""
 
 from app.models.audit_log import AuditLog
+from app.models.locus_chunk import LocusChunk
 from app.models.mii_export import MiiExportArtifact, MiiExportJob
 from app.models.notebook import Notebook
 from app.models.paper import Paper
@@ -14,6 +15,7 @@ from app.models.terminology_mapping_override import TerminologyMappingOverride
 from app.models.workflow_run import WorkflowRun
 
 __all__ = [
+    "LocusChunk",
     "Paper",
     "AuditLog",
     "PseudonymizationMapping",

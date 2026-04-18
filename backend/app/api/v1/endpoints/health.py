@@ -26,6 +26,7 @@ async def check_features() -> dict[str, bool]:
         "embeddings": False,
         "semantic_search": False,
         "llm_summaries": False,
+        "locus_rag": False,
         "spacy_ner": False,
         "blast": False,
         "nextflow": False,
@@ -75,6 +76,8 @@ async def check_features() -> dict[str, bool]:
 
     # Nextflow verfügbar?
     features["nextflow"] = shutil.which("nextflow") is not None
+
+    features["locus_rag"] = bool(getattr(settings, "locus_enabled", False))
 
     return features
 
