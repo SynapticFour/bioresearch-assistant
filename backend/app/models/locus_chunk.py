@@ -69,4 +69,5 @@ class LocusChunk(Base):
     )
 
     def __repr__(self) -> str:
-        return f"<LocusChunk id={self.id!r} corpus_id={self.corpus_id!r} title={self.title[:40]!r}...>"
+        t = repr(self.title[:40])
+        return f"<LocusChunk id={self.id!r} corpus_id={self.corpus_id!r} title={t}...>"

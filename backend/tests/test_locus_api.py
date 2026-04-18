@@ -1,7 +1,8 @@
 """Locus (curated RAG) API tests."""
 
 import math
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -11,8 +12,8 @@ from app.core.database import get_db
 from app.main import app
 from app.models.locus_chunk import LocusChunk
 from app.schemas.locus import LocusRAGResponse
-from app.services.locus_service import LocusService
 from app.services.llm_service import LLMServiceError
+from app.services.locus_service import LocusService
 
 
 def _unit(dim: int = 768) -> list[float]:
@@ -178,7 +179,10 @@ async def test_locus_rag_502_llm_error(db_session, mock_current_user):
             Svc.return_value.answer = AsyncMock(side_effect=LLMServiceError("ollama down"))
             transport = ASGITransport(app=app)
             async with AsyncClient(transport=transport, base_url="http://test") as c:
-                r = await c.post("/api/v1/locus/rag", json={"question": "Pathogenic vs VUS in general?"})
+                r = await c.post(
+                    "/api/v1/locus/rag",
+                    json={"question": "Pathogenic vs VUS in general?"},
+                )
     finally:
         app.dependency_overrides.clear()
     assert r.status_code == 502

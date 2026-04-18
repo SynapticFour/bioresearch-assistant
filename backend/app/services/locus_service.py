@@ -1,7 +1,6 @@
 """Locus: RAG over curated, institution-shared index chunks (not the user Paper library)."""
 
 import logging
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,7 +30,7 @@ def _cosine_distance_1_minus_dot(a: list[float], b: list[float]) -> float:
 
 
 class LocusService:
-    """Retrieve from Locus chunks and answer via LLM (on-prem, same Ollama/Claude as rest of BRA)."""
+    """Retrieve from Locus chunks and answer via LLM (on-prem; same Ollama/Claude as BRA)."""
 
     def __init__(
         self,
