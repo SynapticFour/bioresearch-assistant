@@ -2,26 +2,35 @@ terraform {
   required_providers {
     opentelekomcloud = {
       source = "opentelekomcloud/opentelekomcloud"
+      version = "~> 1.36"
     }
   }
 }
 
 resource "opentelekomcloud_compute_instance_v2" "bioresearch" {
-  name            = "bioresearch-assistant"
-  flavor_name     = "s3.xlarge.4"
-  image_name      = "Standard_Ubuntu_22.04_latest"
-  key_pair        = "bioresearch-key"
-  security_groups = ["bioresearch-sg"]
+  name            = var.instance_name
+  flavor_name     = var.flavor_name
+  image_name      = var.image_name
+  key_pair        = var.key_pair
+  security_groups = var.security_groups
 
   network {
-    name = "bioresearch-vpc"
+    name = var.network_name
   }
 
-  user_data = file("${path.module}/cloud-init.sh")
+  user_data = templatefile("${path.module}/cloud-init.sh.tftpl", {
+    deploy_user    = var.deploy_user
+    repo_url       = var.repo_url
+    repo_ref       = var.repo_ref
+    install_dir    = var.install_dir
+    backend_image  = var.backend_image
+    frontend_image = var.frontend_image
+    docker_platform = var.docker_platform
+  })
 }
 
 resource "opentelekomcloud_networking_floatingip_v2" "bioresearch" {
-  pool = "admin_external_net"
+  pool = var.floating_ip_pool
 }
 
 resource "opentelekomcloud_compute_floatingip_associate_v2" "bioresearch" {

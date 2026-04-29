@@ -33,7 +33,7 @@ im DACH-Raum.
 | 🧠 **Locus** — On-Premise RAG (Retrieval-Augmented Generation) | Ollama (lokal); optional kuratierte Indizes | ✅ siehe [docs/LOCUS-MODULE.md](docs/LOCUS-MODULE.md) |
 | 🔒 DSGVO Pseudonymisierung | Presidio + AES-256 | ✅ |
 | 👤 Phenopackets | GA4GH v2.0 | ✅ |
-| 🗄️ Dateiverwaltung | GA4GH DRS v1.3 | ✅ |
+| 🗄️ Dateiverwaltung | GA4GH DRS | ✅ |
 | 🧬 BLAST Sequenzsuche | NCBI BLAST+ | ✅ |
 | ⚙️ Pipelines | GA4GH WES v1.1 | ✅ |
 | 🏥 MII-KDS Export + Broad Consent Tracker | FHIR R4 / MII-KDS-orientiert | ✅ (operational, partial profile mapping) |
@@ -41,6 +41,16 @@ im DACH-Raum.
 | 📓 Research Notebook (ELN) | Markdown + KI | ✅ |
 | 📦 FAIR Data Export | DataCite + Zenodo | ✅ |
 | 🌐 GAIA-X Self-Description | Gaia-X Standard | ✅ |
+
+---
+
+## Datensouveränität
+
+- Lokale Verarbeitung ist mit Ollama (ohne externe LLM-API) möglich.
+- Bei Nutzung externer APIs (z. B. Anthropic) werden Inhalte an den jeweiligen Anbieter übertragen.
+- Die rechtliche Bewertung erfolgt durch die verantwortliche Institution.
+
+Details: `docs/COMPLIANCE.md` und `docs/deployment/README.md`.
 
 ---
 
@@ -88,13 +98,12 @@ Wichtig zur Einordnung:
 
 ### Voraussetzungen
 - Docker Desktop
-- Python 3.11+
+- Python 3.9+ (3.11 empfohlen)
 - 8 GB RAM (16 GB empfohlen)
 - 10 GB freier Speicher
 
-**Backend-Entwicklung (venv, z. B. Python 3.12):** im Verzeichnis `backend/`  
-`python3.12 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt`  
-Tests: `pytest` (siehe `backend/pytest.ini` / `pyproject.toml` für Coverage-Grenze).
+Für vollständige Installationsvarianten (lokal, unattended, troubleshooting):
+`docs/INSTALL.md`.
 
 ### Installation
 
@@ -115,6 +124,8 @@ Danach erreichbar unter:
 - Backend API: http://localhost:8000
 - API Docs: http://localhost:8000/docs
 
+Hinweis Dev-Frontend: bei lokalem Vite-Start typischerweise `http://localhost:5173`.
+
 ---
 
 ## Dokumentation
@@ -128,6 +139,12 @@ Danach erreichbar unter:
 | [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
 | [MII-EXPORT.md](docs/MII-EXPORT.md) | MII-Export, Consent, Async-Jobs, Terminologie-Overrides |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
+| [deployment/README.md](docs/deployment/README.md) | Deployment-Matrix (online, offline, bare metal, cloud, k8s) |
+| [deployment/OFFLINE-AIRGAP.md](docs/deployment/OFFLINE-AIRGAP.md) | Air-gapped / Offline Install |
+| [deployment/UPDATE-SOP.md](docs/deployment/UPDATE-SOP.md) | SOP-Vorlage für Updates, Bugfixes, Rollback |
+| [deployment/RELEASE-CHECKLIST.md](docs/deployment/RELEASE-CHECKLIST.md) | 10 Pflichtchecks vor Release/Hotfix |
+| `scripts/deployment_preflight.sh` | Szenario-basierte Deployment-Checks vor Rollout |
+| `scripts/docs_consistency_check.sh` | Konsistenzcheck für Dokumentation (Konstanten/Begriffe) |
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
 | [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) | Open-core Lizenz- und Nutzungsmodell (BUSL) |

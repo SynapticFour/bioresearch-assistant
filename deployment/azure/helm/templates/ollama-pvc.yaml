@@ -1,0 +1,18 @@
+{{- if and .Values.ollama.enabled .Values.ollama.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "bioresearch-assistant.fullname" . }}-ollama
+  labels:
+    {{- include "bioresearch-assistant.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.ollama.persistence.size }}
+  {{- if .Values.ollama.persistence.storageClassName }}
+  storageClassName: {{ .Values.ollama.persistence.storageClassName }}
+  {{- end }}
+{{- end }}
+

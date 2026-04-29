@@ -1,5 +1,7 @@
 # Deployment auf Open Telekom Cloud
 
+> Gesamtuebersicht aller Deployment-Wege: `docs/deployment/README.md`
+
 **Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — Konfiguration Ollama vs. Anthropic API.
 
 **Isolation:** `ISOLATION_MODE=team` oder `user` je nach Einsatz. Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
@@ -35,9 +37,23 @@ Siehe [deployment/otc/](../../deployment/otc/) im Repository:
 
 ```bash
 cd deployment/otc
+cp terraform.tfvars.example terraform.tfvars
+# terraform.tfvars anpassen (Netzwerk, Security Group, Repo-Ref, Images)
 tofu init
 tofu plan
 tofu apply
+```
+
+Nutzbare Artefakte:
+- `variables.tf` (parametrisierte Inputs)
+- `outputs.tf` (Instance-ID, Name, Floating-IP)
+- `terraform.tfvars.example` (Startpunkt fuer Umgebungen)
+- `cloud-init.sh.tftpl` (parametrisierbarer Bootstrap)
+
+Output anzeigen:
+
+```bash
+tofu output
 ```
 
 ### 3. Cloud-Init
@@ -66,3 +82,22 @@ Diese URL im GAIA-X Federated Catalogue eintragen.
 ## GitHub Actions Deployment
 
 Siehe [Deploy to Open Telekom Cloud](../../.github/workflows/deploy-otc.yml). Secret `OTC_SSH_PRIVATE_KEY` in den Repository Secrets hinterlegen.
+
+## Preflight vor Deployment
+
+```bash
+./scripts/deployment_preflight.sh --scenario bare-metal
+# Fuer grosse Institut-Hardware:
+./scripts/deployment_preflight.sh --scenario institute
+```
+
+## Update- und Bugfix-Delivery
+
+Empfehlung fuer OTC-Produktivsysteme:
+- Image-Tags in `terraform.tfvars` oder `.env` fest pinnen.
+- Nach Update `docker compose -f docker-compose.prod.yml pull && up -d`.
+- `tofu output` + Health-Endpoint als Abnahme dokumentieren.
+
+Rollback:
+- Vorherige Image-Tags wiederherstellen.
+- Compose erneut ausrollen.

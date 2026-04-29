@@ -312,7 +312,7 @@ v2.0 (geplant):
 | GAIA-X Standard | ✅ | Self-Description API |
 | GAIA-X Level 1 | 🔜 | Roadmap 2026 Q2 |
 | GA4GH WES v1.1 | ✅ | Implementiert |
-| GA4GH DRS v1.3 | ✅ | Implementiert |
+| GA4GH DRS | ✅ | Implementiert |
 | GA4GH Phenopackets v2 | ✅ | Implementiert |
 | FAIR Prinzipien | ✅ | FAIR Export Feature |
 | OWASP Top 10 | ✅ | Review März 2026, RAG mit Prompt-Injection-Schutz |

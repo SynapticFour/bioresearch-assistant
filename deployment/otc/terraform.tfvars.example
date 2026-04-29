@@ -1,0 +1,19 @@
+# Copy to terraform.tfvars and adjust to your OTC project.
+
+instance_name   = "bioresearch-assistant"
+flavor_name     = "s3.xlarge.4"
+image_name      = "Standard_Ubuntu_22.04_latest"
+key_pair        = "bioresearch-key"
+security_groups = ["bioresearch-sg"]
+network_name    = "bioresearch-vpc"
+floating_ip_pool = "admin_external_net"
+
+deploy_user = "ubuntu"
+repo_url    = "https://github.com/SynapticFour/bioresearch-assistant.git"
+repo_ref    = "main"
+install_dir = "/opt/bioresearch"
+
+backend_image  = "ghcr.io/synapticfour/bioresearch-assistant-backend:latest"
+frontend_image = "ghcr.io/synapticfour/bioresearch-assistant-frontend:latest"
+docker_platform = "linux/amd64"
+

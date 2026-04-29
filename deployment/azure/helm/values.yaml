@@ -1,0 +1,85 @@
+global:
+  imagePullSecrets: []
+
+backend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/synapticfour/bioresearch-assistant-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8000
+  resources: {}
+  env:
+    ENVIRONMENT: production
+  secretEnv:
+    DATABASE_URL: ""
+    PSEUDONYMIZATION_ENCRYPTION_KEY: ""
+    ANTHROPIC_API_KEY: ""
+    SECRET_KEY: ""
+    PUBMED_EMAIL: ""
+  existingSecret: ""
+
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ghcr.io/synapticfour/bioresearch-assistant-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources: {}
+
+ollama:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: ollama/ollama
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 11434
+  resources: {}
+  persistence:
+    enabled: true
+    size: 80Gi
+    storageClassName: ""
+  models:
+    pullOnStart: false
+    list:
+      - mistral
+
+postgres:
+  enabled: true
+  image:
+    repository: pgvector/pgvector
+    tag: pg16
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5432
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClassName: ""
+  auth:
+    username: bioresearch
+    password: bioresearch
+    database: bioresearch
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: bioresearch.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+

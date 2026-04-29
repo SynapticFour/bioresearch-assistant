@@ -1,5 +1,7 @@
 # Deployment auf DFN-Cloud
 
+> Gesamtuebersicht aller Deployment-Wege: `docs/deployment/README.md`
+
 **Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Vollinstallation mit Ollama bleiben alle Daten lokal; mit Anthropic API werden Suchanfragen an die USA übertragen.
 
 **Isolation:** Für Forschungsgruppen empfohlen: `ISOLATION_MODE=team` — Teams werden automatisch über DFN-AAI (E-Mail-Domain) erkannt. Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
@@ -75,7 +77,7 @@ sudo usermod -aG docker ubuntu
 git clone https://github.com/SynapticFour/bioresearch-assistant.git
 cd bioresearch-assistant
 cp .env.example .env
-nano .env  # Werte eintragen (GITHUB_REPO=SynapticFour/bioresearch-assistant, DB_*, PSEUDONYMIZATION_ENCRYPTION_KEY, etc.)
+nano .env  # Werte eintragen (DB_*, PSEUDONYMIZATION_ENCRYPTION_KEY, optional BACKEND_IMAGE/FRONTEND_IMAGE, etc.)
 ```
 
 Ollama Modell vorladen (einmalig, ~4GB):
@@ -125,3 +127,14 @@ Alle deutschen Universitäten sind bereits Mitglied.
 ## GitHub Actions Deployment
 
 Siehe [Deploy to DFN-Cloud](../../.github/workflows/deploy-dfn.yml). Secret `DFN_SSH_PRIVATE_KEY` (privater SSH-Key für den Server) in den Repository Secrets hinterlegen.
+
+## Update- und Bugfix-Delivery
+
+Empfehlung fuer produktive DFN-Setups:
+- `BACKEND_IMAGE` und `FRONTEND_IMAGE` auf feste Release-Tags pinnen.
+- Updates per `docker compose -f docker-compose.prod.yml pull && up -d`.
+- Nach Deploy Health + Kernflows testen.
+
+Rollback:
+- Letzte stabile Image-Tags wieder in `.env` setzen.
+- `docker compose -f docker-compose.prod.yml up -d` erneut ausfuehren.

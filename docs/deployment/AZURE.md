@@ -1,5 +1,7 @@
 # Deployment auf Microsoft Azure
 
+> Gesamtuebersicht aller Deployment-Wege: `docs/deployment/README.md`
+
 **Datensouveränität:** Siehe [README Datensouveränität](../../README.md#datensouveränität) — für Klinikbetrieb Ollama empfohlen.
 
 **Isolation:** `ISOLATION_MODE=user` (pro Person) oder `ISOLATION_MODE=team` (Teams z. B. über Azure AD organization claim). Siehe [ISOLATION-MODES.md](../ISOLATION-MODES.md).
@@ -42,7 +44,7 @@ Images werden automatisch bei Push auf `main` nach GHCR gebaut. Für ACR manuell
 
 ```bash
 az acr login --name bioresearchregistry
-docker tag ghcr.io/SynapticFour/bioresearch-assistant/backend:latest bioresearchregistry.azurecr.io/backend:latest
+docker tag ghcr.io/synapticfour/bioresearch-assistant-backend:latest bioresearchregistry.azurecr.io/backend:latest
 docker push bioresearchregistry.azurecr.io/backend:latest
 ```
 
@@ -89,7 +91,7 @@ az container create \
 - PostgreSQL z. B. über Bitnami Helm Chart mit pgvector
 - Optional: GPU-Node-Pool für Ollama
 
-Siehe `deployment/azure/helm/` (Helm-Chart in Vorbereitung).
+Siehe `deployment/azure/helm/` (lauffaehiges Basis-Helm-Chart fuer Backend/Frontend/Ollama/Postgres).
 
 ---
 
@@ -113,3 +115,15 @@ Siehe [Deploy to Azure](../../.github/workflows/deploy-azure.yml).
 - `AZURE_CREDENTIALS` — Service Principal JSON (`az ad sp create-for-rbac --sdk-auth`)
 - `ACR_USERNAME` — Azure Container Registry Benutzername
 - `ACR_PASSWORD` — Azure Container Registry Passwort
+
+## Update- und Bugfix-Delivery
+
+### ACI
+- Neue Backend/Frontend Image-Tags nach ACR/GHCR pushen.
+- Container mit neuem Tag redeployen.
+- Health-Check + Kernfunktionstest als Pflichtschritt.
+
+### AKS
+- Helm values mit festen Image-Tags verwalten.
+- Rollout per `helm upgrade`.
+- Rollback per `helm rollback <release> <revision>`.

@@ -12,6 +12,9 @@
 
 ## Schnellstart
 
+> Deployment-Uebersicht fuer alle Wege (online/offline/cloud/k8s):  
+> `docs/deployment/README.md`
+
 ### macOS / Linux
 
 ```bash
@@ -34,6 +37,12 @@ install.bat
 ./install.sh --unattended --install-dir /opt/bioresearch
 ```
 
+Standardports im Installer:
+- Frontend: `3000`
+- Backend/API: `8000`
+
+Hinweis fuer lokale Frontend-Entwicklung mit Vite: meist `5173`.
+
 ## Was wird installiert?
 
 | Komponente        | Docker Image           | Beschreibung                |
@@ -41,7 +50,7 @@ install.bat
 | PostgreSQL + pgvector | pgvector/pgvector:pg16 | Datenbank mit Vektor-Support |
 | Backend           | lokal gebaut           | FastAPI + Python 3.11       |
 | Frontend          | lokal gebaut           | React + nginx                |
-| Ollama            | ollama/ollama          | Lokales LLM (DSGVO-konform) |
+| Ollama            | ollama/ollama          | Lokales LLM (DSGVO-orientierter Betrieb möglich) |
 | BLAST             | ncbi/blast             | Sequenzsuche                 |
 | Nextflow          | nextflow/nextflow       | Pipeline Engine              |
 
@@ -73,7 +82,7 @@ DEPSEUDO_ACCESS=owner  # owner / team / admin
 
 # LLM Provider
 LLM_PROVIDER=ollama    # ollama / anthropic
-OLLAMA_MODEL=mistral   # mistral / llama3 / gemma2
+OLLAMA_MODEL=mistral   # z.B. mistral, llama3.2:3b, gemma3:4b, qwen2.5:7b, deepseek-r1:8b, gpt-oss:20b
 
 # Version
 APP_VERSION=1.3.0
@@ -90,6 +99,36 @@ Für klinische Produktionsbetriebe wird in der Regel ein Betrieb mit
 lokalem LLM (Ollama) ohne externe KI‑APIs empfohlen. Ob dies ausreicht,
 um rechtliche Anforderungen (z. B. DSGVO, §393 SGB V) zu erfüllen,
 muss durch die verantwortlichen Stellen geprüft werden.
+
+## Beliebte LLMs: lokal installierbar?
+
+Die folgende Übersicht trennt zwischen **Cloud-only Modellen** und
+**offiziell lokal verfügbaren Open-Weight Varianten**:
+
+- **OpenAI / ChatGPT**: klassische ChatGPT-Modelle sind Cloud-only, aber `gpt-oss` ist lokal installierbar.
+- **Google Gemini**: Gemini ist Cloud-only, aber `Gemma` (open models) ist lokal installierbar.
+- **Anthropic Claude**: Cloud/API-only.
+- **DeepSeek**: DeepSeek-R1 ist lokal installierbar.
+- **Meta Llama**: lokal installierbar.
+- **Mistral**: mehrere Open-Modelle lokal installierbar.
+- **Qwen (Alibaba)**: lokal installierbar.
+- **Cohere**: einzelne Open-Weight Research-Releases sind lokal nutzbar, oft mit restriktiverer Lizenz.
+- **xAI Grok**: Grok-1 wurde als Open-Weights veröffentlicht (sehr hardware-intensiv).
+
+Für den Installer sind deshalb praxisnahe Ollama-Modelle als Direktauswahl hinterlegt:
+`mistral`, `llama3.2:3b`, `gemma3:4b`, `qwen2.5:7b`, `deepseek-r1:8b`, `gpt-oss:20b`, `phi3`.
+
+## Hardware-Profile im Installer
+
+Der Installer fragt zusätzlich ein Hardware-Profil ab und zeigt passende Empfehlungen:
+
+- **Laptop / klein (8-16 GB RAM)**: `llama3.2:3b`, `gemma3:4b`, `phi3`
+- **Workstation (24-64 GB RAM)**: `mistral`, `qwen2.5:7b`, `deepseek-r1:8b`, `gpt-oss:20b`
+- **Institut-Server (>=100 GB RAM, z. B. NVIDIA A100)**:
+  `gpt-oss:120b`, `deepseek-r1:70b`, `qwen2.5:32b`, `qwen2.5:72b`
+
+Hinweis: Große Modelle benötigen deutlich mehr VRAM/RAM und sind primär
+für dedizierte GPU-Server gedacht.
 
 ## Ollama GPU Support
 

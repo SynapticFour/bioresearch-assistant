@@ -1041,7 +1041,7 @@ Alle relevanten Umgebungsvariablen (`.env`) — aus `backend/app/core/config.py`
 | OIDC_ISSUER | Issuer-URL (z. B. Keycloak Realm) | `https://keycloak.example/realms/my` |
 | OIDC_CLIENT_ID | Client-ID | |
 | OIDC_CLIENT_SECRET | Client-Secret | |
-| OIDC_REDIRECT_URI | Redirect nach Login | `http://localhost:8000/auth/callback` |
+| OIDC_REDIRECT_URI | Redirect nach Login | `http://localhost:8000/api/v1/auth/callback` |
 | JWT_SECRET | Session/Token (min. 32 Zeichen wenn gesetzt) | optional |
 | JWT_ALGORITHM | Algorithmus | `RS256` |
 | MICROSOFT_TENANT_ID | Azure AD Tenant (bei Microsoft Login) | `common` |
@@ -1076,7 +1076,7 @@ Für Demo-Deployments kann die App auf Railway ausgerollt werden. `DEPLOYMENT=ra
 
 ### Eigener Server
 
-- **Backend:** Python 3.11+, FastAPI, PostgreSQL mit pgvector. Abhängigkeiten per `poetry install` (siehe `backend/pyproject.toml`). Alembic für Migrationen. Empfohlen: Gunicorn/Uvicorn hinter Reverse-Proxy (nginx), HTTPS.
+- **Backend:** Python 3.11+, FastAPI, PostgreSQL mit pgvector. Abhängigkeiten per `pip install -r backend/requirements.txt`. Alembic für Migrationen. Empfohlen: Gunicorn/Uvicorn hinter Reverse-Proxy (nginx), HTTPS.
 - **Frontend:** `npm run build` in `frontend/`, statische Dateien von nginx oder CDN ausliefern; API-Proxy auf Backend (z. B. `/api` → `http://127.0.0.1:8000/api`).
 - **OIDC:** Für Produktion OIDC_ISSUER, OIDC_CLIENT_ID, OIDC_CLIENT_SECRET und OIDC_REDIRECT_URI konfigurieren; Redirect-URI beim IdP registrieren.
 - **BLAST/Nextflow:** Für BLAST und WES-Pipelines BLAST-DB und Nextflow auf dem Server installieren bzw. in Containern bereitstellen.

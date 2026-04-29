@@ -417,34 +417,101 @@ def configure(
         True,
     )
     if config["use_ollama"]:
+        print(f"\n{Colors.CYAN}Hardware-Profil:{Colors.RESET}")
+        print("  1) Laptop / klein (8-16 GB RAM, ohne starke GPU)")
+        print("  2) Workstation (24-64 GB RAM, Consumer GPU)")
+        print("  3) Institut-Server (>=100 GB RAM, z.B. NVIDIA A100)")
+        print("  4) Benutzerdefiniert")
+        if unattended:
+            hw_choice = "2"
+        else:
+            hw_choice = input("  Profil [2=Workstation]: ").strip() or "2"
+
+        hardware_profiles = {
+            "1": {
+                "name": "Laptop / klein",
+                "recommended": ["llama3.2:3b", "gemma3:4b", "phi3", "mistral"],
+                "default_model": "llama3.2:3b",
+            },
+            "2": {
+                "name": "Workstation",
+                "recommended": [
+                    "mistral",
+                    "qwen2.5:7b",
+                    "deepseek-r1:8b",
+                    "gpt-oss:20b",
+                ],
+                "default_model": "mistral",
+            },
+            "3": {
+                "name": "Institut-Server (A100/100GB+)",
+                "recommended": [
+                    "gpt-oss:120b",
+                    "deepseek-r1:70b",
+                    "qwen2.5:32b",
+                    "qwen2.5:72b",
+                    "gpt-oss:20b",
+                ],
+                "default_model": "gpt-oss:120b",
+            },
+            "4": {
+                "name": "Benutzerdefiniert",
+                "recommended": [],
+                "default_model": "mistral",
+            },
+        }
+        selected_profile = hardware_profiles.get(hw_choice, hardware_profiles["2"])
+        config["hardware_profile"] = selected_profile["name"]
+
         print(f"\n{Colors.CYAN}Ollama Modell:{Colors.RESET}")
+        if selected_profile["recommended"]:
+            print(
+                f"  {Colors.YELLOW}Empfohlen für {selected_profile['name']}:{Colors.RESET}"
+            )
+            for model_name in selected_profile["recommended"]:
+                print(f"   - {model_name}")
+            print()
         print("  Verfügbare Modelle:")
-        print("  1) mistral     (7B, Standard, ~4.4 GB)")
-        print("  2) phi3        (3.8B, schneller, ~2.3 GB)")
-        print("  3) gemma:2b    (2B, sehr schnell, ~1.7 GB)")
-        print("  4) llama3.2:3b (3B, gut, ~2.0 GB)")
-        print("  5) Eigenes Modell eingeben")
+        print("  1) mistral       (7B, robust, ~4.4 GB)")
+        print("  2) llama3.2:3b   (3B, effizient, ~2.0 GB)")
+        print("  3) gemma3:4b     (Google open model, ~3.3 GB)")
+        print("  4) qwen2.5:7b    (Alibaba open model, ~4.7 GB)")
+        print("  5) deepseek-r1:8b (Reasoning, ~5.2 GB)")
+        print("  6) gpt-oss:20b   (OpenAI open-weight, ~14 GB)")
+        print("  7) gpt-oss:120b  (OpenAI open-weight, ~65 GB)")
+        print("  8) deepseek-r1:70b (Reasoning, ~43 GB)")
+        print("  9) qwen2.5:32b   (Alibaba open model, ~20 GB)")
+        print(" 10) qwen2.5:72b   (Alibaba open model, ~47 GB)")
+        print(" 11) phi3          (3.8B, schnell, ~2.3 GB)")
+        print(" 12) Eigenes Modell eingeben")
         print()
-        print(f"  {Colors.YELLOW}Empfehlung für MacBook Air M4:")
-        print(f"  phi3 oder gemma:2b (weniger RAM){Colors.RESET}")
+        print(f"  {Colors.YELLOW}Beispiel für MacBook Air M4:")
+        print(f"  llama3.2:3b, gemma3:4b oder phi3 (weniger RAM){Colors.RESET}")
         if unattended:
             model_choice = "1"
         else:
             model_choice = input("  Modell [1=mistral]: ").strip() or "1"
         model_map = {
             "1": "mistral",
-            "2": "phi3",
-            "3": "gemma:2b",
-            "4": "llama3.2:3b",
+            "2": "llama3.2:3b",
+            "3": "gemma3:4b",
+            "4": "qwen2.5:7b",
+            "5": "deepseek-r1:8b",
+            "6": "gpt-oss:20b",
+            "7": "gpt-oss:120b",
+            "8": "deepseek-r1:70b",
+            "9": "qwen2.5:32b",
+            "10": "qwen2.5:72b",
+            "11": "phi3",
         }
         if model_choice in model_map:
             config["ollama_model"] = model_map[model_choice]
-        elif model_choice == "5":
+        elif model_choice == "12":
             config["ollama_model"] = (
-                input("  Modell Name (z.B. llama3.2): ").strip() or "mistral"
+                input("  Modell Name (z.B. mistral, qwen2.5:14b): ").strip() or "mistral"
             )
         else:
-            config["ollama_model"] = "mistral"
+            config["ollama_model"] = selected_profile["default_model"]
         ok(f"Ollama Modell: {config['ollama_model']}")
         existing_ollama = find_existing_ollama()
         ollama_volume = find_ollama_volume()
@@ -468,6 +535,7 @@ def configure(
             config["ollama_volume"] = None
     else:
         config["anthropic_key"] = ask("Anthropic API Key (optional)", "")
+        config["hardware_profile"] = "externe API"
         config["reuse_ollama"] = False
         config["ollama_volume"] = None
 
@@ -1104,6 +1172,7 @@ curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null |
 def print_summary(config: dict, install_dir: Path):
     fp = config["frontend_port"]
     bp = config["backend_port"]
+    hw_profile = config.get("hardware_profile", "nicht gesetzt")
     llm = (
         "Ollama — " + config.get("ollama_model", "mistral") + " (lokal, DSGVO-konform)"
         if config.get("use_ollama")
@@ -1141,6 +1210,7 @@ def print_summary(config: dict, install_dir: Path):
 {Colors.BOLD}Einstellungen:{Colors.RESET}
   Isolation:  {config["isolation_mode"]}
   De-Pseudo:  {config["depseudo_access"]}
+  Hardware:   {hw_profile}
   LLM:        {llm}
 
 {Colors.YELLOW}Auth-Modus: Dev (kein Login erforderlich)

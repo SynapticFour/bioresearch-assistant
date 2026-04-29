@@ -133,14 +133,14 @@ Diese Liste definiert die Grenzen für Entscheidungsträger:
 
 ## Wie du es reproduzieren kannst (clean checkout)
 ### Voraussetzungen
-- Das Repo unterstützt Python **3.11** (siehe `INSTALLATION.md`)
+- Das Repo unterstützt Python **3.9+** (3.11 empfohlen; siehe `docs/INSTALL.md`)
 - Docker ist für die hier beschriebenen Testläufe **nicht erforderlich**, da Tests in-memory DB nutzen.
 
 ### Schritt 1: Setup
 ```bash
-cd /Users/alexandersenf/devel/SynapticFour/bioresearch-assistant
+cd /pfad/zu/bioresearch-assistant
 
-python3.11 -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r backend/requirements.txt
 ```
