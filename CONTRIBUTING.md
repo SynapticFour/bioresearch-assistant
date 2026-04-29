@@ -29,9 +29,13 @@ GitHub Issue mit Label "enhancement". Bitte erkläre den Use Case — nicht nur 
 git clone https://github.com/SynapticFour/bioresearch-assistant.git
 cd bioresearch-assistant
 cp .env.example .env
-cd backend && pip install -r requirements.txt
-cd ../frontend && npm install
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r backend/requirements.txt
+cd frontend && npm install && cd ..
 ```
+
+Install-/Deployment-Varianten: `docs/INSTALL.md` und `docs/deployment/README.md`.
 
 #### Entwicklung
 ```bash

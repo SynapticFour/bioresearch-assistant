@@ -1,0 +1,20 @@
+{{- if .Values.postgres.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bioresearch-assistant.fullname" . }}-postgres
+  labels:
+    {{- include "bioresearch-assistant.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.postgres.service.type }}
+  ports:
+    - port: {{ .Values.postgres.service.port }}
+      targetPort: {{ .Values.postgres.service.port }}
+      protocol: TCP
+      name: postgres
+  selector:
+    app.kubernetes.io/name: {{ include "bioresearch-assistant.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: postgres
+{{- end }}
+

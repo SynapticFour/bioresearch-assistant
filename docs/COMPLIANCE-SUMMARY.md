@@ -42,7 +42,7 @@ Vertragssituation und den Verantwortlichen beim Betreiber ab.
   - Architektur „GAIA‑X ready by design“ (Self‑Description, OIDC, On‑Premise).
   - Keine GAIA‑X‑Zertifizierung; Alignment‑Details in `GAIA-X-ALIGNMENT.md`.
 - **GA4GH**:
-  - Implementierung orientiert sich an WES v1.1, DRS v1.3 und Phenopackets v2.
+  - Implementierung orientiert sich an WES v1.1, DRS und Phenopackets v2.
   - Endpunkte sind in `DEVELOPER-GUIDE.md` beschrieben.
 - **FAIR**:
   - FAIR‑Export mit Score, Metadaten und optionalem Zenodo‑Upload.

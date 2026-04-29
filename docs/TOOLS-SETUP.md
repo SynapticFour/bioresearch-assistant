@@ -109,6 +109,12 @@ WORKFLOWS_DIR=/pfad/zu/workflows/
 brew install ollama
 ollama serve &
 ollama pull mistral
+# Alternativen:
+# ollama pull llama3.2:3b
+# ollama pull gemma3:4b
+# ollama pull qwen2.5:7b
+# ollama pull deepseek-r1:8b
+# ollama pull gpt-oss:20b
 
 ### Docker
 Ollama ist im `docker-compose.yml` mit **Profil** `ollama` definiert (startet nicht bei `docker compose up` ohne Profil):

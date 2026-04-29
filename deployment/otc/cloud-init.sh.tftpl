@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+DEPLOY_USER="${deploy_user}"
+REPO_URL="${repo_url}"
+REPO_REF="${repo_ref}"
+INSTALL_DIR="${install_dir}"
+BACKEND_IMAGE="${backend_image}"
+FRONTEND_IMAGE="${frontend_image}"
+DOCKER_PLATFORM="${docker_platform}"
+
+apt-get update
+apt-get install -y docker.io docker-compose-plugin git curl
+systemctl enable docker
+systemctl start docker
+usermod -aG docker "${DEPLOY_USER}" || true
+
+if [ ! -d "${INSTALL_DIR}/.git" ]; then
+  git clone "${REPO_URL}" "${INSTALL_DIR}"
+fi
+
+cd "${INSTALL_DIR}"
+git fetch --all
+git checkout "${REPO_REF}"
+git pull --ff-only origin "${REPO_REF}" || true
+
+cat > .env <<EOF
+ENVIRONMENT=production
+BACKEND_IMAGE=${BACKEND_IMAGE}
+FRONTEND_IMAGE=${FRONTEND_IMAGE}
+DOCKER_PLATFORM=${DOCKER_PLATFORM}
+EOF
+
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+

@@ -142,7 +142,7 @@ class Settings(BaseSettings):
     oidc_client_id: str = Field(default="", description="OIDC client ID")
     oidc_client_secret: str = Field(default="", description="OIDC client secret")
     oidc_redirect_uri: str = Field(
-        default="http://localhost:8000/auth/callback",
+        default="http://localhost:8000/api/v1/auth/callback",
         description="OIDC redirect URI after login",
     )
     jwt_secret: str = Field(default="", description="JWT secret for session (optional)")
