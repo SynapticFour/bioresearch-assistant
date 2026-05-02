@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'DEPLOY'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Railway CLI
         run: |
