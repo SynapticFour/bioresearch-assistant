@@ -72,4 +72,3 @@ jobs:
             az container restart \
               --name bioresearch-backend \
               --resource-group bioresearch-rg
-        continue-on-error: true
