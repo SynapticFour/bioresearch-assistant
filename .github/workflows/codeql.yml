@@ -38,4 +38,4 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
         with:
-          upload: always
+          upload: never
