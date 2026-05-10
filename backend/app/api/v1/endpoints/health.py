@@ -41,11 +41,29 @@ async def check_features() -> dict[str, bool]:
     except ImportError:
         pass
 
-    # LLM verfügbar? (Ollama oder gültiger Anthropic-Key)
+    # LLM verfügbar? Anthropic / OpenAI-kompatibel (lokal) / Ollama
     settings = get_settings()
-    key = (settings.anthropic_api_key or "").strip()
-    if key and key != "dummy" and key.startswith("sk-ant-") and len(key) > 20:
-        features["llm_summaries"] = True
+    backend = settings.resolved_llm_backend()
+    if backend == "anthropic":
+        key = (settings.anthropic_api_key or "").strip()
+        features["llm_summaries"] = bool(
+            key and key != "dummy" and key.startswith("sk-ant-") and len(key) > 20
+        )
+    elif backend == "openai_compatible":
+        base = (settings.openai_api_base or "").strip().rstrip("/")
+        if base:
+            try:
+                headers: dict[str, str] = {}
+                ok = (settings.openai_api_key or "").strip()
+                if ok:
+                    headers["Authorization"] = f"Bearer {ok}"
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    resp = await client.get(f"{base}/models", headers=headers)
+                    features["llm_summaries"] = resp.status_code == 200
+            except Exception:
+                features["llm_summaries"] = False
+        else:
+            features["llm_summaries"] = False
     else:
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -91,11 +109,9 @@ async def health_check() -> dict[str, Any]:
     """
     settings = get_settings()
     features = await check_features()
-    # data_sovereignty: "full" when using local LLM (Ollama), "partial" when using Anthropic API
+    # data_sovereignty: "partial" only when using Anthropic cloud API
     data_sovereignty = (
-        "full"
-        if not (settings.anthropic_api_key and settings.anthropic_api_key.strip())
-        else "partial"
+        "partial" if settings.resolved_llm_backend() == "anthropic" else "full"
     )
     return {
         "status": "healthy",

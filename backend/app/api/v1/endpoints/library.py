@@ -148,11 +148,7 @@ async def summarize_paper(
             language=language,
             title=(paper.title or "").strip() or None,
         )
-        summary_model = (
-            settings.llm_claude_model
-            if (settings.anthropic_api_key or "").strip()
-            else settings.ollama_model
-        )
+        summary_model = settings.effective_llm_model_label()
         paper.summary = result.summary
         paper.summary_language = language
         paper.summary_model = summary_model
@@ -166,7 +162,7 @@ async def summarize_paper(
         logger.warning("Summarize failed for pmid=%s: %s", body.pmid, e)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="KI-Zusammenfassung fehlgeschlagen. Prüfen Sie Ollama/Anthropic.",
+            detail="KI-Zusammenfassung fehlgeschlagen. Prüfen Sie Ollama, Anthropic oder lokales OpenAI-kompatibles Inference.",
         ) from e
 
 

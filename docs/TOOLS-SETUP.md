@@ -131,6 +131,41 @@ OLLAMA_URL=http://ollama:11434
 
 ---
 
+## Lokales Inference (OpenAI-kompatibel, SGLang)
+
+Für GPUs auf Linux lässt sich ein **OpenAI-kompatible** HTTP-API (z. B. [SGLang](https://github.com/sgl-project/sglang)) als eigener Compose-Service starten — passend zu `LLM_PROVIDER=openai_compatible` im Backend.
+
+**Voraussetzungen:** NVIDIA-Treiber, `nvidia-container-toolkit`, ausreichend VRAM für das gewählte Hugging-Face-Modell. Auf macOS/ohne GPU ist dieser Pfad nicht nutzbar (stattdessen Ollama oder Anthropic).
+
+```bash
+# Modell und Port optional über Umgebung:
+export INFERENCE_MODEL=MiniMaxAI/MiniMax-M2
+export INFERENCE_PORT=30000
+# Optional für geschützte Modelle:
+export HF_TOKEN=hf_...
+
+docker compose --profile inference up -d inference
+```
+
+Im **Backend** `.env` (bei Backend im gleichen Compose-Netzwerk):
+
+```bash
+LLM_PROVIDER=openai_compatible
+OPENAI_BASE_URL=http://inference:30000/v1
+OPENAI_MODEL=${INFERENCE_MODEL}
+# OPENAI_API_KEY=   # leer lassen, wenn der Server keinen Token verlangt
+```
+
+Läuft das Backend auf dem Host und der Inference-Container nur mit Portpublish:
+
+```bash
+OPENAI_BASE_URL=http://127.0.0.1:30000/v1
+```
+
+Modell-Weights werden im Volume `huggingface_cache` unter `/root/.cache/huggingface` des Containers zwischengespeichert.
+
+---
+
 ## Railway Demo — Einschränkungen
 Auf Railway sind folgende Tools NICHT installiert:
 - BLAST (kein Binary)

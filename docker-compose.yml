@@ -41,6 +41,40 @@ services:
     profiles:
       - ollama
 
+  # OpenAI-compatible HTTP API (SGLang). Requires NVIDIA GPU + nvidia-container-toolkit on Linux.
+  # Start: docker compose --profile inference up -d inference
+  # Backend .env: LLM_PROVIDER=openai_compatible, OPENAI_BASE_URL=http://inference:30000/v1, OPENAI_MODEL=<same as INFERENCE_MODEL>
+  inference:
+    image: lmsysorg/sglang:latest
+    profiles:
+      - inference
+    ipc: host
+    shm_size: "8gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    ports:
+      - "${INFERENCE_PORT:-30000}:30000"
+    environment:
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - huggingface_cache:/root/.cache/huggingface
+    entrypoint: ["python3", "-m", "sglang.launch_server"]
+    command:
+      - "--model-path"
+      - "${INFERENCE_MODEL:-meta-llama/Llama-3.1-8B-Instruct}"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "30000"
+    gpus: all
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:30000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   frontend:
     build:
       context: ./frontend
@@ -58,4 +92,5 @@ services:
 volumes:
   postgres_data:
   ollama_data:
+  huggingface_cache:
   pipeline_outputs:

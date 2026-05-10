@@ -81,8 +81,9 @@ ISOLATION_MODE=user    # user / team / open
 DEPSEUDO_ACCESS=owner  # owner / team / admin
 
 # LLM Provider
-LLM_PROVIDER=ollama    # ollama / anthropic
+LLM_PROVIDER=ollama    # ollama / anthropic / auto / openai_compatible
 OLLAMA_MODEL=mistral   # z.B. mistral, llama3.2:3b, gemma3:4b, qwen2.5:7b, deepseek-r1:8b, gpt-oss:20b
+# GPU-Server mit OpenAI-kompatiblem Endpoint (SGLang): siehe docs/TOOLS-SETUP.md — Abschnitt „Lokales Inference“
 
 # Version
 APP_VERSION=1.3.0
@@ -93,6 +94,7 @@ APP_VERSION=1.3.0
 | Modus        | Datensouveränität |
 |--------------|--------------------|
 | Ollama (Standard) | Datenverarbeitung lokal im eigenen Setup |
+| OpenAI-kompatibel (lokal, z. B. SGLang) | Datenverarbeitung im eigenen Setup (ohne Anthropic-Cloud) |
 | Anthropic API     | ⚠️ Texte werden an Anthropic übertragen |
 
 Für klinische Produktionsbetriebe wird in der Regel ein Betrieb mit
