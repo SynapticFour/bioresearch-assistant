@@ -18,6 +18,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   test:
     if: github.actor != 'dependabot[bot]'
@@ -45,10 +48,10 @@ jobs:
           sudo rm -rf /opt/ghc
           df -h
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -66,10 +69,10 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -91,16 +94,16 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
       - name: Cache FHIR validator CLI + package cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .cache/fhir
           key: fhir-validator-${{ runner.os }}-${{ hashFiles('backend/app/interoperability/mii/ig_manifest.json') }}
@@ -126,10 +129,10 @@ jobs:
       ENVIRONMENT: test
       PYTEST_ADDOPTS: ""
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -180,7 +183,7 @@ jobs:
       HELIXTEST_REF: fbfe207f8961d5e8909b9173c07a7e001c24f2ad
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install system dependencies
         run: sudo apt-get update && sudo apt-get install -y libsodium-dev
@@ -188,7 +191,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -261,10 +264,10 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: "npm"
@@ -286,7 +289,7 @@ jobs:
 #    needs: [test]
 #    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 #    steps:
-#      - uses: actions/checkout@v4
+#      - uses: actions/checkout@v6
 #
 #      - name: Set up Docker Buildx
 #        uses: docker/setup-buildx-action@v3

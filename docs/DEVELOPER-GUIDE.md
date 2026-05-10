@@ -1021,10 +1021,14 @@ Alle relevanten Umgebungsvariablen (`.env`) — aus `backend/app/core/config.py`
 | **CORS** | | |
 | CORS_ORIGINS | Komma-getrennte Origins | `http://localhost:5173,http://localhost:3000` |
 | **LLM** | | |
+| LLM_PROVIDER | Routing: `auto`, `anthropic`, `ollama`, `openai_compatible` | `auto` |
 | ANTHROPIC_API_KEY | Claude API Key (primär) | `sk-ant-...` oder leer |
 | OLLAMA_URL | Ollama-URL (Fallback) | `http://localhost:11434` |
 | LLM_CLAUDE_MODEL | Claude-Modell | `claude-sonnet-4-6` |
 | OLLAMA_MODEL | Ollama-Modell | `mistral:7b` |
+| OPENAI_BASE_URL | OpenAI-kompatible API (inkl. `/v1`), z. B. SGLang | `http://localhost:30000/v1` |
+| OPENAI_MODEL | Modell-ID beim OpenAI-kompatiblen Server | z. B. Hugging-Face-Pfad |
+| OPENAI_API_KEY | Optionaler Bearer für lokales Inference | leer |
 | **Pseudonymisierung** | | |
 | PSEUDONYMIZATION_ENCRYPTION_KEY | AES-256 Key (64 Hex-Zeichen) | `openssl rand -hex 32` |
 | RESTORE_API_KEY | API-Key für Restore (X-Restore-API-Key) | optional |

@@ -16,12 +16,15 @@ on:
           - production
           - preview
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'DEPLOY'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Vercel CLI
         run: npm install -g vercel

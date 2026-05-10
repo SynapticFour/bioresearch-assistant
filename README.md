@@ -19,8 +19,7 @@ und KI in einer Plattform, die technische Maßnahmen
 zur datenschutzfreundlichen Nutzung bereitstellt —
 vollständig on-premise betreibbar.
 
-Entwickelt von [Synaptic Four](https://www.synapticfour.com)
-für Unikliniken, Forschungsgruppen und Biotech-Startups
+Konzipiert für Unikliniken, Forschungsgruppen und Biotech-Startups
 im DACH-Raum.
 
 ---
@@ -177,6 +176,6 @@ BUSL 1.1 — Business Source License
 Kostenlos für Forschung und Evaluation.
 Kommerzielle Nutzung: contact@synapticfour.com
 
-© 2026 Synaptic Four · [www.synapticfour.com](https://www.synapticfour.com)
+Kontakt: [contact@synapticfour.com](mailto:contact@synapticfour.com)
 
 ---

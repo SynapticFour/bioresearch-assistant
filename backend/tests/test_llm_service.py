@@ -16,6 +16,10 @@ def mock_settings(mocker):
     settings.ollama_base_url = "http://localhost:11434"
     settings.llm_claude_model = "claude-sonnet-4-6"
     settings.ollama_model = "mistral:7b"
+    settings.openai_api_base = ""
+    settings.openai_model = ""
+    settings.openai_api_key = None
+    settings.resolved_llm_backend = MagicMock(return_value="anthropic")
     mocker.patch("app.core.config.get_settings", return_value=settings)
     return settings
 
@@ -28,6 +32,10 @@ def mock_settings_no_key(mocker):
     settings.ollama_base_url = "http://localhost:11434"
     settings.llm_claude_model = "claude-sonnet-4-6"
     settings.ollama_model = "mistral:7b"
+    settings.openai_api_base = ""
+    settings.openai_model = ""
+    settings.openai_api_key = None
+    settings.resolved_llm_backend = MagicMock(return_value="ollama")
     mocker.patch("app.core.config.get_settings", return_value=settings)
     return settings
 
@@ -114,6 +122,44 @@ async def test_summarize_paper_falls_back_to_ollama_when_no_api_key(
     result = await service.summarize_paper(abstract="Some abstract.")
     assert isinstance(result, PaperSummary)
     assert "Summary of the paper" in result.summary
+
+
+@pytest.mark.asyncio
+async def test_summarize_paper_openai_compatible(mocker, mock_ollama):
+    """When LLM_PROVIDER routes to openai_compatible, POST /v1/chat/completions is used."""
+    settings = MagicMock()
+    settings.anthropic_api_key = None
+    settings.ollama_base_url = "http://localhost:11434"
+    settings.llm_claude_model = "claude-sonnet-4-6"
+    settings.ollama_model = "mistral:7b"
+    settings.openai_api_base = "http://localhost:30000/v1"
+    settings.openai_model = "MiniMaxAI/MiniMax-M2"
+    settings.openai_api_key = ""
+    settings.resolved_llm_backend = MagicMock(return_value="openai_compatible")
+    mocker.patch("app.core.config.get_settings", return_value=settings)
+
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.json.return_value = {
+        "choices": [
+            {
+                "message": {
+                    "content": (
+                        '{"summary": "OpenAI-compatible summary.", '
+                        '"key_findings": [], "methods": [], "relevance_score": null}'
+                    )
+                }
+            }
+        ]
+    }
+    mock_ollama.return_value.post = AsyncMock(return_value=mock_response)
+
+    service = LLMService()
+    result = await service.summarize_paper(abstract="Some abstract text for testing.")
+    assert isinstance(result, PaperSummary)
+    assert "OpenAI-compatible" in result.summary
+    post_url = mock_ollama.return_value.post.call_args[0][0]
+    assert post_url == "http://localhost:30000/v1/chat/completions"
 
 
 @pytest.mark.asyncio

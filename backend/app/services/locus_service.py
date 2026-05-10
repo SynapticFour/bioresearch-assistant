@@ -177,11 +177,7 @@ class LocusService:
             raise LLMServiceError(str(e)) from e
 
         settings = get_settings()
-        model_used = (
-            settings.llm_claude_model
-            if (settings.anthropic_api_key or "").strip()
-            else settings.ollama_model
-        )
+        model_used = settings.effective_llm_model_label()
 
         src_list = [
             LocusSource(

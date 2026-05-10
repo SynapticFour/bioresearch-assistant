@@ -56,7 +56,15 @@ class Settings(BaseSettings):
         description="Allowed CORS origins",
     )
 
-    # LLM (optional: Claude primary, Ollama fallback)
+    # LLM: anthropic (cloud) | ollama | openai_compatible (local OpenAI API, e.g. SGLang/vLLM)
+    llm_provider: str = Field(
+        default="auto",
+        description=(
+            "LLM routing: auto (Anthropic key → Claude, else Ollama), "
+            "anthropic, ollama, openai_compatible (requires OPENAI_*)."
+        ),
+        validation_alias="LLM_PROVIDER",
+    )
     anthropic_api_key: str | None = Field(
         default=None,
         description="Anthropic API key for Claude (primary LLM)",
@@ -73,6 +81,24 @@ class Settings(BaseSettings):
     ollama_model: str = Field(
         default="mistral:7b",
         description="Ollama model name for fallback",
+    )
+    openai_api_base: str | None = Field(
+        default=None,
+        description=(
+            "OpenAI-compatible API base URL including /v1, e.g. "
+            "http://localhost:30000/v1 or http://inference:30000/v1"
+        ),
+        validation_alias="OPENAI_BASE_URL",
+    )
+    openai_model: str = Field(
+        default="",
+        description="Model id for OpenAI-compatible endpoint (e.g. MiniMaxAI/MiniMax-M2)",
+        validation_alias="OPENAI_MODEL",
+    )
+    openai_api_key: str | None = Field(
+        default=None,
+        description="Optional bearer token for OpenAI-compatible server (use EMPTY for none)",
+        validation_alias="OPENAI_API_KEY",
     )
 
     # Locus (curated on-prem RAG; optional module — see docs/LOCUS-MODULE.md)
@@ -207,6 +233,30 @@ class Settings(BaseSettings):
         description="Base delay for exponential backoff between export job retries",
         validation_alias="MII_EXPORT_RETRY_BASE_SECONDS",
     )
+
+    def resolved_llm_backend(self) -> str:
+        """Which LLM backend is active: anthropic | openai_compatible | ollama."""
+        p = (self.llm_provider or "auto").strip().lower()
+        if p == "openai_compatible":
+            return "openai_compatible"
+        if p == "anthropic":
+            return "anthropic"
+        if p == "ollama":
+            return "ollama"
+        # auto: same gate as /health LLM probe — invalid keys fall back to Ollama
+        k = (self.anthropic_api_key or "").strip()
+        if k and k != "dummy" and k.startswith("sk-ant-") and len(k) > 20:
+            return "anthropic"
+        return "ollama"
+
+    def effective_llm_model_label(self) -> str:
+        """Human-readable model id for logs / API responses."""
+        b = self.resolved_llm_backend()
+        if b == "anthropic":
+            return self.llm_claude_model
+        if b == "openai_compatible":
+            return self.openai_model or "openai-compatible"
+        return self.ollama_model
 
     @property
     def auth_enabled(self) -> bool:

@@ -30,6 +30,9 @@ on:
         default: production
         type: string
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -38,7 +41,7 @@ jobs:
       github.event.inputs.confirm == 'DEPLOY' ||
       github.event_name == 'workflow_call'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1

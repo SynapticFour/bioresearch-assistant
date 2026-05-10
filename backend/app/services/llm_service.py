@@ -1,4 +1,4 @@
-"""LLM service: Claude (primary) or Ollama (fallback) for summarization and entity extraction."""
+"""LLM service: Claude, OpenAI-compatible local inference, or Ollama for NLP tasks."""
 
 import asyncio
 import json
@@ -54,7 +54,7 @@ def _extract_json_block(text: str) -> str:
 
 
 class LLMService:
-    """Async LLM service using Claude (Anthropic) or Ollama as fallback."""
+    """Async LLM service: Anthropic Claude, OpenAI-compatible HTTP API, or Ollama."""
 
     def __init__(
         self,
@@ -63,6 +63,9 @@ class LLMService:
         ollama_base_url: str | None = None,
         claude_model: str | None = None,
         ollama_model: str | None = None,
+        openai_api_base: str | None = None,
+        openai_model: str | None = None,
+        openai_api_key: str | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         """Initialize from explicit args; missing values are read from app config."""
@@ -75,12 +78,18 @@ class LLMService:
         self._ollama_base = (ollama_base_url or settings.ollama_base_url).rstrip("/")
         self._claude_model = claude_model or settings.llm_claude_model
         self._ollama_model = ollama_model or settings.ollama_model
+        ob = openai_api_base if openai_api_base is not None else settings.openai_api_base
+        self._openai_base = ob.rstrip("/") if ob else ""
+        self._openai_model = openai_model if openai_model is not None else settings.openai_model
+        ok = openai_api_key if openai_api_key is not None else settings.openai_api_key
+        self._openai_api_key = (ok or "").strip()
         self._client = http_client or httpx.AsyncClient(timeout=LLM_TIMEOUT)
         self._own_client = http_client is None
 
-    @property
-    def _use_anthropic(self) -> bool:
-        return bool(self._api_key and self._api_key.strip())
+    def _backend(self) -> str:
+        from app.core.config import get_settings
+
+        return get_settings().resolved_llm_backend()
 
     async def close(self) -> None:
         if self._own_client:
@@ -115,6 +124,40 @@ class LLMService:
         if hasattr(block, "text"):
             return block.text
         raise LLMServiceError("Unexpected Claude response format")
+
+    async def _call_openai_compatible(self, system: str, user: str) -> str:
+        """POST OpenAI-compatible /chat/completions (SGLang, vLLM, etc.)."""
+        if not self._openai_base or not self._openai_model:
+            raise LLMServiceError(
+                "OpenAI-compatible LLM requires OPENAI_BASE_URL and OPENAI_MODEL "
+                "(set LLM_PROVIDER=openai_compatible)."
+            )
+        url = f"{self._openai_base}/chat/completions"
+        headers: dict[str, str] = {"Content-Type": "application/json"}
+        if self._openai_api_key:
+            headers["Authorization"] = f"Bearer {self._openai_api_key}"
+        payload = {
+            "model": self._openai_model,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        try:
+            resp = await self._client.post(url, json=payload, headers=headers)
+            resp.raise_for_status()
+            data = resp.json()
+        except Exception as e:
+            logger.warning("OpenAI-compatible API error: %s", e)
+            raise LLMServiceError(f"OpenAI-compatible API failed: {e}") from e
+        choices = data.get("choices") or []
+        if not choices:
+            raise LLMServiceError("OpenAI-compatible API returned no choices")
+        msg = choices[0].get("message") or {}
+        content = (msg.get("content") or "").strip()
+        if not content:
+            raise LLMServiceError("OpenAI-compatible API returned empty content")
+        return content
 
     async def _call_ollama_with_retry(
         self,
@@ -167,9 +210,14 @@ class LLMService:
         return await self._call_ollama_with_retry(system=system, user=user)
 
     async def _complete(self, system: str, user: str) -> str:
-        """Run completion with configured provider (Claude or Ollama)."""
-        if self._use_anthropic:
+        """Run completion with configured provider."""
+        backend = self._backend()
+        if backend == "anthropic":
+            if not self._api_key or not self._api_key.strip():
+                raise LLMServiceError("LLM_PROVIDER=anthropic requires ANTHROPIC_API_KEY.")
             return await self._call_claude(system=system, user=user)
+        if backend == "openai_compatible":
+            return await self._call_openai_compatible(system=system, user=user)
         return await self._call_ollama(system=system, user=user)
 
     async def summarize_paper(
