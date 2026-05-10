@@ -80,9 +80,7 @@ class LLMService:
         self._ollama_model = ollama_model or settings.ollama_model
         ob = openai_api_base if openai_api_base is not None else settings.openai_api_base
         self._openai_base = ob.rstrip("/") if ob else ""
-        self._openai_model = (
-            openai_model if openai_model is not None else settings.openai_model
-        )
+        self._openai_model = openai_model if openai_model is not None else settings.openai_model
         ok = openai_api_key if openai_api_key is not None else settings.openai_api_key
         self._openai_api_key = (ok or "").strip()
         self._client = http_client or httpx.AsyncClient(timeout=LLM_TIMEOUT)
@@ -216,9 +214,7 @@ class LLMService:
         backend = self._backend()
         if backend == "anthropic":
             if not self._api_key or not self._api_key.strip():
-                raise LLMServiceError(
-                    "LLM_PROVIDER=anthropic requires ANTHROPIC_API_KEY."
-                )
+                raise LLMServiceError("LLM_PROVIDER=anthropic requires ANTHROPIC_API_KEY.")
             return await self._call_claude(system=system, user=user)
         if backend == "openai_compatible":
             return await self._call_openai_compatible(system=system, user=user)

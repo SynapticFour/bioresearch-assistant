@@ -162,7 +162,10 @@ async def summarize_paper(
         logger.warning("Summarize failed for pmid=%s: %s", body.pmid, e)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="KI-Zusammenfassung fehlgeschlagen. Prüfen Sie Ollama, Anthropic oder lokales OpenAI-kompatibles Inference.",
+            detail=(
+                "KI-Zusammenfassung fehlgeschlagen. LLM prüfen "
+                "(Ollama, Anthropic oder lokales OpenAI-kompatibles Inference)."
+            ),
         ) from e
 
 

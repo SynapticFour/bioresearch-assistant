@@ -245,12 +245,7 @@ class Settings(BaseSettings):
             return "ollama"
         # auto: same gate as /health LLM probe — invalid keys fall back to Ollama
         k = (self.anthropic_api_key or "").strip()
-        if (
-            k
-            and k != "dummy"
-            and k.startswith("sk-ant-")
-            and len(k) > 20
-        ):
+        if k and k != "dummy" and k.startswith("sk-ant-") and len(k) > 20:
             return "anthropic"
         return "ollama"
 

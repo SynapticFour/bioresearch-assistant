@@ -110,9 +110,7 @@ async def health_check() -> dict[str, Any]:
     settings = get_settings()
     features = await check_features()
     # data_sovereignty: "partial" only when using Anthropic cloud API
-    data_sovereignty = (
-        "partial" if settings.resolved_llm_backend() == "anthropic" else "full"
-    )
+    data_sovereignty = "partial" if settings.resolved_llm_backend() == "anthropic" else "full"
     return {
         "status": "healthy",
         "version": settings.version,
