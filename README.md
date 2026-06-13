@@ -125,6 +125,23 @@ Danach erreichbar unter:
 
 Hinweis Dev-Frontend: bei lokalem Vite-Start typischerweise `http://localhost:5173`.
 
+Ein-Klick-Alternative (nach Klonen):
+
+```bash
+make up          # unattended install oder start
+make down        # stoppen, Daten behalten
+make destroy     # stoppen + Volumes entfernen
+```
+
+Details: `docs/INSTALL.md`.
+
+### Stoppen / entfernen
+
+| Ziel | Befehl |
+|------|--------|
+| Stoppen, **Daten behalten** | `make down`, `./stop.sh`, oder `python install.py stop` |
+| Volumes entfernen (Neustart) | `make destroy`, `./destroy.sh`, oder `python install.py destroy` |
+
 ---
 
 ## Dokumentation
