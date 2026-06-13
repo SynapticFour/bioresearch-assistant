@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap");
+@import "./styles/synapticfour-brand-tokens.css";
 
 @tailwind base;
 @tailwind components;
@@ -6,16 +7,16 @@
 
 @layer base {
   :root {
-    /* Design system palette */
-    --color-primary: #0f4c81;
+    /* Synaptic Four brand (see styles/synapticfour-brand-tokens.css) */
+    --color-primary: var(--sf-color-navy);
     --color-primary-foreground: #ffffff;
-    --color-secondary: #00a693;
+    --color-secondary: var(--sf-color-teal);
     --color-secondary-foreground: #ffffff;
     --color-accent: #f59e0b;
-    --color-accent-foreground: #1e293b;
-    --color-background: #f8fafc;
+    --color-accent-foreground: var(--sf-color-navy-text);
+    --color-background: var(--sf-color-background);
     --color-surface: #ffffff;
-    --color-text: #1e293b;
+    --color-text: var(--sf-color-navy-text);
     --color-muted: #64748b;
     --font-sans: "IBM Plex Sans", system-ui, sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -41,6 +42,14 @@
   .font-mono {
     font-family: var(--font-mono);
   }
+  :focus {
+    outline: none;
+  }
+  :focus-visible {
+    outline: var(--sf-focus-ring-width) solid var(--sf-focus-ring);
+    outline-offset: var(--sf-focus-ring-offset);
+    border-radius: 4px;
+  }
 }
 
 /* Scrollbar: thin, primary color */
@@ -61,7 +70,7 @@
     border-radius: 4px;
   }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: #0d3d6b;
+    background-color: var(--sf-color-navy);
   }
 }
 
