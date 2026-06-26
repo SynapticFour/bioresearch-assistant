@@ -18,7 +18,7 @@ services:
       retries: 5
 
   backend:
-    image: ${BACKEND_IMAGE:-ghcr.io/synapticfour/bioresearch-assistant-backend:latest}
+    image: ghcr.io/synapticfour/bioresearch-assistant-backend:${BRA_VERSION}
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     environment:
       DATABASE_URL: postgresql+asyncpg://${DB_USER:-bioresearch}:${DB_PASSWORD:-bioresearch}@postgres:5432/${DB_NAME:-bioresearch}
@@ -35,13 +35,13 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G        # Von 24GB — lässt Platz für Ollama
+          memory: 4G
           cpus: '2'
     ports:
       - "8000:8000"
 
   frontend:
-    image: ${FRONTEND_IMAGE:-ghcr.io/synapticfour/bioresearch-assistant-frontend:latest}
+    image: ghcr.io/synapticfour/bioresearch-assistant-frontend:${BRA_VERSION}
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     depends_on:
       - backend
@@ -55,7 +55,7 @@ services:
           cpus: '0.5'
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.5.13}
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     volumes:
       - ollama_data:/root/.ollama
@@ -65,7 +65,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 16G       # Großzügig — ARM hat 24GB total
+          memory: 16G
           cpus: '1.5'
 
 volumes:

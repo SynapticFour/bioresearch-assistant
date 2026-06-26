@@ -3,13 +3,11 @@ set -euo pipefail
 
 BUNDLE_DIR="./offline-bundle"
 OLLAMA_VOLUME="ollama_data"
-IMPORT_OLLAMA_VOLUME="false"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --bundle-dir) BUNDLE_DIR="$2"; shift 2 ;;
     --ollama-volume) OLLAMA_VOLUME="$2"; shift 2 ;;
-    --import-ollama-volume) IMPORT_OLLAMA_VOLUME="true"; shift 1 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
@@ -34,21 +32,17 @@ fi
 echo "Loading docker images from: ${ARCHIVE}"
 gunzip -c "${ARCHIVE}" | docker load
 
-if [[ "${IMPORT_OLLAMA_VOLUME}" == "true" ]]; then
-  OLLAMA_ARCHIVE="$(ls "${BUNDLE_DIR}"/ollama-volume-*.tar.gz 2>/dev/null | head -n 1 || true)"
-  if [[ -z "${OLLAMA_ARCHIVE}" ]]; then
-    echo "No Ollama volume archive found. Skipping Ollama volume import."
-  else
-    echo "Importing Ollama model volume into '${OLLAMA_VOLUME}' from: ${OLLAMA_ARCHIVE}"
-    docker volume create "${OLLAMA_VOLUME}" >/dev/null
-    docker run --rm \
-      -v "${OLLAMA_VOLUME}:/target" \
-      -v "${BUNDLE_DIR}:/backup:ro" \
-      alpine:3.20 \
-      sh -c "rm -rf /target/* && tar -C /target -xzf /backup/$(basename "${OLLAMA_ARCHIVE}")"
+# Optional separate models bundle (same directory or parent)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PARENT="$(cd "${BUNDLE_DIR}/.." && pwd)"
+for search in "${BUNDLE_DIR}" "${PARENT}" "."; do
+  MODELS="$(ls "${search}"/models-bundle-*.tar.gz 2>/dev/null | head -n 1 || true)"
+  if [[ -n "${MODELS}" ]]; then
+    echo "Found optional models bundle: ${MODELS}"
+    OLLAMA_VOLUME="${OLLAMA_VOLUME}" bash "${SCRIPT_DIR}/import_models_bundle.sh" "${MODELS}"
+    break
   fi
-fi
+done
 
 echo "Import finished."
-echo "Next: configure .env and run docker compose -f docker-compose.prod.yml up -d"
-
+echo "Next: cp .env.example .env, set BRA_VERSION, then ./install.sh --offline"
