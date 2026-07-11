@@ -1,14 +1,10 @@
 name: CI
 
 on:
-  # Previously only main/develop — pushes to feat/* never ran CI (confusing for PR-less work).
   push:
     branches:
       - main
       - develop
-      - "feat/**"
-      - "fix/**"
-      - "chore/**"
       - "release/**"
   pull_request:
     branches: [main, develop]
