@@ -1,9 +1,6 @@
 name: Build Docker Images
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
     inputs:
       confirm:
@@ -11,6 +8,11 @@ on:
         required: true
         default: ""
   workflow_call:
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io

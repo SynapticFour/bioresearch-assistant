@@ -15,6 +15,9 @@ Verwendung:
   python install.py              # Interaktiv
   python install.py --minimal    # Nur Core
   python install.py --unattended # Alle Defaults
+  python install.py start        # Bestehende Installation starten
+  python install.py stop         # Stoppen (Daten behalten)
+  python install.py destroy      # Stoppen + Volumes entfernen
   python install.py --install-dir /opt/bioresearch
 """
 
@@ -1098,8 +1101,14 @@ echo "   Health:    http://localhost:{bp}/api/v1/health"
         "stop.sh": f"""#!/bin/bash
 cd "{install_dir_str}"
 echo "⏹ Stoppe BioResearch Assistant..."
-docker compose -f docker-compose.full.yml down
-echo "✅ Gestoppt."
+docker compose -f docker-compose.full.yml down --remove-orphans
+echo "✅ Gestoppt (Daten behalten)."
+""",
+        "destroy.sh": f"""#!/bin/bash
+cd "{install_dir_str}"
+echo "🗑 Entferne Stack (Container + Volumes)..."
+docker compose -f docker-compose.full.yml down -v --remove-orphans
+echo "✅ Stack zerstört. Neu starten: ./start.sh oder python install.py start"
 """,
         "restart.sh": f"""#!/bin/bash
 cd "{install_dir_str}"
@@ -1373,6 +1382,45 @@ def run_start(install_dir: Path) -> bool:
     return True
 
 
+def run_stop(install_dir: Path) -> bool:
+    """Stop containers; keep volumes."""
+    compose = install_dir / "docker-compose.full.yml"
+    if not compose.exists():
+        err(
+            "docker-compose.full.yml nicht gefunden. Bitte aus Installationsverzeichnis ausführen."
+        )
+        return False
+    step("Stoppe BioResearch Assistant…")
+    subprocess.run(
+        [
+            "docker",
+            "compose",
+            "-f",
+            str(compose),
+            "down",
+            "--remove-orphans",
+        ],
+        cwd=install_dir,
+    )
+    ok("Gestoppt (Daten behalten).")
+    return True
+
+
+def run_destroy(install_dir: Path) -> bool:
+    """Stop containers and remove volumes."""
+    compose = install_dir / "docker-compose.full.yml"
+    if not compose.exists():
+        warn("Keine docker-compose.full.yml — nichts zu entfernen.")
+        return True
+    step("Entferne Stack (Container + Volumes)…")
+    cleanup_existing(install_dir)
+    ok(
+        "Stack zerstört. Konfiguration und Skripte in "
+        f"{install_dir} bleiben erhalten — erneut starten mit: python install.py start"
+    )
+    return True
+
+
 # ── Main ──────────────────────────────────────────────
 def main():
     import argparse
@@ -1384,8 +1432,8 @@ def main():
         "command",
         nargs="?",
         default="install",
-        choices=["install", "start"],
-        help="install (default) oder start",
+        choices=["install", "start", "stop", "destroy"],
+        help="install (default), start, stop, oder destroy",
     )
     parser.add_argument(
         "--minimal",
@@ -1412,6 +1460,18 @@ def main():
             )
             sys.exit(1)
         if not run_start(install_dir):
+            sys.exit(1)
+        return
+
+    if args.command == "stop":
+        install_dir = Path(args.install_dir or os.getcwd())
+        if not run_stop(install_dir):
+            sys.exit(1)
+        return
+
+    if args.command == "destroy":
+        install_dir = Path(args.install_dir or os.getcwd())
+        if not run_destroy(install_dir):
             sys.exit(1)
         return
 

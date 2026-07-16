@@ -7,6 +7,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    target: "es2022",
+  },
   resolve: {
     alias: { "@": path.resolve(__dirname, "src") },
   },
