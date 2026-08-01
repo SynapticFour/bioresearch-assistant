@@ -22,7 +22,7 @@ echo "ci-check: ruff format --check (backend)"
 (cd backend && "$RUFF" format --check app/ tests/)
 
 echo "ci-check: pytest (backend)"
-(cd backend && "$PYTEST" tests/ -q --cov-fail-under=0)
+(cd backend && "$PYTEST" tests/ -q --cov-fail-under=72)
 
 echo "ci-check: tsc --noEmit (frontend)"
 (cd frontend && npx tsc --noEmit)

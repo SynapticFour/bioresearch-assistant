@@ -161,7 +161,8 @@ Details: `docs/INSTALL.md`.
 | [deployment/RELEASE-CHECKLIST.md](docs/deployment/RELEASE-CHECKLIST.md) | 10 Pflichtchecks vor Release/Hotfix |
 | `scripts/deployment_preflight.sh` | Szenario-basierte Deployment-Checks vor Rollout |
 | `scripts/docs_consistency_check.sh` | Konsistenzcheck für Dokumentation (Konstanten/Begriffe) |
-| [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
+| [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit (internal technical assessment) |
+| [customer/SECURITY.md](docs/customer/SECURITY.md) | Customer security one-pager (DRS, US-LLM, clinical pilots) |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
 | [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) | Open-core Lizenz- und Nutzungsmodell (BUSL) |
 | [LOCUS-MODULE.md](docs/LOCUS-MODULE.md) | **Locus**: On-Premise-RAG-Modul (Domäne klinische Bioinformatik, Indizes, BUSL) |

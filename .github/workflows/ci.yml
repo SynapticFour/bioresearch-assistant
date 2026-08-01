@@ -33,8 +33,6 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SECRET_KEY: ci-secret-key-for-tests
       ENVIRONMENT: test
-      # Avoid pyproject.toml addopts --cov-fail-under=75 fighting explicit CI flags
-      PYTEST_ADDOPTS: ""
 
     steps:
       - name: Free disk space
@@ -59,7 +57,9 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: backend
-        run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=0
+        # Align with backend/pytest.ini and backend/pyproject.toml (--cov-fail-under=72).
+        # Existing coverage.xml floor ~73%; raise toward 80 when tests allow.
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=72
 
   lint:
     if: github.actor != 'dependabot[bot]'
