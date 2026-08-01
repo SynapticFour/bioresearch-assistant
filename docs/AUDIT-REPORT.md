@@ -300,30 +300,38 @@ v2.0 (geplant):
 
 ---
 
-## 10. Compliance Status (Februar 2026)
+## 10. Engineering controls implemented (Februar 2026)
 
-| Standard/Gesetz | Status | Details |
-|----------------|--------|---------|
-| DSGVO/GDPR | ✅ | Pseudonymisierung, Audit, Betroffenenrechte |
-| BDSG §27 | ✅ | Forschungsprivileg unterstützt |
-| §393 SGB V | ✅ On-premise | Cloud: Anbieter prüfen |
-| GDNG 2025 | ✅ | Pseudonymisierung, Audit-Trail |
-| DSK Sept. 2025 | ✅ | Keine Klartextdaten an US-KI |
-| GAIA-X Standard | ✅ | Self-Description API |
-| GAIA-X Level 1 | 🔜 | Roadmap 2026 Q2 |
-| GA4GH WES v1.1 | ✅ | Implementiert |
-| GA4GH DRS | ✅ | Implementiert |
-| GA4GH Phenopackets v2 | ✅ | Implementiert |
-| FAIR Prinzipien | ✅ | FAIR Export Feature |
-| OWASP Top 10 | ✅ | Review März 2026, RAG mit Prompt-Injection-Schutz |
-| ISO 27001 | 🔜 | Roadmap 2026 Q4 |
-| HIPAA | ⚠️ | Technisch kompatibel, BAA nötig |
-| ICH GCP E6(R3) | ✅ | Audit Trail, Pseudonymisierung |
-| EHDS (2025/327) | 🔜 EHDS-Ready | Secondary Use ab 2029 |
-| NIS2 / NIS2UmsuCG | ✅ Supply Chain ready | Kunden direkt betroffen |
-| Encryption at Rest | ⚠️ Betreiberpflicht | TOM Dokumentation vorhanden |
+> **Kein Zertifikat / kein Rechtsrat:** Die Spalte „Umgesetzt?“ bedeutet nur, dass
+> entsprechende **technische Kontrollen oder Features im Code/Doku vorhanden** sind
+> (interne Einschätzung). Sie ist **keine** formale Zertifizierung, Akkreditierung,
+> Konformitätsbewertung oder verbindliche Aussage zur Rechtskonformität eines
+> konkreten Einsatzes. Ob ein Betrieb „DSGVO-konform“, „HIPAA-ready“ o. Ä. ist,
+> hängt von Konfiguration, Verträgen und den Verantwortlichen vor Ort ab — siehe
+> die Hedging-Hinweise in [docs/COMPLIANCE.md](COMPLIANCE.md).
 
-Vollständige Compliance-Dokumentation: [docs/COMPLIANCE.md](COMPLIANCE.md)
+| Rahmen / Standard | Umgesetzt? (Engineering) | Technische Details (Auszug) |
+|-------------------|--------------------------|------------------------------|
+| DSGVO/GDPR | ✅ Kontrollen vorhanden | Pseudonymisierung, Audit, Betroffenenrechte-Hilfen |
+| BDSG §27 | ✅ Kontrollen vorhanden | Forschungsprivileg technisch unterstützt |
+| §393 SGB V | ✅ On-premise-Pfad | Cloud: Anbieter/Betreiber prüfen |
+| GDNG 2025 | ✅ Kontrollen vorhanden | Pseudonymisierung, Audit-Trail |
+| DSK Sept. 2025 | ✅ Kontrollen vorhanden | Keine Klartextdaten an US-KI (bei Ollama-Pfad) |
+| GAIA-X (Design-Alignment) | ✅ Kontrollen vorhanden | Self-Description API; keine formale GAIA-X-Zertifizierung |
+| GAIA-X Level 1 | 🔜 geplant | Roadmap 2026 Q2 |
+| GA4GH WES v1.1 | ✅ implementiert | Spezifikationsorientierte API |
+| GA4GH DRS | ✅ implementiert | Spezifikationsorientierte API |
+| GA4GH Phenopackets v2 | ✅ implementiert | Spezifikationsorientierte API |
+| FAIR Prinzipien | ✅ Feature vorhanden | FAIR Export |
+| OWASP Top 10 | ✅ Review (intern) | Review März 2026, RAG mit Prompt-Injection-Schutz |
+| ISO 27001 | 🔜 geplant | Roadmap 2026 Q4 — kein ISO-Zertifikat |
+| HIPAA | ⚠️ Teilkontrollen | Technisch orientiert; BAA/rechtliche Bewertung Betreiber:in |
+| ICH GCP E6(R3) | ✅ Teilkontrollen | Audit Trail, Pseudonymisierung — kein GCP-Zertifikat |
+| EHDS (2025/327) | 🔜 Orientierungsarbeit | Secondary Use ab 2029; kein EHDS-Zertifikat |
+| NIS2 / NIS2UmsuCG | ✅ Supply-Chain-Hilfen | Kunden/Betreiber können direkt betroffen sein |
+| Encryption at Rest | ⚠️ Betreiberpflicht | TOM-Dokumentation vorhanden; nicht überall at-rest |
+
+Vollständige Einordnung und Hedging: [docs/COMPLIANCE.md](COMPLIANCE.md)
 
 ---
 

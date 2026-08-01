@@ -6,7 +6,7 @@ Für datenschutzfreundliche Nutzung konzipiert (technisch, kein Rechtsrat) · On
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
 [![GA4GH Standards](https://img.shields.io/badge/GA4GH-Standards-blue.svg)](https://ga4gh.org)
-[![GAIA-X Ready (design)](https://img.shields.io/badge/GAIA--X-Ready%20(design)-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
+[![GAIA-X design alignment](https://img.shields.io/badge/GAIA--X-design%20alignment-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
 [![Datenschutz](https://img.shields.io/badge/Datenschutz-DSGVO%20orientiert-green.svg)](docs/COMPLIANCE.md)
 
 ---
@@ -71,7 +71,7 @@ Konfiguration, Betriebsumgebung und den Verantwortlichen vor Ort ab.
 | 🔒 OWASP Top 10 | Sicherheitsmaßnahmen an OWASP-Empfehlungen ausgerichtet |
 | 🏥 HIPAA / ICH GCP / EHDS | Ausgewählte technische Kontrollen vorhanden; rechtliche Bewertung bleibt Kund:in vorbehalten |
 
-Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)  
+Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)
 Dieses Dokument ersetzt **keine** individuelle Rechtsberatung.
 
 ---
