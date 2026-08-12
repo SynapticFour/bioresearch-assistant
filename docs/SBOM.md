@@ -1,10 +1,16 @@
 # Software Bill of Materials (SBOM)
-Stand: März 2026, Version: 1.0.0
+
+**Stand:** 2026-08-12 · Version: 1.0.1
+**Org level-up:** C8 refresh
+
+This document is a **human-readable summary**. For machine-readable SBOMs, generate from lockfiles at release time (CycloneDX via `cyclonedx-bom` / `npm sbom` when cutting a tag).
 
 ## Backend Dependencies (Python)
 
-| Package | Version | Lizenz | Verwendung |
-|---------|---------|--------|------------|
+Source of truth: `backend/requirements.txt` (and transitive resolves at install time).
+
+| Package | Version constraint | Lizenz | Verwendung |
+|---------|-------------------|--------|------------|
 | fastapi | ≥0.100 | MIT | Web Framework |
 | sqlalchemy | ≥2.0 | MIT | ORM |
 | asyncpg | ≥0.28 | Apache 2.0 | PostgreSQL Treiber |
@@ -27,6 +33,8 @@ Stand: März 2026, Version: 1.0.0
 
 ## Frontend Dependencies (JavaScript)
 
+Source of truth: `frontend/package-lock.json`.
+
 | Package | Version | Lizenz | Verwendung |
 |---------|---------|--------|------------|
 | react | ^18 | MIT | UI Framework |
@@ -46,14 +54,21 @@ Stand: März 2026, Version: 1.0.0
 | Anthropic API | LLM (optional) | Texte | USA |
 | Ollama (lokal) | LLM (empfohlen) | Keine | Lokal |
 
-## Bekannte Schwachstellen
+## Automated checks (CI)
 
-Regelmäßig geprüft via:
+On every push/PR (non-Dependabot):
+
 ```bash
-cd backend && pip-audit
-cd frontend && npm audit
+# backend
+pip install pip-audit
+pip-audit -r backend/requirements.txt
+
+# frontend
+cd frontend && npm ci && npm audit --omit=dev
 ```
 
-RAG (Frag deine Bibliothek) nutzt bestehende LLM- und Embedding-Services; keine zusätzlichen externen Dependencies. Embedding-Modell: paraphrase-multilingual-mpnet-base-v2 (Apache 2.0), bereits in der Tabelle.
+See `.github/workflows/ci.yml` job `supply-chain`.
 
-Stand: März 2026 — Keine bekannten kritischen CVEs.
+## Known vulnerabilities
+
+Record material findings from the latest CI `supply-chain` run or monthly hygiene log in [synapticfour-infra MONTHLY-DEPENDENCY-HYGIENE](https://github.com/SynapticFour/synapticfour-infra/blob/main/docs/MONTHLY-DEPENDENCY-HYGIENE.md). Do not claim “no CVEs” without a dated audit line.
