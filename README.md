@@ -9,6 +9,8 @@ Für datenschutzfreundliche Nutzung konzipiert (technisch, kein Rechtsrat) · On
 [![GAIA-X design alignment](https://img.shields.io/badge/GAIA--X-design%20alignment-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
 [![Datenschutz](https://img.shields.io/badge/Datenschutz-DSGVO%20orientiert-green.svg)](docs/COMPLIANCE.md)
 
+**Security reviewers:** [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
+
 ---
 
 ## Was ist BioResearch Assistant?
