@@ -163,6 +163,7 @@ Details: `docs/INSTALL.md`.
 | `scripts/docs_consistency_check.sh` | Konsistenzcheck für Dokumentation (Konstanten/Begriffe) |
 | [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit (internal technical assessment) |
 | [customer/SECURITY.md](docs/customer/SECURITY.md) | Customer security one-pager (DRS, US-LLM, clinical pilots) |
+| [SOLUM-SUBJECT-BRIDGE.md](docs/SOLUM-SUBJECT-BRIDGE.md) | Phenopacket → Solum `solum_subject_id` (ADR-0003) |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
 | [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) | Open-core Lizenz- und Nutzungsmodell (BUSL) |
 | [LOCUS-MODULE.md](docs/LOCUS-MODULE.md) | **Locus**: On-Premise-RAG-Modul (Domäne klinische Bioinformatik, Indizes, BUSL) |

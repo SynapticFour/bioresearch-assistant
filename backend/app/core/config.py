@@ -34,6 +34,23 @@ class Settings(BaseSettings):
         description="Deployment target e.g. 'railway' for demo limitations",
     )
 
+    # Solum subject bridge (optional; org plan F3)
+    solum_base_url: str | None = Field(
+        default=None,
+        description="Solum sidecar base URL for subject-link upsert",
+        validation_alias="SOLUM_BASE_URL",
+    )
+    solum_sidecar_token: str | None = Field(
+        default=None,
+        description="Solum sidecar bearer / shared token",
+        validation_alias="SOLUM_SIDECAR_TOKEN",
+    )
+    solum_subject_bridge_upsert: bool = Field(
+        default=True,
+        description="When Solum URL+token set, POST subject-link on demand",
+        validation_alias="SOLUM_SUBJECT_BRIDGE_UPSERT",
+    )
+
     # API
     api_v1_prefix: str = Field(default="/api/v1", description="API v1 URL prefix")
 

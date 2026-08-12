@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import get_scope_filter, get_scope_values
 from app.core.limiter import limiter
@@ -41,6 +42,10 @@ from app.services.phenopacket_service import (
     export_phenopacket,
     phenopacket_to_dict,
     validate_phenopacket,
+)
+from app.services.solum_subject_bridge import (
+    build_subject_link_payload,
+    upsert_subject_link,
 )
 
 logger = logging.getLogger(__name__)
@@ -408,6 +413,95 @@ async def export_phenopacket_endpoint(
         else row.phenopacket_json
     )
     return export_phenopacket(phenopacket_data)
+
+
+class SolumSubjectLinkRequest(BaseModel):
+    """Optional overrides when linking a Phenopacket to Solum ADR-0003."""
+
+    solum_subject_id: str | None = Field(
+        default=None,
+        description="Defaults to phenopacket / pseudonym id",
+    )
+    ferrum_drs_id: str | None = None
+    ehr_id: str | None = None
+    upsert: bool | None = Field(
+        default=None,
+        description="POST to Solum when URL+token configured; default from settings",
+    )
+
+
+class SolumSubjectLinkResponse(BaseModel):
+    payload: dict[str, Any]
+    upserted: bool = False
+    http_status: int | None = None
+    solum_response: dict[str, Any] | None = None
+    note: str
+
+
+@router.post(
+    "/{pseudonym_id}/solum-subject-link",
+    response_model=SolumSubjectLinkResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def phenopacket_solum_subject_link(
+    pseudonym_id: str,
+    body: SolumSubjectLinkRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[dict[str, Any], Depends(get_current_user)],
+) -> SolumSubjectLinkResponse:
+    """Build (and optionally upsert) Solum subject-link for this Phenopacket."""
+    scope = get_scope_filter(current_user)
+    q = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == pseudonym_id)
+    if "user_id" in scope:
+        q = q.where(PatientRecordModel.user_id == scope["user_id"])
+    if "team_id" in scope:
+        q = q.where(PatientRecordModel.team_id == scope["team_id"])
+    result = await db.execute(q)
+    row = result.scalar_one_or_none()
+    if row is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Phenopacket not found",
+        )
+    try:
+        payload = build_subject_link_payload(
+            phenopacket_id=pseudonym_id,
+            solum_subject_id=body.solum_subject_id,
+            ferrum_drs_id=body.ferrum_drs_id,
+            ehr_id=body.ehr_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+    settings = get_settings()
+    do_upsert = body.upsert if body.upsert is not None else settings.solum_subject_bridge_upsert
+    if do_upsert and settings.solum_base_url and settings.solum_sidecar_token:
+        status_code, solum_body = await upsert_subject_link(
+            payload,
+            base_url=settings.solum_base_url,
+            token=settings.solum_sidecar_token,
+        )
+        return SolumSubjectLinkResponse(
+            payload=payload,
+            upserted=status_code < 400,
+            http_status=status_code,
+            solum_response=solum_body,
+            note=(
+                "Posted to Solum /v1/cdr/subject-link"
+                if status_code < 400
+                else "Solum upsert failed — payload returned for manual apply"
+            ),
+        )
+    return SolumSubjectLinkResponse(
+        payload=payload,
+        upserted=False,
+        http_status=None,
+        solum_response=None,
+        note=(
+            "Payload only — set SOLUM_BASE_URL + SOLUM_SIDECAR_TOKEN to upsert, "
+            "or POST payload to Solum yourself"
+        ),
+    )
 
 
 @router.post("/validate", response_model=ValidationResult, status_code=status.HTTP_200_OK)
