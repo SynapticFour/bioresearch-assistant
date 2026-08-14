@@ -119,8 +119,17 @@ async def test_get_run_invalid_uuid_returns_none(db_session):
     assert run is None
 
 
-def test_validate_workflow_url_accepts_http_descriptor() -> None:
-    """Remote workflow descriptors over https are allowed (WES / Ferrum-aligned)."""
+def test_validate_workflow_url_rejects_http_descriptor_by_default() -> None:
+    """Remote http(s) workflow URLs are disabled unless WES_ALLOW_REMOTE_WORKFLOWS=1."""
+    with pytest.raises(ValueError, match="Remote http"):
+        wes_service._validate_workflow_url("https://example.org/wf/main.nf")
+
+
+def test_validate_workflow_url_accepts_http_descriptor_when_enabled(monkeypatch) -> None:
+    """Remote workflow descriptors over https are allowed when opted in."""
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "wes_allow_remote_workflows", True)
     wes_service._validate_workflow_url("https://example.org/wf/main.nf")
 
 

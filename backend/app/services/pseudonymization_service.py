@@ -17,8 +17,11 @@ from app.core.config import get_settings
 from app.core.encryption import decrypt_mapping, encrypt_mapping
 
 TESTING_MODE = os.environ.get("TESTING") == "1"
+RAILWAY_MODE = os.environ.get("DEPLOYMENT", "").strip().lower() == "railway"
+# Skip Presidio/spaCy in tests and on Railway (no model weights). Regex still detects PERSON.
+_LIGHTWEIGHT_PII = TESTING_MODE or RAILWAY_MODE
 
-if TESTING_MODE:
+if _LIGHTWEIGHT_PII:
     # Lightweight stand-in types for unit tests.
     # We avoid importing Presidio/spaCy in the sandbox test environment.
     @dataclass(frozen=True, slots=True)
@@ -34,9 +37,6 @@ if TESTING_MODE:
         pass
 
     class RecognizerRegistry:  # noqa: D101
-        pass
-
-    class AnonymizerEngine:  # noqa: D101
         pass
 
     _PREDEFINED_AVAILABLE = False
@@ -60,7 +60,6 @@ if TESTING_MODE:
     )
 else:
     from presidio_analyzer import AnalyzerEngine, RecognizerRegistry, RecognizerResult
-    from presidio_anonymizer import AnonymizerEngine
 
     try:
         from presidio_analyzer.predefined_recognizers import (
@@ -75,7 +74,7 @@ else:
     except ImportError:
         _PREDEFINED_AVAILABLE = False
 
-if not TESTING_MODE:
+if not _LIGHTWEIGHT_PII:
     from app.services.pseudonymization_recognizers import (
         GERMAN_PERSON_DENY_SET,
         GermanDateRecognizer,
@@ -151,12 +150,7 @@ def _get_analyzer() -> AnalyzerEngine:
     )
 
 
-def _get_anonymizer() -> AnonymizerEngine:
-    return AnonymizerEngine()
-
-
 _analyzer: AnalyzerEngine | None = None
-_anonymizer: AnonymizerEngine | None = None
 
 
 def _analyzer_engine() -> AnalyzerEngine:
@@ -164,13 +158,6 @@ def _analyzer_engine() -> AnalyzerEngine:
     if _analyzer is None:
         _analyzer = _get_analyzer()
     return _analyzer
-
-
-def _anonymizer_engine() -> AnonymizerEngine:
-    global _anonymizer
-    if _anonymizer is None:
-        _anonymizer = _get_anonymizer()
-    return _anonymizer
 
 
 def _filter_overlapping_results(
@@ -280,7 +267,7 @@ def analyze(text: str, language: str = "de") -> list[RecognizerResult]:
     Returns:
         List of Presidio RecognizerResult (entity_type, start, end, score).
     """
-    if TESTING_MODE:
+    if _LIGHTWEIGHT_PII:
         return _analyze_testing(text, language)
 
     engine = _analyzer_engine()

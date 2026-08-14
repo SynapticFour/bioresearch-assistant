@@ -31,114 +31,88 @@ def _find_text(el: Element | None, default: str = "") -> str:
     ).strip() or default
 
 
+def _first(el: Element | None, tag: str) -> Element | None:
+    """First descendant with local tag name (namespace-agnostic, C-level search)."""
+    if el is None:
+        return None
+    return el.find(f".//{{*}}{tag}")
+
+
 def _parse_article(article_elem: Element) -> PubMedArticle:
     """Build PubMedArticle from one <PubmedArticle> XML element."""
-    pmid = ""
-    title = ""
+    pmid_el = _first(article_elem, "PMID")
+    pmid = _find_text(pmid_el)
+
+    medline = _first(article_elem, "MedlineCitation")
+    article = _first(medline, "Article") if medline is not None else None
+
+    title = _find_text(_first(article, "ArticleTitle")) if article is not None else ""
+
     abstract_parts: list[str] = []
-    authors: list[str] = []
-    journal = ""
-    year: str | None = None
-    doi: str | None = None
-    keywords: list[str] = []
-
-    def find_any(parent: Element | None, *path_tags: str) -> Element | None:
-        if parent is None:
-            return None
-        for tag in path_tags:
-            for node in parent.iter():
-                if _strip_ns(node.tag) == tag:
-                    return node
-        return None
-
-    def find_in(parent: Element | None, tag_name: str) -> Element | None:
-        if parent is None:
-            return None
-        for child in parent.iter():
-            if _strip_ns(child.tag) == tag_name:
-                return child
-        return None
-
-    # PMID
-    pmid_el = find_in(article_elem, "PMID")
-    if pmid_el is not None:
-        pmid = _find_text(pmid_el)
-
-    # Article (under MedlineCitation)
-    medline = find_in(article_elem, "MedlineCitation")
-    article = find_in(medline, "Article") if medline is not None else None
-
     if article is not None:
-        title_el = find_in(article, "ArticleTitle")
-        if title_el is not None:
-            title = _find_text(title_el)
-
-        abstract_el = find_in(article, "Abstract")
+        abstract_el = _first(article, "Abstract")
         if abstract_el is not None:
             for abst in abstract_el:
                 if _strip_ns(abst.tag) == "AbstractText":
                     abstract_parts.append(_find_text(abst))
 
-        author_list = find_in(article, "AuthorList")
+    authors: list[str] = []
+    if article is not None:
+        author_list = _first(article, "AuthorList")
         if author_list is not None:
             for author in author_list:
                 if _strip_ns(author.tag) != "Author":
                     continue
-                last = find_in(author, "LastName")
-                fore = find_in(author, "ForeName")
-                init = find_in(author, "Initials")
-                last_s = _find_text(last) if last is not None else ""
-                fore_s = _find_text(fore) if fore is not None else ""
-                init_s = _find_text(init) if init is not None else ""
-                if fore_s:
-                    name = f"{last_s} {fore_s}".strip()
-                elif init_s:
-                    name = f"{last_s} {init_s}".strip()
+                last = _find_text(_first(author, "LastName"))
+                fore = _find_text(_first(author, "ForeName"))
+                init = _find_text(_first(author, "Initials"))
+                if fore:
+                    name = f"{last} {fore}".strip()
+                elif init:
+                    name = f"{last} {init}".strip()
                 else:
-                    name = last_s
+                    name = last
                 if name:
                     authors.append(name)
 
-        journal_el = find_in(article, "Journal")
+    journal = ""
+    year: str | None = None
+    if article is not None:
+        journal_el = _first(article, "Journal")
         if journal_el is not None:
-            title_el = find_in(journal_el, "Title")
-            if title_el is not None:
-                journal = _find_text(title_el)
+            journal = _find_text(_first(journal_el, "Title")) or _find_text(
+                _first(journal_el, "ISOAbbreviation")
+            )
+            year_el = _first(journal_el, "Year")
+            year = _find_text(year_el) or None
 
-        # Year from JournalIssue/PubDate or ArticleDate
-        pub_date = find_any(article, "PubDate", "ArticleDate")
-        if pub_date is not None:
-            year_el = find_in(pub_date, "Year")
-            if year_el is not None:
-                year = _find_text(year_el) or None
-
-        # DOI from ELocationID or ArticleIdList
-        for node in article.iter():
-            if _strip_ns(node.tag) == "ELocationID":
-                eid_type = node.get("EIdType") or node.get("{http://www.ncbi.nlm.nih.gov}EIdType")
-                if (eid_type or "").lower() == "doi":
-                    doi = _find_text(node) or None
+    doi: str | None = None
+    if article is not None:
+        eloc = _first(article, "ELocationID")
+        if eloc is not None and (eloc.get("EIdType") or "").lower() == "doi":
+            doi = _find_text(eloc) or None
+    if not doi:
+        article_id_list = _first(article_elem, "ArticleIdList")
+        if article_id_list is not None:
+            for aid in article_id_list:
+                if _strip_ns(aid.tag) == "ArticleId" and (aid.get("IdType") or "").lower() == "doi":
+                    doi = _find_text(aid) or None
                     break
-        if not doi:
-            pubmed_data = find_in(article_elem, "PubmedData")
-            if pubmed_data is not None:
-                for aid in pubmed_data.iter():
-                    if _strip_ns(aid.tag) == "ArticleId":
-                        id_type = aid.get("IdType") or aid.get(
-                            "{http://www.ncbi.nlm.nih.gov}IdType"
-                        )
-                        if (id_type or "").lower() == "doi":
-                            doi = _find_text(aid) or None
-                            break
 
-    # Keywords (MedlineCitation/KeywordList)
-    kw_list = find_in(medline, "KeywordList") if medline is not None else None
+    keywords: list[str] = []
+    kw_list = _first(medline, "KeywordList") if medline is not None else None
     if kw_list is not None:
         for kw in kw_list:
             if _strip_ns(kw.tag) == "Keyword":
-                k = _find_text(kw)
-                if k:
-                    keywords.append(k)
+                text_kw = _find_text(kw)
+                if text_kw:
+                    keywords.append(text_kw)
+
+    if not year and article is not None:
+        pub_date = _first(article, "PubDate")
+        if pub_date is None:
+            pub_date = _first(article, "ArticleDate")
+        year = _find_text(_first(pub_date, "Year")) or None
 
     year_int: int | None = None
     if year and str(year).strip().isdigit():
@@ -163,15 +137,21 @@ class RateLimiter:
         self._lock = asyncio.Lock()
 
     async def acquire(self) -> None:
-        async with self._lock:
-            now = time.monotonic()
-            self._times = [t for t in self._times if now - t < 1.0]
-            if len(self._times) >= REQUESTS_PER_SECOND:
-                wait = 1.0 - (now - self._times[0])
-                if wait > 0:
-                    await asyncio.sleep(wait)
-                self._times = self._times[1:]
-            self._times.append(time.monotonic())
+        while True:
+            wait = 0.0
+            async with self._lock:
+                now = time.monotonic()
+                self._times = [t for t in self._times if now - t < 1.0]
+                if len(self._times) >= REQUESTS_PER_SECOND:
+                    wait = 1.0 - (now - self._times[0])
+                    if wait <= 0:
+                        self._times = self._times[1:]
+                        self._times.append(now)
+                        return
+                else:
+                    self._times.append(now)
+                    return
+            await asyncio.sleep(wait)
 
 
 class PubMedServiceError(Exception):

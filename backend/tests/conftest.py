@@ -224,7 +224,7 @@ def mock_embedding():
     with patch(
         "app.services.embedding_service.EmbeddingService.embed_text_async",
         new_callable=AsyncMock,
-        return_value=[0.1] * 384,
+        return_value=[0.1] * 768,
     ):
         yield
 

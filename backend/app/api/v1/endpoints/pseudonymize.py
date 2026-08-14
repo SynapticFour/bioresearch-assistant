@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.isolation import _extract_team_id, get_scope_filter, get_scope_values
+from app.core.isolation import apply_scope, extract_team_id, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.audit_log import AuditLog
 from app.models.pseudonymization_mapping import PseudonymizationMapping
@@ -24,6 +24,7 @@ from app.schemas.pseudonymize import (
     RestoreRequest,
     RestoreResult,
 )
+from app.services.auth_service import extract_roles
 from app.services.pseudonymization_service import (
     input_hash_for_audit,
 )
@@ -51,8 +52,12 @@ class ReversePseudonymizationRequest(BaseModel):
 
 async def get_optional_user_id(
     x_user_id: Annotated[str | None, Header(alias="X-User-Id")] = None,
+    current_user: dict = Depends(get_current_user),
 ) -> str | None:
-    """Optional user ID from header for audit (no auth enforced here)."""
+    """Audit user id: token `sub` wins; X-User-Id is only a fallback when sub is missing."""
+    sub = current_user.get("sub")
+    if sub:
+        return str(sub)
     return x_user_id
 
 
@@ -139,11 +144,13 @@ async def restore(
     body: RestoreRequest,
     db: AsyncSession = Depends(get_db),
     user_id: str | None = Depends(get_optional_user_id),
+    current_user: dict = Depends(get_current_user),
 ) -> RestoreResult:
     """Restore original text from pseudonymized text and mapping_id. Requires X-Restore-API-Key."""
     stmt = select(PseudonymizationMapping).where(
         PseudonymizationMapping.mapping_id == body.mapping_id
     )
+    stmt = apply_scope(stmt, PseudonymizationMapping, get_scope_filter(current_user))
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:
@@ -154,10 +161,11 @@ async def restore(
     restored_text = restore_service(body.pseudonymized_text, row.encrypted_mapping)
 
     operation_id = uuid.uuid4().hex
+    scope_vals = get_scope_values(current_user)
     audit_row = AuditLog(
         operation_id=operation_id,
-        user_id=user_id,
-        team_id=None,
+        user_id=user_id or scope_vals.get("user_id"),
+        team_id=scope_vals.get("team_id"),
         entities_count=0,
         input_hash=input_hash_for_audit(body.pseudonymized_text),
         operation_type=OPERATION_TYPE_RESTORE,
@@ -218,14 +226,14 @@ async def reverse_pseudonymization(
                 detail="Nur der ursprüngliche User darf de-pseudonymisieren",
             )
     elif depseudo_access == "team":
-        team_id = _extract_team_id(current_user)
+        team_id = extract_team_id(current_user)
         if (mapping.team_id or "") != team_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Nur Team-Mitglieder dürfen de-pseudonymisieren",
             )
     elif depseudo_access == "admin":
-        if "admin" not in (current_user.get("roles") or []):
+        if "admin" not in extract_roles(current_user):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Nur Admins dürfen de-pseudonymisieren",
@@ -235,7 +243,7 @@ async def reverse_pseudonymization(
     audit_row = AuditLog(
         operation_id=operation_id,
         user_id=sub,
-        team_id=_extract_team_id(current_user),
+        team_id=extract_team_id(current_user),
         entities_count=0,
         input_hash=input_hash_for_audit(body.mapping_id),
         operation_type=OPERATION_TYPE_DEPSEUDONYMIZE,
@@ -271,10 +279,7 @@ async def get_audit_log(
 
     scope = get_scope_filter(current_user)
     stmt = select(AuditLog).order_by(desc(AuditLog.timestamp)).limit(min(limit, 500)).offset(offset)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(AuditLog.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(AuditLog.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, AuditLog, scope)
     r = await db.execute(stmt)
     rows = r.scalars().all()
     return [

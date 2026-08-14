@@ -2,19 +2,17 @@
 
 import logging
 from io import BytesIO
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select
 
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.isolation import get_scope_filter
+from app.core.isolation import apply_scope, get_scope_filter
 from app.core.limiter import limiter
 from app.models.notebook import Notebook
 from app.models.paper import Paper
@@ -28,30 +26,6 @@ router = APIRouter(prefix="/fair-export", tags=["fair-export"])
 
 # SSRF protection: only these hosts are used for Zenodo (no user-controlled URLs)
 ALLOWED_ZENODO_HOSTS = frozenset({"zenodo.org", "sandbox.zenodo.org"})
-
-
-def _apply_scope_notebook(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Notebook.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Notebook.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_paper(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Paper.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Paper.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_patient(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(PatientRecordModel.team_id == scope["team_id"])
-    return stmt
 
 
 class ZenodoUploadRequest(BaseModel):
@@ -72,13 +46,13 @@ async def fair_export_preview(
     """Preview what would be included in the export."""
     scope = get_scope_filter(current_user)
     papers_stmt = select(func.count()).select_from(Paper)
-    papers_stmt = _apply_scope_paper(papers_stmt, scope)
+    papers_stmt = apply_scope(papers_stmt, Paper, scope)
     papers_count = await db.scalar(papers_stmt) or 0
     pp_stmt = select(func.count()).select_from(PatientRecordModel)
-    pp_stmt = _apply_scope_patient(pp_stmt, scope)
+    pp_stmt = apply_scope(pp_stmt, PatientRecordModel, scope)
     pheno_count = await db.scalar(pp_stmt) or 0
     nb_stmt = select(func.count()).select_from(Notebook)
-    nb_stmt = _apply_scope_notebook(nb_stmt, scope)
+    nb_stmt = apply_scope(nb_stmt, Notebook, scope)
     notebooks_count = await db.scalar(nb_stmt) or 0
     return {
         "papers_count": papers_count,

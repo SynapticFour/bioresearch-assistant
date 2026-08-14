@@ -5,14 +5,14 @@
 | Voraussetzung   | Minimum   | Empfohlen   |
 |-----------------|-----------|-------------|
 | Docker Desktop  | 24.x      | aktuell     |
-| Python          | 3.9       | 3.11+       |
+| Python          | 3.11      | 3.12        |
 | RAM             | 8 GB      | 16 GB (für Ollama) |
 | Speicher        | 10 GB     | 30 GB       |
 | Betriebssystem  | Windows 10, macOS 12, Ubuntu 20.04 | — |
 
 ## Schnellstart
 
-> Deployment-Uebersicht fuer alle Wege (online/offline/cloud/k8s):  
+> Deployment-Uebersicht fuer alle Wege (online/offline/cloud/k8s):
 > `docs/deployment/README.md`
 
 ### macOS / Linux

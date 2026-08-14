@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.isolation import apply_scope, apply_scope_for_user, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.patient_record import PatientRecordModel
 from app.models.phenopacket_asset import PhenopacketAsset
@@ -148,12 +148,8 @@ async def list_phenopackets(
     current_user: dict = Depends(get_current_user),
 ) -> list[dict[str, Any]]:
     """Liste Phenopackets (scoped by isolation mode)."""
-    scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).order_by(PatientRecordModel.pseudonym_id)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
+    stmt = apply_scope_for_user(stmt, PatientRecordModel, current_user)
     result = await db.execute(stmt)
     rows = result.scalars().all()
 
@@ -162,19 +158,6 @@ async def list_phenopackets(
         return json.loads(raw) if isinstance(raw, str) else raw
 
     return [_to_dict(r) for r in rows]
-
-
-def _apply_scope_assets(
-    stmt: object,
-    current_user: dict[str, object],
-) -> object:
-    """Apply isolation scope to asset mapping queries."""
-    scope = get_scope_filter(current_user)
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(PhenopacketAsset.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(PhenopacketAsset.team_id == scope["team_id"])
-    return stmt
 
 
 @router.get(
@@ -190,10 +173,7 @@ async def list_phenopacket_assets(
     """List DRS assets linked to a phenopacket (by pseudonym_id)."""
     scope = get_scope_filter(current_user)
     stmt_pp = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
-    if "user_id" in scope and scope["user_id"]:
-        stmt_pp = stmt_pp.where(PatientRecordModel.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt_pp = stmt_pp.where(PatientRecordModel.team_id == scope["team_id"])
+    stmt_pp = apply_scope(stmt_pp, PatientRecordModel, scope)
     r = await db.execute(stmt_pp)
     row = r.scalars().first()
     if row is None:
@@ -204,7 +184,7 @@ async def list_phenopacket_assets(
         .where(PhenopacketAsset.pseudonym_id == id)
         .order_by(PhenopacketAsset.id)
     )
-    stmt = _apply_scope_assets(stmt, current_user)
+    stmt = apply_scope_for_user(stmt, PhenopacketAsset, current_user)
     assets_r = await db.execute(stmt)
     assets = list(assets_r.scalars().all())
 
@@ -233,17 +213,14 @@ async def link_phenopacket_asset(
     # Ensure phenopacket exists in current isolation scope.
     scope = get_scope_filter(current_user)
     stmt_pp = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
-    if "user_id" in scope and scope["user_id"]:
-        stmt_pp = stmt_pp.where(PatientRecordModel.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt_pp = stmt_pp.where(PatientRecordModel.team_id == scope["team_id"])
+    stmt_pp = apply_scope(stmt_pp, PatientRecordModel, scope)
     r = await db.execute(stmt_pp)
     row = r.scalars().first()
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phenopacket not found")
 
     # Validate that the DRS object exists (no actual byte streaming here).
-    obj = drs_get_object(body.drs_object_id)
+    obj = drs_get_object(body.drs_object_id, current_user=current_user)
     if obj is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="DRS object not found")
 
@@ -290,7 +267,7 @@ async def delete_phenopacket_asset(
         .where(PhenopacketAsset.id == asset_id)
         .where(PhenopacketAsset.pseudonym_id == id)
     )
-    stmt = _apply_scope_assets(stmt, current_user)
+    stmt = apply_scope_for_user(stmt, PhenopacketAsset, current_user)
     r = await db.execute(stmt)
     asset = r.scalars().first()
     if asset is None:
@@ -344,10 +321,7 @@ async def get_phenopacket(
     """Get a phenopacket by pseudonym_id (id), scoped by isolation mode."""
     scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, PatientRecordModel, scope)
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:
@@ -372,10 +346,7 @@ async def delete_phenopacket(
     """Delete a phenopacket by pseudonym_id (scoped by isolation mode)."""
     scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, PatientRecordModel, scope)
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:
@@ -396,10 +367,7 @@ async def export_phenopacket_endpoint(
     """Export phenopacket as JSON-LD by pseudonym_id (scoped by isolation mode)."""
     scope = get_scope_filter(current_user)
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == id)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(PatientRecordModel.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, PatientRecordModel, scope)
     r = await db.execute(stmt)
     row = r.scalars().first()
     if row is None:
@@ -452,10 +420,7 @@ async def phenopacket_solum_subject_link(
     """Build (and optionally upsert) Solum subject-link for this Phenopacket."""
     scope = get_scope_filter(current_user)
     q = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == pseudonym_id)
-    if "user_id" in scope:
-        q = q.where(PatientRecordModel.user_id == scope["user_id"])
-    if "team_id" in scope:
-        q = q.where(PatientRecordModel.team_id == scope["team_id"])
+    q = apply_scope(q, PatientRecordModel, scope)
     result = await db.execute(q)
     row = result.scalar_one_or_none()
     if row is None:

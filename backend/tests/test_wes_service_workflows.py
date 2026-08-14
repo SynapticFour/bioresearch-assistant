@@ -615,10 +615,12 @@ def test_run_to_run_log_task_without_id_appends_log() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_service_info_returns_empty_dict(db_session) -> None:
-    """get_service_info returns empty dict (counts filled by endpoint)."""
+async def test_get_service_info_returns_static_metadata(db_session) -> None:
+    """get_service_info returns WES type/engine metadata (counts filled by endpoint)."""
     info = wes_service.get_service_info(db_session)
-    assert info == {}
+    assert "NEXTFLOW" in info["workflow_type_versions"]
+    assert "1.1.0" in info["supported_wes_versions"]
+    assert info["tags"]["backend"] == "nextflow"
 
 
 @pytest.mark.asyncio

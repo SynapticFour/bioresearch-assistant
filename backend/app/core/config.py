@@ -1,5 +1,6 @@
 """Application configuration using pydantic-settings."""
 
+import warnings
 from functools import lru_cache
 
 from pydantic import Field, field_validator
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
     version: str = Field(
-        default="1.0.0",
+        default="0.1.0",
         description="Application version (e.g. for /health and UI)",
         validation_alias="APP_VERSION",
     )
@@ -206,6 +207,19 @@ class Settings(BaseSettings):
         default="user",
         description="Data isolation: user (own only), team (institution), open (all)",
     )
+    wes_allow_remote_workflows: bool = Field(
+        default=False,
+        description=(
+            "Allow Nextflow to fetch http(s) workflow_url values. Off by default; "
+            "HelixTest TRS stubs and local *.nf / allowlisted names still work."
+        ),
+        validation_alias="WES_ALLOW_REMOTE_WORKFLOWS",
+    )
+    wes_allowed_workflow_hosts: list[str] = Field(
+        default_factory=list,
+        description="If remote workflows are enabled, restrict to these hostnames.",
+        validation_alias="WES_ALLOWED_WORKFLOW_HOSTS",
+    )
 
     # MII-KDS / FHIR export (FDPG/DIZ-oriented defaults; override via env)
     mii_kds_release: str = Field(
@@ -281,14 +295,20 @@ class Settings(BaseSettings):
         return bool(self.oidc_issuer and self.oidc_client_id)
 
     @property
+    def allows_unauthenticated_dev(self) -> bool:
+        """True only for explicit local/test deploys — not the empty default."""
+        dep = (self.deployment or "").strip().lower()
+        return dep in ("local", "development", "test")
+
+    @property
     def is_user_isolation(self) -> bool:
         """True when each user sees only their own data."""
-        return self.isolation_mode == "user"
+        return (self.isolation_mode or "").strip().lower() == "user"
 
     @property
     def is_team_isolation(self) -> bool:
         """True when users share data by institution/team."""
-        return self.isolation_mode == "team"
+        return (self.isolation_mode or "").strip().lower() == "team"
 
     @field_validator("pseudonymization_encryption_key")
     @classmethod
@@ -307,6 +327,26 @@ class Settings(BaseSettings):
         if v and len(v) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters when set")
         return v
+
+    @field_validator("isolation_mode")
+    @classmethod
+    def validate_isolation_mode(cls, v: str) -> str:
+        """Only user | team | open are valid; unknown values fail closed to user."""
+        mode = (v or "user").strip().lower()
+        if mode not in ("user", "team", "open"):
+            warnings.warn(
+                f"Unknown ISOLATION_MODE={v!r}; failing closed to 'user'",
+                stacklevel=2,
+            )
+            return "user"
+        return mode
+
+    @field_validator("wes_allowed_workflow_hosts", mode="before")
+    @classmethod
+    def parse_workflow_hosts(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return [h.strip().lower() for h in v.split(",") if h.strip()]
+        return [str(h).strip().lower() for h in v if str(h).strip()]
 
     @field_validator("cors_origins", mode="before")
     @classmethod

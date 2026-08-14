@@ -1,47 +1,22 @@
 """FAIR Data Export service: build ZIP packages with metadata and compliance check."""
 
+import html
 import json
 import logging
+import tempfile
 import zipfile
 from datetime import UTC, datetime
-from io import BytesIO
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select
 
-from app.core.isolation import get_scope_filter
+from app.core.isolation import apply_scope, get_scope_filter
 from app.models.notebook import Notebook
 from app.models.paper import Paper
 from app.models.patient_record import PatientRecordModel
 from app.schemas.fair_export import FAIRComplianceReport, FAIRExportOptions
 
 logger = logging.getLogger(__name__)
-
-
-def _apply_scope_notebook(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Notebook.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Notebook.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_paper(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Paper.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Paper.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_patient(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(PatientRecordModel.team_id == scope["team_id"])
-    return stmt
 
 
 class FAIRExportService:
@@ -71,8 +46,8 @@ class FAIRExportService:
         └── FAIR_compliance.md
         """
         scope = get_scope_filter(current_user)
-        buf = BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        spool = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024)
+        with zipfile.ZipFile(spool, "w", zipfile.ZIP_DEFLATED) as zf:
             # README
             readme = self._build_readme(options)
             zf.writestr("README.md", readme.encode("utf-8"))
@@ -91,7 +66,7 @@ class FAIRExportService:
             # Literature
             if options.include_papers:
                 papers_stmt = select(Paper)
-                papers_stmt = _apply_scope_paper(papers_stmt, scope)
+                papers_stmt = apply_scope(papers_stmt, Paper, scope)
                 result = await db.execute(papers_stmt)
                 papers = result.scalars().all()
                 papers_data = [
@@ -113,7 +88,7 @@ class FAIRExportService:
             # Phenopackets
             if options.include_phenopackets:
                 pp_stmt = select(PatientRecordModel)
-                pp_stmt = _apply_scope_patient(pp_stmt, scope)
+                pp_stmt = apply_scope(pp_stmt, PatientRecordModel, scope)
                 result = await db.execute(pp_stmt)
                 records = result.scalars().all()
                 for rec in records:
@@ -128,7 +103,7 @@ class FAIRExportService:
             # Notebooks
             if options.include_notebooks:
                 nb_stmt = select(Notebook)
-                nb_stmt = _apply_scope_notebook(nb_stmt, scope)
+                nb_stmt = apply_scope(nb_stmt, Notebook, scope)
                 result = await db.execute(nb_stmt)
                 notebooks = result.scalars().all()
                 for nb in notebooks:
@@ -140,6 +115,15 @@ class FAIRExportService:
                     )
                     content = f"# {nb.title or ''}\n\n{nb.content or ''}"
                     zf.writestr(f"notebooks/{safe_title}.md", content.encode("utf-8"))
+
+            if options.include_drs:
+                from app.services.drs_service import list_objects as drs_list_objects
+
+                drs_manifest = drs_list_objects(current_user=current_user)
+                zf.writestr(
+                    "drs/manifest.json",
+                    json.dumps(drs_manifest, indent=2, ensure_ascii=False).encode("utf-8"),
+                )
 
             # FAIR compliance report
             package_summary = {
@@ -154,8 +138,11 @@ class FAIRExportService:
             fair_md = self._fair_report_markdown(report, options)
             zf.writestr("FAIR_compliance.md", fair_md.encode("utf-8"))
 
-        buf.seek(0)
-        return buf.getvalue()
+        spool.seek(0)
+        try:
+            return spool.read()
+        finally:
+            spool.close()
 
     def _build_readme(self, options: FAIRExportOptions) -> str:
         return f"""# {options.title}
@@ -168,13 +155,13 @@ class FAIRExportService:
 """
 
     def _build_dublin_core(self, options: FAIRExportOptions) -> str:
-        authors = "".join(f"  <dc:creator>{a}</dc:creator>\n" for a in options.authors)
+        authors = "".join(f"  <dc:creator>{html.escape(a)}</dc:creator>\n" for a in options.authors)
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <dc:title>{options.title.replace("&", "&amp;")}</dc:title>
-  <dc:description>{options.description.replace("&", "&amp;")}</dc:description>
+  <dc:title>{html.escape(options.title)}</dc:title>
+  <dc:description>{html.escape(options.description or "")}</dc:description>
 {authors}
-  <dc:rights>{options.license}</dc:rights>
+  <dc:rights>{html.escape(options.license)}</dc:rights>
   <dc:date>{datetime.now(UTC).strftime("%Y-%m-%d")}</dc:date>
 </metadata>
 """
@@ -268,6 +255,6 @@ class FAIRExportService:
             accessible=accessible,
             interoperable=interoperable,
             reusable=reusable,
-            score=min(100, score + 10 if recommendations else 0),
+            score=min(100, score + (0 if recommendations else 10)),
             recommendations=recommendations,
         )

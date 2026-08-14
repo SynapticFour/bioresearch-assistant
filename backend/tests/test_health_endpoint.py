@@ -285,7 +285,7 @@ async def test_readiness_check_database_disconnected():
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             resp = await client.get("/api/v1/health/ready")
-        assert resp.status_code == 200
+        assert resp.status_code == 503
         data = resp.json()
         assert data["status"] == "not_ready"
         assert data["database"] == "disconnected"

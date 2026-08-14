@@ -4,6 +4,7 @@ Nutzt HPO API — kein Key nötig.
 """
 
 import logging
+import re
 from urllib.parse import quote_plus
 
 import httpx
@@ -28,6 +29,8 @@ COMMON_PHENOTYPES: dict[str, str | None] = {
     "fatigue": "HP:0012378",
     "erschöpfung": "HP:0012378",
 }
+
+_HPO_ID_RE = re.compile(r"HP:\d{7}")
 
 
 class HPOService:
@@ -86,14 +89,12 @@ class HPOService:
     ) -> list[dict]:
         """Extract HPO terms from free text.
 
-        Uses keyword matching; if llm_service provided could use LLM later.
+        Keyword matching is always applied. If ``llm_service`` is provided and
+        exposes ``_complete``, LLM extraction is merged as a secondary source.
         Returns list of { hpo_id, name, confidence, source? }.
         """
         if not text or not text.strip():
             return []
-        if llm_service is not None:
-            # Placeholder: LLM-based extraction could call llm_service
-            pass
         found: list[dict] = []
         text_lower = text.lower()
         for keyword, hpo_id in COMMON_PHENOTYPES.items():
@@ -106,4 +107,28 @@ class HPOService:
                         "source": "keyword_match",
                     }
                 )
+        complete = getattr(llm_service, "_complete", None) if llm_service is not None else None
+        if callable(complete):
+            try:
+                raw = await complete(
+                    (
+                        "Extract Human Phenotype Ontology terms from clinical text. "
+                        "Reply with HP:NNNNNNN identifiers only, one per line."
+                    ),
+                    text[:4000],
+                )
+                seen = {item["hpo_id"] for item in found}
+                for hid in _HPO_ID_RE.findall(raw or ""):
+                    if hid not in seen:
+                        seen.add(hid)
+                        found.append(
+                            {
+                                "hpo_id": hid,
+                                "name": hid,
+                                "confidence": 0.5,
+                                "source": "llm",
+                            }
+                        )
+            except Exception as e:
+                logger.warning("HPO LLM extract failed: %s", e)
         return found

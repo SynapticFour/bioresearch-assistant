@@ -1,3 +1,5 @@
+# Canonical install lockfiles are uv.lock and requirements.txt.
+# This Poetry lock is an empty stub (package = []) and is not used to install.
 [project]
 name = "bioresearch-assistant-backend"
 version = "0.1.0"

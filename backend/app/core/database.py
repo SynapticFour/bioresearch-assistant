@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import StaticPool
+from starlette.requests import Request
 
 from app.core.config import get_settings
 
@@ -82,34 +83,38 @@ def get_async_session_maker() -> async_sessionmaker[AsyncSession]:
     return _async_session_maker
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+_READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+async def get_db(request: Request) -> AsyncGenerator[AsyncSession, None]:
     """Dependency that yields an async database session.
 
-    Session is closed and committed/rolled back after request.
-    Use as FastAPI Depends(get_db).
-
-    Yields:
-        AsyncSession: SQLAlchemy async session.
+    Mutating HTTP methods commit on success. Safe methods (GET/HEAD/OPTIONS)
+    roll back so accidental ORM writes on reads do not persist. Errors roll back.
+    The session context manager closes the session; do not close it again.
     """
     async with get_async_session_maker()() as session:
         try:
             yield session
-            await session.commit()
+            if request.method in _READ_METHODS:
+                if session.new or session.dirty or session.deleted:
+                    logger.warning(
+                        "Discarding uncommitted ORM changes on %s %s",
+                        request.method,
+                        request.url.path,
+                    )
+                await session.rollback()
+            else:
+                await session.commit()
         except Exception as e:
             await session.rollback()
             logger.error("Database error: %s: %s", type(e).__name__, e)
             raise
-        finally:
-            await session.close()
 
 
 @asynccontextmanager
 async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
-    """Context manager for async database session (e.g. in scripts or workers).
-
-    Yields:
-        AsyncSession: SQLAlchemy async session.
-    """
+    """Context manager for async database session (e.g. in scripts or workers)."""
     async with get_async_session_maker()() as session:
         try:
             yield session
@@ -118,5 +123,3 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
             await session.rollback()
             logger.error("Database error: %s: %s", type(e).__name__, e)
             raise
-        finally:
-            await session.close()

@@ -29,6 +29,10 @@ class EmbeddingService:
         """No embedding on Railway; return None (store NULL in DB)."""
         return None
 
+    async def embed_texts_async(self, texts: list[str]) -> list[list[float] | None]:
+        """No embedding on Railway."""
+        return [None] * len(texts)
+
     async def store_paper(
         self,
         db: AsyncSession,
@@ -44,6 +48,10 @@ class EmbeddingService:
         text_to_embed = (paper.abstract or paper.title or "").strip() or " "
         embedding = await self.embed_text_async(text_to_embed)  # None on Railway
         stmt = select(Paper).where(Paper.pmid == paper.pmid)
+        if user_id is not None:
+            stmt = stmt.where(Paper.user_id == user_id)
+        else:
+            stmt = stmt.where(Paper.user_id.is_(None))
         result = await db.execute(stmt)
         existing = result.scalars().first()
         if existing:
@@ -54,10 +62,6 @@ class EmbeddingService:
             existing.journal = paper.journal or ""
             existing.doi = paper.doi
             existing.embedding = embedding  # None → NULL in DB
-            if user_id is not None:
-                existing.user_id = user_id
-            if team_id is not None:
-                existing.team_id = team_id
             await db.flush()
             await db.refresh(existing)
             return existing

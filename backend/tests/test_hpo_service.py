@@ -1,6 +1,6 @@
 """Tests for HPOService (keyword extraction)."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -54,3 +54,13 @@ async def test_hpo_search_mocked(async_client) -> None:
     data = resp.json()
     assert len(data) >= 1
     assert data[0]["id"] == "HP:0001250"
+
+
+@pytest.mark.asyncio
+async def test_hpo_llm_merges_terms() -> None:
+    """When llm_service._complete is present, HP: ids from the LLM are merged."""
+    service = HPOService()
+    llm = MagicMock()
+    llm._complete = AsyncMock(return_value="HP:0001945\nnot-a-term")
+    results = await service.extract_from_text("no keyword hits in this sentence", llm_service=llm)
+    assert any(r["hpo_id"] == "HP:0001945" and r["source"] == "llm" for r in results)

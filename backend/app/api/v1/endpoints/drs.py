@@ -8,7 +8,17 @@ import re
 from collections.abc import AsyncIterator
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
+)
 from starlette.responses import StreamingResponse
 
 from app.core.auth import get_current_user
@@ -25,6 +35,7 @@ from app.services.drs_service import (
     get_access_url,
     get_object,
     get_service_info,
+    object_allowed_for_user,
 )
 from app.services.drs_service import (
     list_objects as service_list_objects,
@@ -56,9 +67,11 @@ async def drs_service_info() -> DrsServiceInfo:
 )
 async def list_drs_objects(
     current_user: dict = Depends(get_current_user),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
 ) -> DrsObjectListResponse:
-    """List all DRS objects (files under storage)."""
-    raw = service_list_objects()
+    """List DRS objects visible to the caller."""
+    raw = service_list_objects(current_user=current_user, skip=skip, limit=limit)
     objects = [DrsObjectSummary(**x) for x in raw]
     return DrsObjectListResponse(objects=objects)
 
@@ -141,7 +154,7 @@ async def register_drs_object(
                 ),
             )
         try:
-            object_id = service_register_object(filename, content)
+            object_id = service_register_object(filename, content, current_user=current_user)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,9 +185,16 @@ async def register_drs_object(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Server-Pfad muss eine Datei sein",
             )
+        try:
+            object_id = service_register_from_path(object_id, current_user=current_user)
+        except ValueError as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(e),
+            ) from e
     elif path:
         try:
-            object_id = service_register_from_path(path.strip())
+            object_id = service_register_from_path(path.strip(), current_user=current_user)
         except ValueError as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -185,7 +205,7 @@ async def register_drs_object(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Entweder file, path oder server_path angeben",
         )
-    obj = get_object(object_id)
+    obj = get_object(object_id, current_user=current_user)
     if obj is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -246,7 +266,7 @@ async def get_drs_access(
     current_user: dict = Depends(get_current_user),
 ) -> AccessURL:
     """Return a URL (and optional headers) that can be used to fetch the object bytes."""
-    access = get_access_url(object_id, access_id)
+    access = get_access_url(object_id, access_id, current_user=current_user)
     if access is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -277,7 +297,7 @@ async def stream_drs_object(
     Supports ``Range: bytes=START-END`` for conformance (HTTP 206 + ``Content-Range``).
     """
     path = _safe_object_id(object_id)
-    if path is None or not path.is_file():
+    if path is None or not path.is_file() or not object_allowed_for_user(object_id, current_user):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="The requested DRS object was not found.",
@@ -349,7 +369,7 @@ async def get_drs_object(
     Registered after ``/access/`` and ``/stream`` so literal path segments like
     ``stream`` are not absorbed by ``{object_id:path}`` (GA4GH Range downloads).
     """
-    obj = get_object(object_id)
+    obj = get_object(object_id, current_user=current_user)
     if obj is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -3,7 +3,7 @@
 import os
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, String, Text, func
+from sqlalchemy import JSON, DateTime, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -29,7 +29,7 @@ class Paper(Base):
 
     Attributes:
         id: Primary key.
-        pmid: PubMed ID (unique).
+        pmid: PubMed ID (unique together with user_id).
         title: Article title.
         abstract: Full abstract text.
         authors: List of author names (stored as JSONB/JSON).
@@ -42,9 +42,10 @@ class Paper(Base):
     """
 
     __tablename__ = "papers"
+    __table_args__ = (UniqueConstraint("pmid", "user_id", name="uq_papers_pmid_user"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    pmid: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    pmid: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     title: Mapped[str] = mapped_column(Text, nullable=False, default="")
     abstract: Mapped[str] = mapped_column(Text, nullable=False, default="")
     authors: Mapped[list[str]] = mapped_column(_json_type, nullable=False, default=list)

@@ -1,21 +1,74 @@
 """OIDC/OAuth2 and GA4GH Passport auth endpoints."""
 
+from __future__ import annotations
+
+import base64
+import hashlib
+import hmac
 import logging
+import secrets
+import time
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 
 from app.core.auth import get_auth_service, get_current_user
 from app.core.config import get_settings
-from app.core.isolation import _extract_team_id, get_scope_filter
+from app.core.isolation import extract_team_id, get_scope_filter
 from app.core.limiter import limiter
 from app.services.auth_service import AuthService
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+_OAUTH_STATE_COOKIE = "bra_oauth_state"
+_OAUTH_VERIFIER_COOKIE = "bra_oauth_verifier"
+_OAUTH_STATE_MAX_AGE = 600
+
+
+def _state_key() -> bytes:
+    settings = get_settings()
+    secret = settings.jwt_secret or settings.pseudonymization_encryption_key
+    return secret.encode("utf-8")
+
+
+def _sign_oauth_state(provider: str) -> str:
+    nonce = secrets.token_urlsafe(16)
+    ts = str(int(time.time()))
+    payload = f"{provider}:{nonce}:{ts}"
+    sig = hmac.new(_state_key(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}:{sig}"
+
+
+def _verify_oauth_state(state: str) -> str:
+    parts = (state or "").split(":")
+    if len(parts) != 4:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
+    provider, _nonce, ts, sig = parts
+    payload = f"{provider}:{_nonce}:{ts}"
+    expected = hmac.new(_state_key(), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, sig):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state")
+    try:
+        issued = int(ts)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid OAuth state"
+        ) from e
+    if abs(time.time() - issued) > _OAUTH_STATE_MAX_AGE:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="OAuth state expired")
+    return provider
+
+
+def _pkce_pair() -> tuple[str, str]:
+    """Return (code_verifier, S256 code_challenge) for OAuth PKCE."""
+    verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return verifier, challenge
 
 
 @router.get("/login")
@@ -25,7 +78,8 @@ async def login(
     provider: str = "oidc",
     auth_service: AuthService = Depends(get_auth_service),
 ) -> RedirectResponse:
-    """Login mit verschiedenen Providern. provider: oidc | google | microsoft."""
+    """Login with OIDC providers. provider: oidc | google | microsoft."""
+    _ = auth_service
     settings = get_settings()
     if not settings.auth_enabled:
         raise HTTPException(
@@ -47,33 +101,63 @@ async def login(
         resp = await client.get(f"{issuer.rstrip('/')}/.well-known/openid-configuration")
         resp.raise_for_status()
         oidc_config = resp.json()
+    state = _sign_oauth_state(provider)
+    verifier, challenge = _pkce_pair()
     params = {
         "response_type": "code",
         "client_id": settings.oidc_client_id,
         "redirect_uri": settings.oidc_redirect_uri,
         "scope": "openid email profile ga4gh_passport_v1",
-        "state": provider,
+        "state": state,
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
     }
     auth_url = oidc_config["authorization_endpoint"]
     query = urlencode(params)
-    return RedirectResponse(url=f"{auth_url}?{query}")
+    redirect = RedirectResponse(url=f"{auth_url}?{query}")
+    cookie_kw = {
+        "max_age": _OAUTH_STATE_MAX_AGE,
+        "httponly": True,
+        "samesite": "lax",
+        "secure": not settings.allows_unauthenticated_dev,
+        "path": "/",
+    }
+    redirect.set_cookie(key=_OAUTH_STATE_COOKIE, value=state, **cookie_kw)
+    redirect.set_cookie(key=_OAUTH_VERIFIER_COOKIE, value=verifier, **cookie_kw)
+    return redirect
 
 
 @router.get("/callback")
 async def callback(
+    request: Request,
+    response: Response,
     code: str,
+    state: str = Query(default=""),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> dict:
-    """OIDC Callback — tausche Code gegen Token."""
+    """OIDC callback — exchange code for tokens after CSRF state check."""
     settings = get_settings()
     if not settings.auth_enabled:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Auth is not configured",
         )
+    cookie_state = request.cookies.get(_OAUTH_STATE_COOKIE) or ""
+    if not state or not cookie_state or not hmac.compare_digest(state, cookie_state):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="OAuth state mismatch",
+        )
+    _verify_oauth_state(state)
+    code_verifier = request.cookies.get(_OAUTH_VERIFIER_COOKIE) or ""
+    if not code_verifier:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing PKCE verifier",
+        )
     config = await auth_service.get_oidc_config()
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(
+        token_response = await client.post(
             config["token_endpoint"],
             data={
                 "grant_type": "authorization_code",
@@ -81,15 +165,19 @@ async def callback(
                 "redirect_uri": settings.oidc_redirect_uri,
                 "client_id": settings.oidc_client_id,
                 "client_secret": settings.oidc_client_secret,
+                "code_verifier": code_verifier,
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        response.raise_for_status()
-        tokens = response.json()
+        token_response.raise_for_status()
+        tokens = token_response.json()
+    response.delete_cookie(_OAUTH_STATE_COOKIE, path="/")
+    response.delete_cookie(_OAUTH_VERIFIER_COOKIE, path="/")
     return {
         "access_token": tokens.get("access_token"),
         "id_token": tokens.get("id_token"),
         "token_type": "Bearer",
+        "expires_in": tokens.get("expires_in"),
     }
 
 
@@ -97,19 +185,19 @@ async def callback(
 async def get_me(
     user: dict = Depends(get_current_user),
 ) -> dict:
-    """Aktueller User mit GA4GH Passport Claims und Isolation-Info."""
+    """Current user with GA4GH Passport claims and isolation info."""
     settings = get_settings()
     return {
         **user,
         "isolation_mode": settings.isolation_mode,
-        "team_id": _extract_team_id(user),
+        "team_id": extract_team_id(user),
         "scope": get_scope_filter(user),
     }
 
 
 @router.get("/status")
 async def auth_status() -> dict:
-    """Auth Konfigurationsstatus."""
+    """Auth configuration status."""
     settings = get_settings()
     return {
         "auth_enabled": settings.auth_enabled,

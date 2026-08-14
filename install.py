@@ -256,11 +256,11 @@ def check_prerequisites() -> bool:
         all_ok = False
 
     # Python Version
-    if sys.version_info >= (3, 9):
+    if sys.version_info >= (3, 11):
         ok(f"Python {sys.version_info.major}.{sys.version_info.minor}")
     else:
         err(
-            f"Python 3.9+ benötigt "
+            f"Python 3.11+ benötigt "
             f"(aktuell: {sys.version_info.major}.{sys.version_info.minor})"
         )
         all_ok = False

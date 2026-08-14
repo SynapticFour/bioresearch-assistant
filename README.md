@@ -99,7 +99,7 @@ Wichtig zur Einordnung:
 
 ### Voraussetzungen
 - Docker Desktop
-- Python 3.9+ (3.11 empfohlen)
+- Python 3.11+ (3.12 empfohlen)
 - 8 GB RAM (16 GB empfohlen)
 - 10 GB freier Speicher
 

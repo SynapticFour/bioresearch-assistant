@@ -1,7 +1,9 @@
-"""GA4GH Passport-kompatibler Auth Service.
+"""GA4GH Passport-compatible auth service.
 
-Unterstützt: Keycloak, ELIXIR AAI, Google, GitHub.
+Supports: Keycloak, ELIXIR AAI, Google, GitHub / Microsoft Entra.
 """
+
+from __future__ import annotations
 
 import logging
 from typing import Any
@@ -13,6 +15,30 @@ from jose.exceptions import JWTError
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+def extract_roles(claims: dict[str, Any]) -> list[str]:
+    """Roles from a JWT payload or our user dict.
+
+    Keycloak uses realm_access.roles; Entra often uses a top-level roles list.
+    """
+    raw = claims.get("roles")
+    if isinstance(raw, list) and raw:
+        return [str(r) for r in raw if r]
+    realm = claims.get("realm_access")
+    if isinstance(realm, dict):
+        realm_roles = realm.get("roles")
+        if isinstance(realm_roles, list) and realm_roles:
+            return [str(r) for r in realm_roles if r]
+    resource = claims.get("resource_access")
+    if isinstance(resource, dict):
+        collected: list[str] = []
+        for entry in resource.values():
+            if isinstance(entry, dict) and isinstance(entry.get("roles"), list):
+                collected.extend(str(r) for r in entry["roles"] if r)
+        if collected:
+            return collected
+    return []
 
 
 def _get_signing_key_from_jwks(token: str, jwks: dict[str, Any]) -> object:
@@ -35,7 +61,7 @@ class AuthService:
         self._jwks: dict[str, Any] | None = None
 
     async def get_oidc_config(self) -> dict[str, Any]:
-        """Hole OIDC Discovery Document."""
+        """Fetch OIDC discovery document."""
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
                 f"{self.settings.oidc_issuer.rstrip('/')}/.well-known/openid-configuration"
@@ -43,9 +69,9 @@ class AuthService:
             response.raise_for_status()
             return response.json()
 
-    async def get_jwks(self) -> dict[str, Any]:
-        """Hole JSON Web Key Set für Token Verifikation."""
-        if self._jwks is None:
+    async def get_jwks(self, *, force_refresh: bool = False) -> dict[str, Any]:
+        """Fetch JSON Web Key Set for token verification. Refetch on rotation."""
+        if self._jwks is None or force_refresh:
             config = await self.get_oidc_config()
             jwks_uri = config.get("jwks_uri")
             if not jwks_uri:
@@ -57,23 +83,39 @@ class AuthService:
         return self._jwks
 
     async def verify_token(self, token: str) -> dict[str, Any]:
-        """Verifiziere JWT Token und extrahiere Claims."""
-        jwks = await self.get_jwks()
-        try:
+        """Verify JWT and extract claims. Refresh JWKS once on unknown kid."""
+        algorithms = [self.settings.jwt_algorithm] if self.settings.jwt_algorithm else ["RS256"]
+        if "RS256" not in algorithms:
+            algorithms.append("RS256")
+        if "ES256" not in algorithms:
+            algorithms.append("ES256")
+
+        async def _decode(jwks: dict[str, Any]) -> dict[str, Any]:
             key = _get_signing_key_from_jwks(token, jwks)
-            payload = jwt.decode(
+            return jwt.decode(
                 token,
                 key,
-                algorithms=["RS256", "ES256"],
+                algorithms=algorithms,
                 audience=self.settings.oidc_client_id,
                 options={"verify_aud": bool(self.settings.oidc_client_id)},
             )
-            return payload
-        except JWTError as e:
-            raise ValueError(f"Invalid token: {e}") from e
+
+        jwks = await self.get_jwks()
+        try:
+            return await _decode(jwks)
+        except (ValueError, JWTError) as first:
+            if "No matching key" not in str(first) and "kid" not in str(first).lower():
+                if isinstance(first, JWTError):
+                    raise ValueError(f"Invalid token: {first}") from first
+                raise
+            jwks = await self.get_jwks(force_refresh=True)
+            try:
+                return await _decode(jwks)
+            except JWTError as e:
+                raise ValueError(f"Invalid token: {e}") from e
 
     async def extract_ga4gh_passports(self, token: str) -> dict[str, Any]:
-        """Extrahiere GA4GH Passports aus Token Claims.
+        """Extract GA4GH Passports from token claims.
 
         GA4GH Passport Spec: https://github.com/ga4gh/data-security
         """
@@ -88,5 +130,7 @@ class AuthService:
             "name": claims.get("name"),
             "passports": passports,
             "visas": visas,
-            "roles": claims.get("roles", []),
+            "roles": extract_roles(claims),
+            "organization": claims.get("organization") or claims.get("org"),
+            "realm_access": claims.get("realm_access"),
         }

@@ -106,6 +106,17 @@ async def test_scope_filter_open_mode() -> None:
 
 
 @pytest.mark.asyncio
+async def test_scope_filter_unknown_mode_fails_closed() -> None:
+    """Unknown ISOLATION_MODE is treated as user, not open."""
+    from app.core.isolation import get_scope_filter
+
+    with patch("app.core.isolation.get_settings") as m:
+        m.return_value.isolation_mode = "typo"
+        scope = get_scope_filter(USER_A)
+    assert scope == {"user_id": "user-a"}
+
+
+@pytest.mark.asyncio
 async def test_extract_team_id_from_email() -> None:
     """Team ID is extracted from email domain."""
     from app.core.isolation import _extract_team_id

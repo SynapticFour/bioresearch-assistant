@@ -133,7 +133,7 @@ Diese Liste definiert die Grenzen für Entscheidungsträger:
 
 ## Wie du es reproduzieren kannst (clean checkout)
 ### Voraussetzungen
-- Das Repo unterstützt Python **3.9+** (3.11 empfohlen; siehe `docs/INSTALL.md`)
+- Das Repo unterstützt Python **3.11+** (3.12 empfohlen; siehe `docs/INSTALL.md`)
 - Docker ist für die hier beschriebenen Testläufe **nicht erforderlich**, da Tests in-memory DB nutzen.
 
 ### Schritt 1: Setup

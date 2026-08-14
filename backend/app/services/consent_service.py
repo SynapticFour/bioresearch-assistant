@@ -8,8 +8,8 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select
 
+from app.core.isolation import apply_scope
 from app.interoperability.mii import constants as mii_c
 from app.models.patient_record import PatientRecordModel
 from app.models.research_consent import ResearchConsent, ResearchConsentEvent
@@ -18,29 +18,13 @@ from app.schemas.consent import ResearchConsentCreate, ResearchConsentUpdate
 logger = logging.getLogger(__name__)
 
 
-def _apply_scope_consent(stmt: Select, scope: dict) -> Select:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(ResearchConsent.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(ResearchConsent.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_patient(stmt: Select, scope: dict) -> Select:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(PatientRecordModel.team_id == scope["team_id"])
-    return stmt
-
-
 async def _get_patient_for_scope(
     db: AsyncSession,
     pseudonym_id: str,
     scope: dict,
 ) -> PatientRecordModel | None:
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id == pseudonym_id)
-    stmt = _apply_scope_patient(stmt, scope)
+    stmt = apply_scope(stmt, PatientRecordModel, scope)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -131,7 +115,7 @@ async def get_consent(
     scope: dict,
 ) -> ResearchConsent | None:
     stmt = select(ResearchConsent).where(ResearchConsent.id == consent_id)
-    stmt = _apply_scope_consent(stmt, scope)
+    stmt = apply_scope(stmt, ResearchConsent, scope)
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 
@@ -142,7 +126,7 @@ async def list_consents_for_pseudonym(
     scope: dict,
 ) -> list[ResearchConsent]:
     stmt = select(ResearchConsent).where(ResearchConsent.pseudonym_id == pseudonym_id)
-    stmt = _apply_scope_consent(stmt, scope)
+    stmt = apply_scope(stmt, ResearchConsent, scope)
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
@@ -153,7 +137,7 @@ async def list_consents(
     pseudonym_id: str | None = None,
 ) -> list[ResearchConsent]:
     stmt = select(ResearchConsent)
-    stmt = _apply_scope_consent(stmt, scope)
+    stmt = apply_scope(stmt, ResearchConsent, scope)
     if pseudonym_id:
         stmt = stmt.where(ResearchConsent.pseudonym_id == pseudonym_id)
     stmt = stmt.order_by(ResearchConsent.created_at.desc())
@@ -311,7 +295,7 @@ async def find_active_consent(
         ResearchConsent.status == "active",
         ResearchConsent.valid_from <= now,
     )
-    stmt = _apply_scope_consent(stmt, scope)
+    stmt = apply_scope(stmt, ResearchConsent, scope)
     result = await db.execute(stmt)
     rows = list(result.scalars().all())
     for c in rows:

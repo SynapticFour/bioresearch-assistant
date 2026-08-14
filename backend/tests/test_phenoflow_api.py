@@ -189,7 +189,7 @@ async def test_asset_linking_endpoints(
 
     monkeypatch.setattr(
         "app.api.v1.endpoints.phenopackets.drs_get_object",
-        lambda object_id: MagicMock(),
+        lambda object_id, current_user=None: MagicMock(),
     )
 
     link_req = PhenopacketAssetLinkRequest(

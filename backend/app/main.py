@@ -1,6 +1,7 @@
 """BioResearch Assistant — FastAPI application entry point."""
 
 import logging
+import os
 import sys
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -27,11 +28,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def assert_testing_env_safe() -> None:
+    """Refuse to start if TESTING=1 is set on a non-dev deployment.
+
+    Import-time test doubles (Presidio, BLAST parser, pgvector) key off TESTING=1.
+    That must never silently apply in production.
+    """
+    if os.environ.get("TESTING") == "1" and not get_settings().allows_unauthenticated_dev:
+        raise RuntimeError(
+            "TESTING=1 is set but DEPLOYMENT is not local|development|test. "
+            "Refusing to start: test doubles would replace production implementations."
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan: startup and shutdown hooks."""
+    assert_testing_env_safe()
     logger.info("Starting BioResearch Assistant API")
     yield
+    from app.services.llm_service import close_llm_service
+
+    await close_llm_service()
     logger.info("Shutting down BioResearch Assistant API")
 
 
@@ -58,21 +76,26 @@ def create_application() -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     cors_origins = list(settings.cors_origins)
-    if "*" in cors_origins and settings.deployment not in ("local", "development", ""):
+    if "*" in cors_origins and not settings.allows_unauthenticated_dev:
         logger.warning(
             "CORS wildcard (*) in production. Set CORS_ORIGINS to specific origins in .env"
         )
-    for origin in (
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://bioresearch-assistant.vercel.app",
-    ):
-        if origin not in cors_origins:
-            cors_origins.append(origin)
+    if settings.allows_unauthenticated_dev:
+        for origin in (
+            "http://localhost:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:3000",
+        ):
+            if origin not in cors_origins:
+                cors_origins.append(origin)
+    allow_origin_regex = None
+    if any("vercel.app" in origin for origin in cors_origins):
+        allow_origin_regex = r"https://.*\.vercel\.app"
     app.add_middleware(
         CORSMiddleware,
         allow_origins=cors_origins,
-        allow_origin_regex=r"https://.*\.vercel\.app",
+        allow_origin_regex=allow_origin_regex,
         allow_credentials=True,
         allow_methods=[
             "GET",
@@ -100,7 +123,12 @@ def create_application() -> FastAPI:
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        if settings.deployment and settings.deployment not in ("local", "development", ""):
+        if settings.deployment and settings.deployment not in (
+            "local",
+            "development",
+            "test",
+            "",
+        ):
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 

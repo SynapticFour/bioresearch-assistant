@@ -9,6 +9,7 @@ import asyncio
 import logging
 import os
 import re
+import signal
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_async_session_maker
+from app.core.isolation import (
+    apply_scope,
+    get_scope_filter,
+    get_scope_values,
+    object_visible_to_scope,
+)
 from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import Log, RunLog, RunRequest, RunStatus, RunSummary, State, TaskLog
 
@@ -27,6 +34,9 @@ logger = logging.getLogger(__name__)
 
 # In-process map run_id -> asyncio.Task for cancellation (single-instance only)
 _run_tasks: dict[str, asyncio.Task[None]] = {}
+_run_processes: dict[str, asyncio.subprocess.Process] = {}
+
+ALLOWED_BLAST_PROGRAMS = frozenset({"blastn", "blastp", "blastx", "tblastn", "tblastx"})
 
 # Allowed workflow_url values (injection prevention; no user-controlled paths/URLs)
 ALLOWED_WORKFLOWS = frozenset(
@@ -82,30 +92,124 @@ def _is_helixtest_trs_workflow(workflow_url: str) -> bool:
 
 
 def _validate_workflow_url(workflow_url: str) -> None:
-    """Validate workflow URL against allowlist and safe http(s) URLs.
+    """Validate workflow URL against allowlist; remote http(s) is opt-in.
 
-    Remote ``http://`` / ``https://`` URLs are accepted when the path has no
-    ``..`` segments (GA4GH WES / conformance clients; aligns with relaxed
-    validation in Ferrum for workflow descriptors served over HTTP).
+    Remote ``http://`` / ``https://`` URLs require WES_ALLOW_REMOTE_WORKFLOWS=1
+    and must not contain ``..`` path segments. Optional host allowlist via
+    WES_ALLOWED_WORKFLOW_HOSTS.
     """
     if _is_helixtest_trs_workflow(workflow_url):
         return
     if workflow_url in ALLOWED_WORKFLOWS:
         return
-    # Erlaube lokale .nf Dateien
-    if workflow_url.endswith(".nf"):
+    # Local .nf filenames only (no scheme) — staged under the run dir.
+    if workflow_url.endswith(".nf") and "://" not in workflow_url:
         return
     parsed = urlparse(workflow_url)
     if parsed.scheme in ("http", "https") and parsed.netloc:
         path = parsed.path or "/"
         if ".." in path:
             raise ValueError("Invalid workflow URL: path must not contain '..'")
+        settings = get_settings()
+        if not settings.wes_allow_remote_workflows:
+            raise ValueError(
+                "Remote http(s) workflow URLs are disabled. "
+                "Set WES_ALLOW_REMOTE_WORKFLOWS=1 "
+                "(and optionally WES_ALLOWED_WORKFLOW_HOSTS)."
+            )
+        host = parsed.netloc.split("@")[-1].split(":")[0].lower()
+        allowed_hosts = settings.wes_allowed_workflow_hosts
+        if allowed_hosts and host not in allowed_hosts:
+            raise ValueError(f"Workflow host {host!r} is not allowlisted")
         return
     raise ValueError(
         f"Unknown workflow: {workflow_url!r}. "
         f"Allowed: {sorted(ALLOWED_WORKFLOWS)}, local *.nf files, "
-        "or http(s) URLs without '..' in the path"
+        "HelixTest TRS stubs, or (when enabled) http(s) URLs without '..' in the path"
     )
+
+
+async def _kill_run_process(run_id: str) -> None:
+    """Terminate a live BLAST/Nextflow subprocess.
+
+    Prefers the in-process asyncio handle. If this worker does not own the
+    handle (same-host multi-worker), kill via the PID file under the run dir.
+    Cross-host cancellation still requires a shared job queue.
+    """
+    process = _run_processes.pop(run_id, None)
+    if process is not None and process.returncode is None:
+        try:
+            process.kill()
+            await process.wait()
+        except (ProcessLookupError, OSError):
+            pass
+        _clear_run_pid(run_id)
+        return
+    pid_file = _pid_path(run_id)
+    if pid_file.is_file():
+        try:
+            pid = int(pid_file.read_text(encoding="utf-8").strip())
+            os.kill(pid, signal.SIGKILL)
+        except (ValueError, ProcessLookupError, PermissionError, OSError):
+            pass
+    _clear_run_pid(run_id)
+
+
+def _pid_path(run_id: str) -> Path:
+    return _run_dir(run_id) / "executor.pid"
+
+
+def _write_run_pid(run_id: str, pid: int | None) -> None:
+    if pid is None:
+        return
+    path = _pid_path(run_id)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(str(pid), encoding="utf-8")
+    except OSError as e:
+        logger.warning("Could not write WES pid file for %s: %s", run_id, e)
+
+
+def _clear_run_pid(run_id: str) -> None:
+    try:
+        _pid_path(run_id).unlink(missing_ok=True)
+    except OSError:
+        pass
+
+
+def _register_run_process(run_id: str, process: asyncio.subprocess.Process) -> None:
+    _run_processes[run_id] = process
+    _write_run_pid(run_id, process.pid)
+
+
+async def _persist_run_fields(
+    run_id: str,
+    state: State,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    run_log: dict | None = None,
+    task_logs: list | None = None,
+    outputs: dict | None = None,
+) -> None:
+    """Update WorkflowRun row from a background task (own session)."""
+    async with get_async_session_maker()() as session:
+        stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
+        r = await session.execute(stmt)
+        row = r.scalars().first()
+        if not row:
+            return
+        row.state = state.value
+        if start_time:
+            row.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+        if end_time:
+            row.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
+        if run_log is not None:
+            row.run_log = run_log
+        if task_logs is not None:
+            row.task_logs = task_logs
+        if outputs is not None:
+            row.outputs = outputs
+        await session.commit()
 
 
 def _run_dir(run_id: str) -> Path:
@@ -135,7 +239,19 @@ async def _run_blast_direct(
         logger.warning("BLAST run %s: query.fasta not found", run_id)
         return
     database = str(params.get("database", "nt"))
-    program = str(params.get("program", "blastn"))
+    program = str(params.get("program", "blastn")).strip().lower()
+    if program not in ALLOWED_BLAST_PROGRAMS:
+        await _persist_run_fields(
+            run_id,
+            State.EXECUTOR_ERROR,
+            end_time=_iso_now(),
+            run_log={
+                "name": "blast",
+                "stderr": f"Unsupported BLAST program: {program!r}",
+                "exit_code": -1,
+            },
+        )
+        return
     evalue = float(params.get("evalue", 0.001))
     max_target_seqs = int(params.get("max_hits", 10))
     out_xml = run_dir / "results.xml"
@@ -176,23 +292,15 @@ async def _run_blast_direct(
         task_logs: list | None = None,
         outputs: dict | None = None,
     ) -> None:
-        async with get_async_session_maker()() as session:
-            stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
-            r = await session.execute(stmt)
-            row = r.scalars().first()
-            if row:
-                row.state = state.value
-                if start_time:
-                    row.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-                if end_time:
-                    row.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-                if run_log is not None:
-                    row.run_log = run_log
-                if task_logs is not None:
-                    row.task_logs = task_logs
-                if outputs is not None:
-                    row.outputs = outputs
-                await session.commit()
+        await _persist_run_fields(
+            run_id,
+            state,
+            start_time=start_time,
+            end_time=end_time,
+            run_log=run_log,
+            task_logs=task_logs,
+            outputs=outputs,
+        )
 
     try:
         await update_db(
@@ -208,6 +316,7 @@ async def _run_blast_direct(
             stderr=asyncio.subprocess.PIPE,
             cwd=str(run_dir),
         )
+        _register_run_process(run_id, process)
         stdout_bytes, stderr_bytes = await asyncio.wait_for(process.communicate(), timeout=300)
         end_time = _iso_now()
         exit_code = process.returncode or 0
@@ -244,6 +353,19 @@ async def _run_blast_direct(
             run_log=run_log_obj,
             task_logs=task_logs_list,
         )
+    except asyncio.CancelledError:
+        await _kill_run_process(run_id)
+        end_time = _iso_now()
+        run_log_obj["end_time"] = end_time
+        run_log_obj["stderr"] = (run_log_obj.get("stderr") or "") + "\nCanceled by user."
+        run_log_obj["exit_code"] = -1
+        await update_db(
+            State.CANCELED,
+            end_time=end_time,
+            run_log=run_log_obj,
+            task_logs=task_logs_list,
+        )
+        raise
     except Exception as e:
         logger.exception("BLAST execution failed for run_id=%s", run_id)
         end_time = _iso_now()
@@ -257,6 +379,8 @@ async def _run_blast_direct(
             task_logs=task_logs_list,
         )
     finally:
+        _run_processes.pop(run_id, None)
+        _clear_run_pid(run_id)
         _run_tasks.pop(run_id, None)
 
 
@@ -291,25 +415,15 @@ async def _execute_helixtest_trs(
         task_logs: list | None = None,
         outputs: dict[str, Any] | None = None,
     ) -> None:
-        async with get_async_session_maker()() as session:
-            stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
-            r = await session.execute(stmt)
-            row = r.scalars().first()
-            if row:
-                row.state = state.value
-                if start_time_:
-                    row.start_time = datetime.fromisoformat(
-                        start_time_.replace("Z", "+00:00"),
-                    )
-                if end_time:
-                    row.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-                if run_log is not None:
-                    row.run_log = run_log
-                if task_logs is not None:
-                    row.task_logs = task_logs
-                if outputs is not None:
-                    row.outputs = outputs
-                await session.commit()
+        await _persist_run_fields(
+            run_id,
+            state,
+            start_time=start_time_,
+            end_time=end_time,
+            run_log=run_log,
+            task_logs=task_logs,
+            outputs=outputs,
+        )
 
     async def finish_error(msg: str) -> None:
         end_time = _iso_now()
@@ -452,7 +566,11 @@ async def _execute_nextflow(
         for k, v in workflow_params.items():
             if v is None:
                 continue
-            cmd.extend(["--" + k, str(v)])
+            key = str(k)
+            if not re.fullmatch(r"[A-Za-z0-9_]+", key):
+                logger.warning("Skipping unsafe Nextflow param key %r", key)
+                continue
+            cmd.extend(["--" + key, str(v)])
 
     run_log_obj: dict[str, Any] = {
         "name": "nextflow",
@@ -474,23 +592,15 @@ async def _execute_nextflow(
         task_logs: list | None = None,
         outputs: dict | None = None,
     ) -> None:
-        async with get_async_session_maker()() as session:
-            stmt = select(WorkflowRun).where(WorkflowRun.run_id == UUID(run_id))
-            r = await session.execute(stmt)
-            row = r.scalars().first()
-            if row:
-                row.state = state.value
-                if start_time:
-                    row.start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
-                if end_time:
-                    row.end_time = datetime.fromisoformat(end_time.replace("Z", "+00:00"))
-                if run_log is not None:
-                    row.run_log = run_log
-                if task_logs is not None:
-                    row.task_logs = task_logs
-                if outputs is not None:
-                    row.outputs = outputs
-                await session.commit()
+        await _persist_run_fields(
+            run_id,
+            state,
+            start_time=start_time,
+            end_time=end_time,
+            run_log=run_log,
+            task_logs=task_logs,
+            outputs=outputs,
+        )
 
     try:
         await update_db(
@@ -503,6 +613,7 @@ async def _execute_nextflow(
             stderr=asyncio.subprocess.PIPE,
             cwd=str(run_dir),
         )
+        _register_run_process(run_id, process)
         timeout = get_settings().wes_subprocess_timeout_seconds
         try:
             if timeout is not None:
@@ -565,6 +676,7 @@ async def _execute_nextflow(
             state, end_time=end_time, run_log=run_log_obj, task_logs=task_logs_list, outputs=outputs
         )
     except asyncio.CancelledError:
+        await _kill_run_process(run_id)
         end_time = _iso_now()
         run_log_obj["end_time"] = end_time
         run_log_obj["exit_code"] = -1
@@ -587,6 +699,8 @@ async def _execute_nextflow(
             State.SYSTEM_ERROR, end_time=end_time, run_log=run_log_obj, task_logs=task_logs_list
         )
     finally:
+        _run_processes.pop(run_id, None)
+        _clear_run_pid(run_id)
         _run_tasks.pop(run_id, None)
 
 
@@ -602,10 +716,37 @@ def _parse_nextflow_outputs(run_dir: Path, stdout: str) -> dict[str, Any]:
 # ----- Public service API -----
 
 
-def get_service_info(db: AsyncSession) -> dict[str, Any]:
-    """Build ServiceInfo with system_state_counts from DB. Caller runs query."""
-    # Counts are filled by the endpoint after querying
-    return {}
+WES_SERVICE_METADATA: dict[str, Any] = {
+    "workflow_type_versions": {
+        "NEXTFLOW": ["DSL2"],
+        "CWL": ["v1.0"],
+        "WDL": ["1.0", "1.1"],
+    },
+    "supported_wes_versions": ["1.1.0", "1.1", "1.0"],
+    "supported_filesystem_protocols": ["file", "http", "https"],
+    "workflow_engine_versions": {
+        "nextflow": ["23.10.0", "24.04.0"],
+    },
+    "tags": {"backend": "nextflow"},
+}
+
+
+def get_service_info(db: AsyncSession | None = None) -> dict[str, Any]:
+    """Static WES service metadata (system_state_counts are filled by the endpoint)."""
+    _ = db
+    return {
+        "workflow_type_versions": {
+            k: list(v) for k, v in WES_SERVICE_METADATA["workflow_type_versions"].items()
+        },
+        "supported_wes_versions": list(WES_SERVICE_METADATA["supported_wes_versions"]),
+        "supported_filesystem_protocols": list(
+            WES_SERVICE_METADATA["supported_filesystem_protocols"]
+        ),
+        "workflow_engine_versions": {
+            k: list(v) for k, v in WES_SERVICE_METADATA["workflow_engine_versions"].items()
+        },
+        "tags": dict(WES_SERVICE_METADATA["tags"]),
+    }
 
 
 async def get_system_state_counts(db: AsyncSession) -> dict[str, int]:
@@ -626,6 +767,8 @@ async def create_run(
     db: AsyncSession,
     request: RunRequest,
     workflow_attachments: list[tuple[str, bytes]] | None = None,
+    *,
+    current_user: dict[str, Any] | None = None,
 ) -> UUID:
     """Create workflow run (QUEUED), stage files, start Nextflow. Returns run_id."""
     _validate_workflow_url(request.workflow_url)
@@ -641,6 +784,10 @@ async def create_run(
             safe = _safe_filename(filename)
             (run_dir / safe).write_bytes(content)
 
+    if current_user:
+        scope_vals = get_scope_values(current_user)
+    else:
+        scope_vals = {"user_id": None, "team_id": None}
     request_dict = normalized.model_dump(mode="json")
     row = WorkflowRun(
         run_id=run_id,
@@ -658,6 +805,8 @@ async def create_run(
         run_log=None,
         task_logs=None,
         request=request_dict,
+        user_id=scope_vals.get("user_id"),
+        team_id=scope_vals.get("team_id"),
     )
     db.add(row)
     await db.flush()
@@ -694,15 +843,26 @@ async def create_run(
     return run_id
 
 
-async def get_run(db: AsyncSession, run_id: str) -> WorkflowRun | None:
-    """Fetch WorkflowRun by run_id (string)."""
+async def get_run(
+    db: AsyncSession,
+    run_id: str,
+    current_user: dict[str, Any] | None = None,
+) -> WorkflowRun | None:
+    """Fetch WorkflowRun by run_id (string). Optionally hide out-of-scope rows."""
     try:
         uid = UUID(run_id)
     except ValueError:
         return None
     stmt = select(WorkflowRun).where(WorkflowRun.run_id == uid)
     r = await db.execute(stmt)
-    return r.scalars().first()
+    run = r.scalars().first()
+    if run is None:
+        return None
+    if current_user is not None:
+        scope = get_scope_filter(current_user)
+        if not object_visible_to_scope(run.user_id, run.team_id, scope):
+            return None
+    return run
 
 
 async def list_runs(
@@ -710,9 +870,12 @@ async def list_runs(
     page_size: int = 100,
     page_token: str | None = None,
     state_filter: str | None = None,
+    current_user: dict[str, Any] | None = None,
 ) -> tuple[list[WorkflowRun], str]:
     """List workflow runs with simple offset pagination. Returns (runs, next_page_token)."""
     stmt = select(WorkflowRun).order_by(WorkflowRun.created_at.desc())
+    if current_user is not None:
+        stmt = apply_scope(stmt, WorkflowRun, get_scope_filter(current_user))
     if state_filter is not None:
         stmt = stmt.where(WorkflowRun.state == state_filter)
     offset = int(page_token) if page_token else 0
@@ -768,9 +931,13 @@ def run_to_run_log(run: WorkflowRun) -> RunLog:
     )
 
 
-async def cancel_run(db: AsyncSession, run_id: str) -> bool:
-    """Cancel run: cancel task if present, set CANCELED. True if found and canceled."""
-    run = await get_run(db, run_id)
+async def cancel_run(
+    db: AsyncSession,
+    run_id: str,
+    current_user: dict[str, Any] | None = None,
+) -> bool:
+    """Cancel run: kill subprocess, cancel task, set CANCELED. True if found."""
+    run = await get_run(db, run_id, current_user=current_user)
     if not run:
         return False
     if run.state in (
@@ -780,6 +947,7 @@ async def cancel_run(db: AsyncSession, run_id: str) -> bool:
         State.CANCELED.value,
     ):
         return True  # Already terminal
+    await _kill_run_process(run_id)
     task = _run_tasks.get(run_id)
     if task and not task.done():
         task.cancel()

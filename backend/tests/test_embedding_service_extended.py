@@ -87,9 +87,6 @@ def test_embed_text_multilingual_en():
 # ─── find_similar (with threshold, scores, empty DB) ────────────────────────
 
 
-@pytest.mark.skip(
-    reason="cosine_distance requires pgvector — not available in SQLite test environment",
-)
 @pytest.mark.asyncio
 async def test_find_similar_empty_db_returns_empty(db_session):
     """find_similar with no papers in DB returns empty list."""
