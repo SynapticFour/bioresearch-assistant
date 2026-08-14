@@ -50,7 +50,7 @@ sentence-transformers>=2.2.0,<3.0
 biopython>=1.81,<2.0
 
 # Tests (SQLite in-memory — no PostgreSQL needed)
-aiosqlite>=0.19.0,<1.0
+aiosqlite>=0.22.1,<1.0
 coverage
 genbadge[coverage]
 pytest>=7.4.0,<10.0
