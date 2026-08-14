@@ -71,6 +71,8 @@ class WorkflowRun(Base):
     request: Mapped[dict[str, Any] | None] = mapped_column(
         JSONB().with_variant(JSON(), "sqlite"), nullable=True
     )
+    user_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    team_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

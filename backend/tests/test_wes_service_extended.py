@@ -12,6 +12,8 @@ from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import RunRequest, State
 from app.services import wes_service
 
+OWNER = {"sub": "dev-user", "email": "t@test.de", "roles": ["admin"]}
+
 
 @pytest.mark.asyncio
 async def test_create_run_stages_attachments(db_session) -> None:
@@ -35,6 +37,7 @@ async def test_create_run_stages_attachments(db_session) -> None:
                     db_session,
                     request,
                     workflow_attachments=attachments,
+                    current_user=OWNER,
                 )
                 assert run_id is not None
                 run_dir = Path(tmpdir) / str(run_id)
@@ -65,11 +68,12 @@ async def test_get_run_returns_run(db_session) -> None:
         run_log=None,
         task_logs=None,
         request={},
+        user_id="dev-user",
     )
     db_session.add(row)
     await db_session.flush()
 
-    run = await wes_service.get_run(db_session, str(run_id))
+    run = await wes_service.get_run(db_session, str(run_id), current_user=OWNER)
     assert run is not None
     assert run.run_id == run_id
     assert run.state == State.QUEUED.value
@@ -78,7 +82,9 @@ async def test_get_run_returns_run(db_session) -> None:
 @pytest.mark.asyncio
 async def test_get_run_not_found_returns_none(db_session) -> None:
     """get_run returns None for unknown run_id."""
-    run = await wes_service.get_run(db_session, "00000000-0000-0000-0000-000000000000")
+    run = await wes_service.get_run(
+        db_session, "00000000-0000-0000-0000-000000000000", current_user=OWNER
+    )
     assert run is None
 
 
@@ -102,11 +108,14 @@ async def test_list_runs_pagination(db_session) -> None:
             run_log=None,
             task_logs=None,
             request={},
+            user_id="dev-user",
         )
         db_session.add(row)
     await db_session.flush()
 
-    runs, next_token = await wes_service.list_runs(db_session, page_size=2, page_token=None)
+    runs, next_token = await wes_service.list_runs(
+        db_session, page_size=2, page_token=None, current_user=OWNER
+    )
     assert len(runs) <= 2
     assert isinstance(next_token, str)
 
@@ -183,11 +192,12 @@ async def test_cancel_run_sets_canceled(db_session) -> None:
         run_log=None,
         task_logs=None,
         request={},
+        user_id="dev-user",
     )
     db_session.add(row)
     await db_session.flush()
 
-    result = await wes_service.cancel_run(db_session, str(run_id))
+    result = await wes_service.cancel_run(db_session, str(run_id), current_user=OWNER)
     assert result is True
     await db_session.refresh(row)
     assert row.state == State.CANCELED.value
@@ -196,7 +206,9 @@ async def test_cancel_run_sets_canceled(db_session) -> None:
 @pytest.mark.asyncio
 async def test_cancel_run_not_found_returns_false(db_session) -> None:
     """cancel_run returns False when run not found."""
-    result = await wes_service.cancel_run(db_session, "00000000-0000-0000-0000-000000000000")
+    result = await wes_service.cancel_run(
+        db_session, "00000000-0000-0000-0000-000000000000", current_user=OWNER
+    )
     assert result is False
 
 

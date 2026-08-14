@@ -48,6 +48,8 @@ Beispiel: Alle `@dkfz.de` Forscher teilen eine gemeinsame Paper-Bibliothek.
 
 ### Open-Modus (`ISOLATION_MODE=open`)
 
+Nur Demo und lokale Entwicklung. **Produktionsstart (`ENVIRONMENT=production`) verweigert diesen Modus.**
+
 Nur für:
 
 - Demo-Installationen (Railway, Vercel)

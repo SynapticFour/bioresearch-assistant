@@ -1,0 +1,11 @@
+# Optional overlay — Docker-in-Docker for Nextflow.
+# NOT for Uniklinik production. Mounting the host Docker socket is a host-escape path.
+#
+# Usage (lab/HPC only, after threat-model sign-off):
+#   docker compose -f docker-compose.full.yml -f docker-compose.nextflow-dind.yml up -d nextflow
+
+services:
+  nextflow:
+    volumes:
+      - nextflow_data:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock

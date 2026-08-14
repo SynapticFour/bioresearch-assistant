@@ -1,5 +1,6 @@
 """Application configuration using pydantic-settings."""
 
+import warnings
 from functools import lru_cache
 
 from pydantic import Field, field_validator
@@ -23,7 +24,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
     version: str = Field(
-        default="1.0.0",
+        default="1.3.0",
         description="Application version (e.g. for /health and UI)",
         validation_alias="APP_VERSION",
     )
@@ -32,6 +33,23 @@ class Settings(BaseSettings):
     deployment: str = Field(
         default="",
         description="Deployment target e.g. 'railway' for demo limitations",
+    )
+
+    # Solum subject bridge (optional; org plan F3)
+    solum_base_url: str | None = Field(
+        default=None,
+        description="Solum sidecar base URL for subject-link upsert",
+        validation_alias="SOLUM_BASE_URL",
+    )
+    solum_sidecar_token: str | None = Field(
+        default=None,
+        description="Solum sidecar bearer / shared token",
+        validation_alias="SOLUM_SIDECAR_TOKEN",
+    )
+    solum_subject_bridge_upsert: bool = Field(
+        default=True,
+        description="When Solum URL+token set, POST subject-link on demand",
+        validation_alias="SOLUM_SUBJECT_BRIDGE_UPSERT",
     )
 
     # API
@@ -171,6 +189,16 @@ class Settings(BaseSettings):
         default="http://localhost:8000/api/v1/auth/callback",
         description="OIDC redirect URI after login",
     )
+    frontend_base_url: str = Field(
+        default="http://localhost:5173",
+        description="SPA origin for post-login redirect (OIDC callback)",
+        validation_alias="FRONTEND_BASE_URL",
+    )
+    session_cookie_name: str = Field(
+        default="bra_access_token",
+        description="httpOnly session cookie name",
+        validation_alias="SESSION_COOKIE_NAME",
+    )
     jwt_secret: str = Field(default="", description="JWT secret for session (optional)")
     jwt_algorithm: str = Field(default="RS256", description="JWT algorithm")
     microsoft_tenant_id: str = Field(
@@ -188,6 +216,19 @@ class Settings(BaseSettings):
     isolation_mode: str = Field(
         default="user",
         description="Data isolation: user (own only), team (institution), open (all)",
+    )
+    wes_allow_remote_workflows: bool = Field(
+        default=False,
+        description=(
+            "Allow Nextflow to fetch http(s) workflow_url values. Off by default; "
+            "HelixTest TRS stubs and local *.nf / allowlisted names still work."
+        ),
+        validation_alias="WES_ALLOW_REMOTE_WORKFLOWS",
+    )
+    wes_allowed_workflow_hosts: list[str] = Field(
+        default_factory=list,
+        description="If remote workflows are enabled, restrict to these hostnames.",
+        validation_alias="WES_ALLOWED_WORKFLOW_HOSTS",
     )
 
     # MII-KDS / FHIR export (FDPG/DIZ-oriented defaults; override via env)
@@ -264,14 +305,55 @@ class Settings(BaseSettings):
         return bool(self.oidc_issuer and self.oidc_client_id)
 
     @property
+    def allows_unauthenticated_dev(self) -> bool:
+        """True only for explicit local/test deploys — not the empty default."""
+        dep = (self.deployment or "").strip().lower()
+        return dep in ("local", "development", "test")
+
+    @property
+    def is_production_runtime(self) -> bool:
+        """True when ENVIRONMENT or DEPLOYMENT indicates a production target."""
+        env = (self.environment or "").strip().lower()
+        dep = (self.deployment or "").strip().lower()
+        return env == "production" or dep in {
+            "production",
+            "prod",
+            "azure",
+            "otc",
+            "dfn",
+            "k8s",
+        }
+
+    def assert_runtime_hardened(self) -> None:
+        """Refuse production start with lab/demo defaults (Uniklinik bar)."""
+        if not self.is_production_runtime:
+            return
+        if self.allows_unauthenticated_dev:
+            raise RuntimeError(
+                "DEPLOYMENT=local|development|test is forbidden when ENVIRONMENT=production"
+            )
+        if (self.isolation_mode or "").strip().lower() == "open":
+            raise RuntimeError("ISOLATION_MODE=open is forbidden in production")
+        if "*" in self.cors_origins:
+            raise RuntimeError("CORS_ORIGINS=* is forbidden in production")
+        if not self.auth_enabled:
+            raise RuntimeError("OIDC_ISSUER and OIDC_CLIENT_ID are required in production")
+        url = (self.database_url or "").lower()
+        if ":bioresearch@" in url or url.endswith(":bioresearch/") or "/bioresearch:" in url:
+            raise RuntimeError(
+                "Default database password 'bioresearch' is forbidden in production. "
+                "Set DB_PASSWORD to a unique secret."
+            )
+
+    @property
     def is_user_isolation(self) -> bool:
         """True when each user sees only their own data."""
-        return self.isolation_mode == "user"
+        return (self.isolation_mode or "").strip().lower() == "user"
 
     @property
     def is_team_isolation(self) -> bool:
         """True when users share data by institution/team."""
-        return self.isolation_mode == "team"
+        return (self.isolation_mode or "").strip().lower() == "team"
 
     @field_validator("pseudonymization_encryption_key")
     @classmethod
@@ -290,6 +372,26 @@ class Settings(BaseSettings):
         if v and len(v) < 32:
             raise ValueError("JWT_SECRET must be at least 32 characters when set")
         return v
+
+    @field_validator("isolation_mode")
+    @classmethod
+    def validate_isolation_mode(cls, v: str) -> str:
+        """Only user | team | open are valid; unknown values fail closed to user."""
+        mode = (v or "user").strip().lower()
+        if mode not in ("user", "team", "open"):
+            warnings.warn(
+                f"Unknown ISOLATION_MODE={v!r}; failing closed to 'user'",
+                stacklevel=2,
+            )
+            return "user"
+        return mode
+
+    @field_validator("wes_allowed_workflow_hosts", mode="before")
+    @classmethod
+    def parse_workflow_hosts(cls, v: str | list[str]) -> list[str]:
+        if isinstance(v, str):
+            return [h.strip().lower() for h in v.split(",") if h.strip()]
+        return [str(h).strip().lower() for h in v if str(h).strip()]
 
     @field_validator("cors_origins", mode="before")
     @classmethod

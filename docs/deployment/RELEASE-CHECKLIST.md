@@ -7,7 +7,7 @@ Vor jedem Release/Hotfix in Produktivumgebungen:
 3. [ ] `./scripts/docs_consistency_check.sh` erfolgreich.
 4. [ ] `./scripts/deployment_preflight.sh --scenario <ziel>` erfolgreich.
 5. [ ] Backup erstellt (DB + relevante Volumes + Konfiguration).
-6. [ ] Secrets/`.env` geprüft (keine unbeabsichtigten Änderungen).
+6. [ ] Secrets/`.env` geprüft: OIDC gesetzt, `ISOLATION_MODE` nicht `open`, DB-Passwort nicht `bioresearch`, `ENVIRONMENT=production`.
 7. [ ] Rollout-Test in Staging/Testsystem erfolgreich.
 8. [ ] Post-Deploy Smoke-Test definiert:
    - Health Endpoint
@@ -19,4 +19,3 @@ Vor jedem Release/Hotfix in Produktivumgebungen:
 
 Empfehlung:
 - Diese Liste zusammen mit `docs/deployment/UPDATE-SOP.md` verwenden.
-

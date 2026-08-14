@@ -15,14 +15,15 @@ Data safety:
 from __future__ import annotations
 
 import logging
+import re
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import select
+from sqlalchemy import String, cast, false, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.isolation import get_scope_filter
+from app.core.isolation import apply_scope_for_user, get_scope_values
 from app.models.patient_record import PatientRecordModel
 from app.models.phenoflow_run import PhenoFlowRun
 from app.models.phenoflow_run_item import PhenoFlowRunItem
@@ -63,6 +64,28 @@ PLACEHOLDER_FILE_TYPE = "{{file_type}}"
 
 PHENOPACKET_SCAN_MULTIPLIER = 10
 MAX_PHENOPACKET_SCAN = 1000
+_HPO_CURIE_RE = re.compile(r"^HP:\d{7}$")
+
+
+def _phenopacket_hpo_conditions(hpo_terms: list[str], dialect: str) -> list[Any]:
+    """SQL filter for phenopackets that likely contain the given HPO CURIEs.
+
+    PostgreSQL uses jsonb_path_exists on nested id fields. SQLite (tests) uses
+    a string CONTAINS prefilter; Python still confirms the match.
+    """
+    safe = [t for t in hpo_terms if _HPO_CURIE_RE.fullmatch(t)]
+    if dialect == "postgresql":
+        if not safe:
+            return [false()]
+        return [
+            func.jsonb_path_exists(
+                PatientRecordModel.phenopacket_json,
+                f'$**.id ? (@ == "{term}")',
+            )
+            for term in safe
+        ]
+    needles = safe or list(hpo_terms)
+    return [cast(PatientRecordModel.phenopacket_json, String).contains(term) for term in needles]
 
 
 def _extract_hpo_ids(phenopacket_json: object) -> set[str]:
@@ -128,16 +151,6 @@ def _apply_placeholders(template: object, context: dict[str, str]) -> object:
     return template
 
 
-def _apply_scope(stmt: object, model: object, current_user: dict[str, object]) -> object:
-    """Apply isolation filtering to a select statement."""
-    scope = get_scope_filter(current_user)
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(model.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(model.team_id == scope["team_id"])
-    return stmt
-
-
 async def submit_pheno_flow_run(
     db: AsyncSession,
     request: PhenoFlowRunRequest,
@@ -186,11 +199,9 @@ async def submit_pheno_flow_run(
     # Isolation may use team_id derived from claims. Reuse isolation helper by
     # filtering rather than trying to compute team_id here (we store asset scope too).
     # Store user_id/team_id as best-effort:
-    scope = get_scope_filter(current_user)
-    if "user_id" in scope:
-        run.user_id = scope.get("user_id")
-    if "team_id" in scope:
-        run.team_id = scope.get("team_id")
+    scope_vals = get_scope_values(current_user)
+    run.user_id = scope_vals.get("user_id")
+    run.team_id = scope_vals.get("team_id")
 
     db.add(run)
 
@@ -198,8 +209,16 @@ async def submit_pheno_flow_run(
         MAX_PHENOPACKET_SCAN,
         max(1, request.limit_matches * PHENOPACKET_SCAN_MULTIPLIER),
     )
-    stmt = select(PatientRecordModel).order_by(PatientRecordModel.pseudonym_id).limit(scan_limit)
-    stmt = _apply_scope(stmt, PatientRecordModel, current_user)
+    bind = db.get_bind()
+    dialect = bind.dialect.name if bind is not None else "sqlite"
+    conditions = _phenopacket_hpo_conditions(hpo_terms, dialect)
+    stmt = (
+        select(PatientRecordModel)
+        .where(or_(*conditions))
+        .order_by(PatientRecordModel.pseudonym_id)
+        .limit(scan_limit)
+    )
+    stmt = apply_scope_for_user(stmt, PatientRecordModel, current_user)
 
     r = await db.execute(stmt)
     candidate_records = list(r.scalars().all())
@@ -230,7 +249,7 @@ async def submit_pheno_flow_run(
     )
     if request.file_type is not None:
         assets_stmt = assets_stmt.where(PhenopacketAsset.file_type == request.file_type.value)
-    assets_stmt = _apply_scope(assets_stmt, PhenopacketAsset, current_user)
+    assets_stmt = apply_scope_for_user(assets_stmt, PhenopacketAsset, current_user)
     assets_r = await db.execute(assets_stmt)
     assets = list(assets_r.scalars().all())
 
@@ -306,7 +325,7 @@ async def submit_pheno_flow_run(
                 tags=wes_tags,
             )
             try:
-                wes_run_id = await _submit_wes_run(db, run_req)
+                wes_run_id = await _submit_wes_run(db, run_req, current_user=current_user)
             except Exception as e:  # noqa: BLE001
                 err = (
                     "WES submission failed for "
@@ -374,8 +393,12 @@ async def submit_pheno_flow_run(
     )
 
 
-async def _submit_wes_run(db: AsyncSession, run_req: RunRequest) -> UUID:
+async def _submit_wes_run(
+    db: AsyncSession, run_req: RunRequest, *, current_user: dict[str, Any]
+) -> UUID:
     """Submit a WES run and return its UUID."""
-    wes_run_id = await create_wes_run(db, run_req, workflow_attachments=None)
+    wes_run_id = await create_wes_run(
+        db, run_req, workflow_attachments=None, current_user=current_user
+    )
     # create_wes_run writes WorkflowRun row + schedules background task but doesn't commit.
     return UUID(str(wes_run_id))

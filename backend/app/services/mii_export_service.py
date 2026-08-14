@@ -9,10 +9,11 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.isolation import apply_scope
 from app.interoperability.fhir.bundle_builder import build_collection_bundle
 from app.interoperability.mii import phenopacket_to_fhir as pp2f
 from app.interoperability.mii.ig_loader import profile_by_module
@@ -24,16 +25,6 @@ from app.services.terminology_mapping_service import summarize_coding_quality
 from app.services.terminology_override_service import load_active_override_maps
 
 logger = logging.getLogger(__name__)
-
-
-def _apply_scope_patient(
-    stmt: Select[tuple[PatientRecordModel]], scope: dict[str, str | None]
-) -> Select[tuple[PatientRecordModel]]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(PatientRecordModel.team_id == scope["team_id"])
-    return stmt
 
 
 async def load_export_patient_records(
@@ -51,7 +42,7 @@ async def _load_patient_records(
     scope: dict,
 ) -> dict[str, PatientRecordModel]:
     stmt = select(PatientRecordModel).where(PatientRecordModel.pseudonym_id.in_(pseudonym_ids))
-    stmt = _apply_scope_patient(stmt, scope)
+    stmt = apply_scope(stmt, PatientRecordModel, scope)
     result = await db.execute(stmt)
     rows = result.scalars().all()
     return {r.pseudonym_id: r for r in rows}

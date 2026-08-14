@@ -4,7 +4,18 @@
 BioResearch Assistant unterstützt OpenID Connect (OIDC)
 mit GA4GH Passport Spec v1.2.
 
-**Datenisolation:** Mit OIDC kann zusätzlich `ISOLATION_MODE=user` oder `team` gesetzt werden, damit Daten pro Nutzer oder pro Team (z. B. E-Mail-Domain) getrennt sind. Siehe [ISOLATION-MODES.md](ISOLATION-MODES.md).
+**Datenisolation:** In Produktion ist `ISOLATION_MODE=user` oder `team` Pflicht (`open` wird beim Start abgelehnt). Siehe [ISOLATION-MODES.md](ISOLATION-MODES.md). Uniklinik-Checkliste: [deployment/UNIKLINIK.md](deployment/UNIKLINIK.md).
+
+## Session (httpOnly Cookie)
+
+Der OIDC-Callback tauscht den Authorization Code serverseitig und setzt das Cookie `bra_access_token` (httpOnly, SameSite=Lax, Secure außerhalb von Dev). Die SPA speichert **keine** Access Tokens in `localStorage`. Logout: `POST /api/v1/auth/logout`.
+
+`OIDC_REDIRECT_URI` und `FRONTEND_BASE_URL` müssen **same-origin** zur SPA sein (Reverse-Proxy). Sonst speichert der Browser das Cookie nicht für die UI.
+
+| Umgebung | Beispiel |
+|----------|----------|
+| Produktion | `OIDC_REDIRECT_URI=https://bra.uniklinik.example/api/v1/auth/callback` · `FRONTEND_BASE_URL=https://bra.uniklinik.example` |
+| Lokales Vite | `OIDC_REDIRECT_URI=http://localhost:5173/api/v1/auth/callback` · `FRONTEND_BASE_URL=http://localhost:5173` (Vite-Proxy) |
 
 ## Unterstützte Provider
 
@@ -27,7 +38,8 @@ Dann:
    OIDC_ISSUER=http://localhost:8080/realms/bioresearch
    OIDC_CLIENT_ID=bioresearch-assistant
    OIDC_CLIENT_SECRET=dein-secret
-   OIDC_REDIRECT_URI=http://localhost:8000/api/v1/auth/callback
+   OIDC_REDIRECT_URI=http://localhost:5173/api/v1/auth/callback
+   FRONTEND_BASE_URL=http://localhost:5173
    ```
 
 ### 2. ELIXIR AAI (für Forschungsinstitute)
@@ -42,9 +54,12 @@ GA4GH Passport nativ unterstützt.
    OIDC_CLIENT_ID=dein-client-id
    OIDC_CLIENT_SECRET=dein-secret
    OIDC_REDIRECT_URI=https://deine-app/api/v1/auth/callback
+   FRONTEND_BASE_URL=https://deine-app
    ```
 
-### 3. Google (für schnelle Tests)
+### 3. Google (nicht für Uniklinik-Produktion)
+
+US-IdP (Drittland). Nur Evaluation. Primärlogin in der UI ist institutionelles OIDC / Entra ID.
 1. https://console.cloud.google.com
 2. OAuth2 Client erstellen
 3. In .env:
@@ -52,7 +67,8 @@ GA4GH Passport nativ unterstützt.
    OIDC_ISSUER=https://accounts.google.com
    OIDC_CLIENT_ID=xxx.apps.googleusercontent.com
    OIDC_CLIENT_SECRET=dein-secret
-   OIDC_REDIRECT_URI=http://localhost:8000/api/v1/auth/callback
+   OIDC_REDIRECT_URI=http://localhost:5173/api/v1/auth/callback
+   FRONTEND_BASE_URL=http://localhost:5173
    ```
 
 ## De-Pseudonymisierung — Zugriffskontrolle
@@ -75,9 +91,8 @@ DEPSEUDO_ACCESS=owner   # Standard
 Jeder De-Pseudonymisierungs-Zugriff wird im Audit Log protokolliert (operation_type=DEPSEUDONYMIZE).
 
 ## Dev-Modus (kein Auth)
-Ohne OIDC Konfiguration läuft das System im Dev-Modus —
-kein Login nötig, alle Endpunkte offen.
-Für Produktion immer Auth konfigurieren!
+
+Ohne `OIDC_ISSUER` + `OIDC_CLIENT_ID` und mit explizitem `DEPLOYMENT=local|development|test` gibt es einen Dev-User. **In Produktion startet der Prozess dann nicht** (`assert_runtime_hardened`). Leeres `DEPLOYMENT` gilt als Produktion (fail-closed).
 
 ## GA4GH Passport Visas
 Das System versteht folgende Visa-Typen:
@@ -93,32 +108,33 @@ Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azu
 
 ### Integration mit Azure AD / Microsoft Entra ID
 
-1. **Im Azure Portal:**  
-   portal.azure.com → Azure Active Directory → App-Registrierungen → Neue Registrierung  
+1. **Im Azure Portal:**
+   portal.azure.com → Azure Active Directory → App-Registrierungen → Neue Registrierung
 
-   - **Name:** BioResearch Assistant  
-   - **Unterstützte Kontotypen:** „Nur Konten in diesem Organisationsverzeichnis“  
-   - **Umleitungs-URI:** `https://bioresearch.ukhd.de/api/v1/auth/callback`  
+   - **Name:** BioResearch Assistant
+   - **Unterstützte Kontotypen:** „Nur Konten in diesem Organisationsverzeichnis“
+   - **Umleitungs-URI:** `https://bioresearch.ukhd.de/api/v1/auth/callback`
 
-2. **Nach der Registrierung:**  
-   - Application (client) ID kopieren → `OIDC_CLIENT_ID`  
-   - Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel → Wert kopieren → `OIDC_CLIENT_SECRET`  
+2. **Nach der Registrierung:**
+   - Application (client) ID kopieren → `OIDC_CLIENT_ID`
+   - Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel → Wert kopieren → `OIDC_CLIENT_SECRET`
 
-3. **OIDC Issuer für UKHD:**  
-   `OIDC_ISSUER=https://login.microsoftonline.com/{UKHD-TENANT-ID}/v2.0`  
-   Tenant ID: Azure AD → Übersicht → Mandanten-ID  
+3. **OIDC Issuer für UKHD:**
+   `OIDC_ISSUER=https://login.microsoftonline.com/{UKHD-TENANT-ID}/v2.0`
+   Tenant ID: Azure AD → Übersicht → Mandanten-ID
 
-4. **In .env eintragen:**  
+4. **In .env eintragen:**
    ```
    OIDC_ISSUER=https://login.microsoftonline.com/TENANT-ID/v2.0
    OIDC_CLIENT_ID=APPLICATION-ID
    OIDC_CLIENT_SECRET=CLIENT-SECRET
    OIDC_REDIRECT_URI=https://bioresearch.ukhd.de/api/v1/auth/callback
+   FRONTEND_BASE_URL=https://bioresearch.ukhd.de
    MICROSOFT_TENANT_ID=TENANT-ID
    ```
 
-5. **API-Berechtigungen:**  
-   Azure AD → App-Registrierungen → BioResearch Assistant → API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph → openid, email, profile  
+5. **API-Berechtigungen:**
+   Azure AD → App-Registrierungen → BioResearch Assistant → API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph → openid, email, profile
 
 ### Andere häufige Systeme an deutschen Unikliniken
 
@@ -138,13 +154,13 @@ Manche Institutionen nutzen noch Shibboleth. Lösung: **Keycloak als OIDC-Brück
 [Browser] → [BioResearch] → [Keycloak] → [Shibboleth] → [LDAP]
 ```
 
-Keycloak kann als SAML-zu-OIDC Bridge fungieren.  
+Keycloak kann als SAML-zu-OIDC Bridge fungieren.
 Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md)
 
 ### GA4GH Passports an Unikliniken
 
 Für Zugang zu kontrollierten Datensätzen (z.B. DKFZ-Daten, EGA-Daten) prüft das System automatisch **GA4GH Passport Visas**:
 
-- **ResearcherStatus** → verifizierter Forscher  
-- **AffiliationAndRole** → UKHD-Mitarbeiter  
-- **ControlledAccessGrants** → Zugang zu spezifischen Daten  
+- **ResearcherStatus** → verifizierter Forscher
+- **AffiliationAndRole** → UKHD-Mitarbeiter
+- **ControlledAccessGrants** → Zugang zu spezifischen Daten

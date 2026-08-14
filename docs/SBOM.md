@@ -1,10 +1,16 @@
 # Software Bill of Materials (SBOM)
-Stand: März 2026, Version: 1.0.0
+
+**Stand:** 2026-08-15 · Version: 1.0.2
+**Org level-up:** C8 refresh
+
+This document is a **human-readable summary**. For machine-readable SBOMs, generate from lockfiles at release time (CycloneDX via `cyclonedx-bom` / `npm sbom` when cutting a tag).
 
 ## Backend Dependencies (Python)
 
-| Package | Version | Lizenz | Verwendung |
-|---------|---------|--------|------------|
+Source of truth: `backend/requirements.txt` plus hashed `backend/requirements.lock` (`uv pip compile --generate-hashes`).
+
+| Package | Version constraint | Lizenz | Verwendung |
+|---------|-------------------|--------|------------|
 | fastapi | ≥0.100 | MIT | Web Framework |
 | sqlalchemy | ≥2.0 | MIT | ORM |
 | asyncpg | ≥0.28 | Apache 2.0 | PostgreSQL Treiber |
@@ -15,7 +21,7 @@ Stand: März 2026, Version: 1.0.0
 | sentence-transformers | ≥2.2 | Apache 2.0 | Embeddings (optional) |
 | paraphrase-multilingual-mpnet-base-v2 | (Modell) | Apache 2.0 | Multilingual Embeddings DE+EN |
 | anthropic | ≥0.20 | MIT | LLM API (optional) |
-| python-jose | ≥3.3 | MIT | JWT |
+| PyJWT | ≥2.10 | MIT | JWT (OIDC) |
 | authlib | ≥1.3 | BSD | OAuth2/OIDC |
 | httpx | ≥0.25 | BSD | HTTP Client |
 | slowapi | ≥0.1 | MIT | Rate Limiting |
@@ -26,6 +32,8 @@ Stand: März 2026, Version: 1.0.0
 | pytest-asyncio | ≥0.21 | Apache 2.0 | Async Tests |
 
 ## Frontend Dependencies (JavaScript)
+
+Source of truth: `frontend/package-lock.json`.
 
 | Package | Version | Lizenz | Verwendung |
 |---------|---------|--------|------------|
@@ -46,14 +54,31 @@ Stand: März 2026, Version: 1.0.0
 | Anthropic API | LLM (optional) | Texte | USA |
 | Ollama (lokal) | LLM (empfohlen) | Keine | Lokal |
 
-## Bekannte Schwachstellen
+## Automated checks (CI)
 
-Regelmäßig geprüft via:
+On every push/PR:
+
 ```bash
-cd backend && pip-audit
-cd frontend && npm audit
+# backend
+pip install pip-audit
+pip-audit -r backend/requirements.txt
+
+# frontend (production, high+)
+cd frontend && npm ci && npm audit --omit=dev --audit-level=high
 ```
 
-RAG (Frag deine Bibliothek) nutzt bestehende LLM- und Embedding-Services; keine zusätzlichen externen Dependencies. Embedding-Modell: paraphrase-multilingual-mpnet-base-v2 (Apache 2.0), bereits in der Tabelle.
+See `.github/workflows/ci.yml` job `supply-chain`.
 
-Stand: März 2026 — Keine bekannten kritischen CVEs.
+## Known vulnerabilities
+
+Dated 2026-08-15 (`pip-audit -r backend/requirements.txt`, `npm audit --omit=dev --audit-level=high`):
+
+| Finding | Status |
+|---------|--------|
+| cryptography PKCS#7 oracle (fixed in 50.0.0) | **Patched** — `cryptography>=50`; Presidio anonymizer pinned at 2.2.362 so the 2.2.364 `<49` cap does not block the fix. |
+| python-ecdsa Minerva (no planned fix) | **Removed** — JWT via PyJWT + cryptography. |
+| pytest <9.0.3 | **Patched** — `pytest>=9.0.3` with `pytest-asyncio>=1.3`. |
+| transformers 4.57.x (`PYSEC-2025-217`, `PYSEC-2026-2288/2289/2290`) | **Residual** — `sentence-transformers` 2.x cannot take transformers 5. CI ignores these IDs. The app loads a pinned public embedding model, not untrusted checkpoints. Revisit when upgrading sentence-transformers. |
+| react-router-dom 6 moderate CVEs | **Residual** — v7 is a breaking upgrade, not taken. CI fails on production `high+` only. |
+
+Dependabot is **disabled** (file removed) so unreviewed majors are not auto-opened. Operators patch from CI supply-chain and the infra monthly hygiene log.

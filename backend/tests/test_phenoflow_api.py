@@ -50,7 +50,7 @@ async def test_create_and_get_pheno_flow_run(
                 {"type": {"id": "HP:0001250", "label": "Seizures"}},
             ],
         },
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(record)
@@ -60,7 +60,7 @@ async def test_create_and_get_pheno_flow_run(
         pseudonym_id="pp-api-1",
         drs_object_id="asset-api-1.bam",
         file_type=PhenopacketAssetFileType.bam.value,
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(asset)
@@ -110,7 +110,7 @@ async def test_list_pheno_flow_runs(async_client, db_session, monkeypatch) -> No
                 {"type": {"id": "HP:0001250", "label": "Seizures"}},
             ],
         },
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(record)
@@ -120,7 +120,7 @@ async def test_list_pheno_flow_runs(async_client, db_session, monkeypatch) -> No
         pseudonym_id="pp-api-list-1",
         drs_object_id="asset-api-list-1.bam",
         file_type=PhenopacketAssetFileType.bam.value,
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(asset)
@@ -181,7 +181,7 @@ async def test_asset_linking_endpoints(
     record = PatientRecordModel(
         pseudonym_id="pp-link-1",
         phenopacket_json={"phenotypic_features": [{"type": {"id": "HP:0001250"}}]},
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(record)
@@ -189,7 +189,7 @@ async def test_asset_linking_endpoints(
 
     monkeypatch.setattr(
         "app.api.v1.endpoints.phenopackets.drs_get_object",
-        lambda object_id: MagicMock(),
+        lambda object_id, current_user=None: MagicMock(),
     )
 
     link_req = PhenopacketAssetLinkRequest(

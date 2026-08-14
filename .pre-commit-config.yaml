@@ -1,0 +1,22 @@
+# Keep in sync with .github/workflows/ci.yml
+# Setup: pre-commit install
+repos:
+  - repo: local
+    hooks:
+      - id: ci-parity
+        name: GitHub CI parity (backend + frontend)
+        entry: scripts/hooks/ci-check.sh
+        language: script
+        pass_filenames: false
+        always_run: true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        exclude: (^|/)templates/.*\.ya?ml$
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key

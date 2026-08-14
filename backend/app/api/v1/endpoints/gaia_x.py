@@ -10,19 +10,20 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/gaia-x", tags=["GAIA-X"])
 
-# Resolve path to docs/ at repo root (parent of backend/)
-_BACKEND_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent
-_REPO_ROOT = _BACKEND_DIR.parent
-_SELF_DESCRIPTION_PATH = _REPO_ROOT / "docs" / "gaia-x-self-description.json"
-# Fallback if run from backend as root (e.g. in Docker)
-_FALLBACK_PATH = _BACKEND_DIR / "docs" / "gaia-x-self-description.json"
+# Resolve candidate locations: repo docs/, backend/docs (Docker COPY . .), /app/docs (Railway).
+_HERE = Path(__file__).resolve()
+_SELF_DESCRIPTION_CANDIDATES = (
+    _HERE.parents[5] / "docs" / "gaia-x-self-description.json",  # repo root
+    _HERE.parents[4] / "docs" / "gaia-x-self-description.json",  # backend or /app
+    Path("/app/docs/gaia-x-self-description.json"),
+)
 
 
 @router.get("/self-description")
 async def get_self_description() -> dict:
     """GAIA-X Self-Description dieses Service."""
-    path = _SELF_DESCRIPTION_PATH if _SELF_DESCRIPTION_PATH.exists() else _FALLBACK_PATH
-    if not path.exists():
+    path = next((p for p in _SELF_DESCRIPTION_CANDIDATES if p.exists()), None)
+    if path is None:
         raise HTTPException(
             status_code=503,
             detail="GAIA-X Self-Description file not found",
@@ -47,8 +48,9 @@ async def get_compliance_status() -> dict:
         GAIA-X-Compliance oder einer Zertifizierung dar.
     """
     return {
-        "gaia_x_ready": True,
-        "version": "1.0.0",
+        "gaia_x_ready": False,
+        "gaia_x_certified": False,
+        "version": "1.3.0",
         "principles": {
             "data_sovereignty": True,
             "gdpr_alignment": True,
@@ -69,5 +71,5 @@ async def get_compliance_status() -> dict:
             "GAIA-X Ready by Design — architectural alignment, "
             "not yet formally certified by GAIA-X Association"
         ),
-        "roadmap": ["HL7-FHIR (geplant)"],
+        "roadmap": ["HL7-FHIR / MII-KDS export (implemented)", "GAIA-X Level 1 credential"],
     }

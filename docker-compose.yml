@@ -1,3 +1,5 @@
+# Local development only. Default password "bioresearch" is forbidden in
+# production — use docker-compose.prod.yml with DB_PASSWORD set to a unique secret.
 services:
   postgres:
     image: pgvector/pgvector:pg16

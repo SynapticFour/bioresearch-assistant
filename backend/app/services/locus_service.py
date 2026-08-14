@@ -13,8 +13,9 @@ from app.services.embedding_service import (
     EmbeddingService,
     EmbeddingServiceError,
     _preprocess_query,
+    get_embedding_service,
 )
-from app.services.llm_service import LLMService, LLMServiceError
+from app.services.llm_service import LLMService, LLMServiceError, get_llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +38,8 @@ class LocusService:
         embedding_service: EmbeddingService | None = None,
         llm_service: LLMService | None = None,
     ) -> None:
-        self._embed = embedding_service or EmbeddingService()
-        self._llm = llm_service or LLMService()
+        self._embed = embedding_service or get_embedding_service()
+        self._llm = llm_service or get_llm_service()
 
     async def find_chunks(
         self,

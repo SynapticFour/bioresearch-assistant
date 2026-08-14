@@ -30,8 +30,10 @@ E-Mail: contact@synapticfour.com
 
 ### Authentifizierung
 - OpenID Connect / OAuth2
-- JWT Token Verifikation via JWKS
+- JWT (RS256/ES256) via JWKS, Issuer-Prüfung wenn `OIDC_ISSUER` gesetzt
+- Session: httpOnly Cookie, kein Token in localStorage
 - GA4GH Passport v1.2
+- Produktion startet nicht ohne OIDC / mit `DEPLOYMENT=local` / `ISOLATION_MODE=open`
 
 ### Datenschutz
 - Microsoft Presidio Pseudonymisierung
@@ -54,14 +56,14 @@ E-Mail: contact@synapticfour.com
 
 | Risiko | Maßnahme |
 |--------|----------|
-| A01 Broken Access Control | Alle datenliefernden Endpoints nutzen `get_current_user`; Notebook/FAIR Export nutzen Scope-Filter (user/team). DRS List/Get/Stream erfordern Auth. |
-| A02 Cryptographic Failures | PSEUDONYMIZATION_ENCRYPTION_KEY 64 Hex-Zeichen (32 Bytes); JWT_SECRET mind. 32 Zeichen bei Nutzung. |
-| A03 Injection | BLAST-Sequenz: Whitelist IUPAC-Zeichen, max_length 100k. WES workflow_url: nur Allowlist (z. B. `blast`). Notebook content max_length 500k. **RAG Prompt-Injection-Schutz:** Alle Nutzereingaben (Fragen, Notebook-Inhalte, Abstracts) werden vor LLM-Aufruf auf Prompt-Injection-Patterns geprüft und gefiltert. |
+| A01 Broken Access Control | Alle datenliefernden Endpoints nutzen `get_current_user`; WES/BLAST/DRS/Notebook/PhenoFlow nutzen Scope-Filter. DRS-Objekte ohne ACL sind außerhalb `open` unsichtbar. |
+| A02 Cryptographic Failures | PSEUDONYMIZATION_ENCRYPTION_KEY 64 Hex-Zeichen (AES-256-GCM); JWT_SECRET mind. 32 Zeichen bei Nutzung. |
+| A03 Injection | BLAST-Sequenz: Whitelist IUPAC. BLAST-DB: Allowlist. WES `workflow_url`: Allowlist / Basename `.nf`. Notebook content max_length 500k. RAG Prompt-Injection-Filter. |
 | A04 Insecure Design | Rate Limits: Notebook 30–60/min, AI-Assist 10/min, FAIR Download 5/min, Zenodo 3/min. |
-| A05 Security Misconfiguration | Security-Header (X-Content-Type-Options, X-Frame-Options, Referrer-Policy, HSTS in Produktion). CORS-Warnung bei `*` in Produktion. Keine Stack-Traces in Produktion. |
-| A07 Auth Failures | Dev-User nur bei deployment=local/development; in Produktion muss OIDC konfiguriert sein. |
+| A05 Security Misconfiguration | Production-Guard `assert_runtime_hardened`. Kein Default-Passwort `bioresearch`. Kein `docker.sock` im Default-Compose. `/docs` in Produktion aus. Security-Header + HSTS. |
+| A07 Auth Failures | Dev-User nur bei explizitem `DEPLOYMENT=local\|development\|test`; Produktion fail-closed. |
 | A09 Logging | FAIR-Export/Zenodo nur user_id/title (kein Token, keine PII) geloggt. RAG: user_id, question_length, papers_used — keine Frage im Log (PII-Risiko). |
-| A10 SSRF | Zenodo: nur feste Hosts (zenodo.org, sandbox.zenodo.org); keine user-kontrollierten URLs. |
+| A10 SSRF | Zenodo: nur feste Hosts (zenodo.org, sandbox.zenodo.org); BLAST `-db` Allowlist; keine user-kontrollierten Workflow-Pfade. |
 
 ### RAG Prompt-Injection Schutz (v1.0.0)
 
@@ -74,14 +76,14 @@ Siehe [docs/COMPLIANCE.md](docs/COMPLIANCE.md) für vollständige Übersicht all
 - DSGVO/GDPR inkl. DSK-Richtlinien Sept. 2025
 - §393 SGB V (Cloud-Gesundheitsdaten)
 - GDNG 2025
-- GAIA-X Standard Compliance
+- GAIA-X: Design-Alignment, keine Zertifizierung (siehe COMPLIANCE.md)
 - GA4GH Framework
 - FAIR Prinzipien
 - OWASP Top 10
 
 ## Sicherheitsmeldungen
 
-Bitte melden Sie Sicherheitslücken an:  
+Bitte melden Sie Sicherheitslücken an:
 **contact@synapticfour.com**
 
 Wir verpflichten uns zu:

@@ -15,6 +15,8 @@ from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import State
 from app.services import wes_service
 
+OWNER = {"sub": "dev-user", "email": "t@test.de", "roles": ["admin"]}
+
 
 async def _await_coro[T](coro: Awaitable[T], timeout: float | None = None) -> T:
     """Await the given coroutine (for mocking asyncio.wait_for).
@@ -281,6 +283,7 @@ async def test_execute_nextflow_exception_sets_system_error(db_session) -> None:
         db_session.add(row)
         await db_session.flush()
         run_id = str(row.run_id)
+        (run_dir / "main.nf").write_text("// dummy")
 
         async def _raise_nextflow_not_found(*_a: object, **_kw: object) -> Never:
             raise FileNotFoundError("nextflow not found")
@@ -381,10 +384,11 @@ async def test_cancel_run_already_complete_returns_true(db_session) -> None:
         run_log=None,
         task_logs=None,
         request={},
+        user_id="dev-user",
     )
     db_session.add(row)
     await db_session.flush()
-    result = await wes_service.cancel_run(db_session, str(row.run_id))
+    result = await wes_service.cancel_run(db_session, str(row.run_id), current_user=OWNER)
     assert result is True
 
 
@@ -615,10 +619,12 @@ def test_run_to_run_log_task_without_id_appends_log() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_service_info_returns_empty_dict(db_session) -> None:
-    """get_service_info returns empty dict (counts filled by endpoint)."""
+async def test_get_service_info_returns_static_metadata(db_session) -> None:
+    """get_service_info returns WES type/engine metadata (counts filled by endpoint)."""
     info = wes_service.get_service_info(db_session)
-    assert info == {}
+    assert "NEXTFLOW" in info["workflow_type_versions"]
+    assert "1.1.0" in info["supported_wes_versions"]
+    assert info["tags"]["backend"] == "nextflow"
 
 
 @pytest.mark.asyncio
@@ -640,6 +646,7 @@ async def test_cancel_run_cancels_running_task(db_session) -> None:
         run_log=None,
         task_logs=None,
         request={},
+        user_id="dev-user",
     )
     db_session.add(row)
     await db_session.flush()
@@ -648,7 +655,7 @@ async def test_cancel_run_cancels_running_task(db_session) -> None:
     long_task = asyncio.create_task(asyncio.sleep(999))
     wes_service._run_tasks[run_id] = long_task
     try:
-        result = await wes_service.cancel_run(db_session, run_id)
+        result = await wes_service.cancel_run(db_session, run_id, current_user=OWNER)
         assert result is True
         await db_session.refresh(row)
         assert row.state == State.CANCELED.value

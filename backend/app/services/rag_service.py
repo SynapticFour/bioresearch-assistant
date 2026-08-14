@@ -9,8 +9,12 @@ from app.core.config import get_settings
 from app.core.isolation import get_scope_filter
 from app.core.prompt_security import sanitize_for_llm
 from app.schemas.rag import RAGResponse, RAGSource
-from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
-from app.services.llm_service import LLMService, LLMServiceError
+from app.services.embedding_service import (
+    EmbeddingService,
+    EmbeddingServiceError,
+    get_embedding_service,
+)
+from app.services.llm_service import LLMService, LLMServiceError, get_llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -25,8 +29,8 @@ class RAGService:
         embedding_service: EmbeddingService | None = None,
         llm_service: LLMService | None = None,
     ) -> None:
-        self._embedding = embedding_service or EmbeddingService()
-        self._llm = llm_service or LLMService()
+        self._embedding = embedding_service or get_embedding_service()
+        self._llm = llm_service or get_llm_service()
 
     async def answer(
         self,

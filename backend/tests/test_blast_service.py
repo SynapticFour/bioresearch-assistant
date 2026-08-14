@@ -16,6 +16,8 @@ from app.schemas.blast import (
 from app.schemas.wes import State
 from app.services import blast_service
 
+OWNER = {"sub": "dev-user", "email": "t@test.de", "roles": ["admin"]}
+
 
 def test_query_to_fasta_plain_sequence() -> None:
     """_query_to_fasta turns plain sequence into FASTA bytes."""
@@ -59,6 +61,7 @@ async def test_blast_search_success(db_session) -> None:
             "ATCGATCG",
             "nt",
             BLASTParams(evalue=0.001, max_hits=10),
+            current_user=OWNER,
         )
         assert run_id == "run-123"
         mock_create.assert_called_once()
@@ -83,6 +86,7 @@ async def test_blast_search_fasta_format(db_session) -> None:
             ">myseq\nATCGATCG",
             "nt",
             BLASTParams(evalue=0.001, max_hits=5),
+            current_user=OWNER,
         )
         mock_create.assert_called_once()
         attachments = mock_create.call_args[1]["workflow_attachments"]
@@ -98,7 +102,7 @@ async def test_get_blast_results_not_found(db_session) -> None:
         return_value=None,
     ):
         with pytest.raises(ValueError, match="Run not found"):
-            await blast_service.get_blast_results(db_session, "nonexistent")
+            await blast_service.get_blast_results(db_session, "nonexistent", current_user=OWNER)
 
 
 @pytest.mark.asyncio
@@ -112,7 +116,7 @@ async def test_get_blast_results_not_complete(db_session) -> None:
         return_value=mock_run,
     ):
         with pytest.raises(ValueError, match="not complete"):
-            await blast_service.get_blast_results(db_session, "run-1")
+            await blast_service.get_blast_results(db_session, "run-1", current_user=OWNER)
 
 
 @pytest.mark.asyncio
@@ -130,7 +134,7 @@ async def test_get_blast_results_xml_missing(db_session) -> None:
             with patch("app.services.blast_service.get_settings") as mock_settings:
                 mock_settings.return_value.wes_work_dir = tmpdir
                 with pytest.raises(FileNotFoundError, match="BLAST results not found"):
-                    await blast_service.get_blast_results(db_session, "run-1")
+                    await blast_service.get_blast_results(db_session, "run-1", current_user=OWNER)
 
 
 @pytest.mark.asyncio
@@ -180,7 +184,9 @@ async def test_get_blast_results_success(db_session) -> None:
             with patch("app.services.blast_service.get_settings") as mock_settings:
                 mock_settings.return_value.wes_work_dir = tmpdir
                 try:
-                    result = await blast_service.get_blast_results(db_session, "run-1")
+                    result = await blast_service.get_blast_results(
+                        db_session, "run-1", current_user=OWNER
+                    )
                     assert isinstance(result, BLASTResults)
                     assert result.run_id == "run-1"
                     assert len(result.hits) >= 1
@@ -199,7 +205,9 @@ async def test_find_papers_for_hits_empty(db_session) -> None:
         inner = MagicMock(search_pubmed=AsyncMock(return_value=[]))
         MockPubmed.return_value.__aenter__ = AsyncMock(return_value=inner)
         MockPubmed.return_value.__aexit__ = AsyncMock(return_value=None)
-        out = await blast_service.find_papers_for_hits(db_session, results, max_papers_per_hit=5)
+        out = await blast_service.find_papers_for_hits(
+            db_session, results, max_papers_per_hit=5, current_user=OWNER
+        )
     assert out == []
 
 
@@ -242,5 +250,7 @@ async def test_find_papers_for_hits_calls_pubmed(db_session) -> None:
             new_callable=AsyncMock,
             return_value=mock_result,
         ):
-            await blast_service.find_papers_for_hits(db_session, results, max_papers_per_hit=2)
+            await blast_service.find_papers_for_hits(
+                db_session, results, max_papers_per_hit=2, current_user=OWNER
+            )
     mock_pubmed_instance.search_pubmed.assert_called()

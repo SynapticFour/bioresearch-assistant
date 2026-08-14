@@ -1,17 +1,16 @@
 """FAIR Data Export service: build ZIP packages with metadata and compliance check."""
 
+import html
 import json
 import logging
+import tempfile
 import zipfile
 from datetime import UTC, datetime
-from io import BytesIO
-from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select
 
-from app.core.isolation import get_scope_filter
+from app.core.isolation import apply_scope, get_scope_filter
 from app.models.notebook import Notebook
 from app.models.paper import Paper
 from app.models.patient_record import PatientRecordModel
@@ -19,29 +18,18 @@ from app.schemas.fair_export import FAIRComplianceReport, FAIRExportOptions
 
 logger = logging.getLogger(__name__)
 
-
-def _apply_scope_notebook(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Notebook.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Notebook.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_paper(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Paper.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Paper.team_id == scope["team_id"])
-    return stmt
-
-
-def _apply_scope_patient(stmt: Select[Any], scope: dict) -> Select[Any]:
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(PatientRecordModel.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(PatientRecordModel.team_id == scope["team_id"])
-    return stmt
+_KNOWN_LICENSES = frozenset(
+    {
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC0-1.0",
+        "CC-BY-NC-4.0",
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "BSD-2-Clause",
+    }
+)
 
 
 class FAIRExportService:
@@ -71,8 +59,8 @@ class FAIRExportService:
         └── FAIR_compliance.md
         """
         scope = get_scope_filter(current_user)
-        buf = BytesIO()
-        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        spool = tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024)
+        with zipfile.ZipFile(spool, "w", zipfile.ZIP_DEFLATED) as zf:
             # README
             readme = self._build_readme(options)
             zf.writestr("README.md", readme.encode("utf-8"))
@@ -91,7 +79,7 @@ class FAIRExportService:
             # Literature
             if options.include_papers:
                 papers_stmt = select(Paper)
-                papers_stmt = _apply_scope_paper(papers_stmt, scope)
+                papers_stmt = apply_scope(papers_stmt, Paper, scope)
                 result = await db.execute(papers_stmt)
                 papers = result.scalars().all()
                 papers_data = [
@@ -110,13 +98,22 @@ class FAIRExportService:
                     json.dumps(papers_data, indent=2, ensure_ascii=False).encode("utf-8"),
                 )
 
-            # Phenopackets
+            # Phenopackets (skip records without active research consent)
             if options.include_phenopackets:
+                from app.core.config import get_settings
+                from app.services import consent_service as cs
+
+                policy_id = get_settings().mii_default_consent_policy_id
                 pp_stmt = select(PatientRecordModel)
-                pp_stmt = _apply_scope_patient(pp_stmt, scope)
+                pp_stmt = apply_scope(pp_stmt, PatientRecordModel, scope)
                 result = await db.execute(pp_stmt)
                 records = result.scalars().all()
+                skipped_no_consent = 0
                 for rec in records:
+                    consent = await cs.find_active_consent(db, rec.pseudonym_id, policy_id, scope)
+                    if not consent:
+                        skipped_no_consent += 1
+                        continue
                     safe_name = "".join(c for c in rec.pseudonym_id if c.isalnum() or c in "._-")
                     zf.writestr(
                         f"phenopackets/{safe_name or 'phenopacket'}.json",
@@ -124,11 +121,19 @@ class FAIRExportService:
                             "utf-8"
                         ),
                     )
+                if skipped_no_consent:
+                    zf.writestr(
+                        "phenopackets/CONSENT_SKIPPED.txt",
+                        (
+                            f"{skipped_no_consent} phenopacket(s) omitted: no active "
+                            f"research consent for policy {policy_id}.\n"
+                        ).encode(),
+                    )
 
             # Notebooks
             if options.include_notebooks:
                 nb_stmt = select(Notebook)
-                nb_stmt = _apply_scope_notebook(nb_stmt, scope)
+                nb_stmt = apply_scope(nb_stmt, Notebook, scope)
                 result = await db.execute(nb_stmt)
                 notebooks = result.scalars().all()
                 for nb in notebooks:
@@ -141,7 +146,19 @@ class FAIRExportService:
                     content = f"# {nb.title or ''}\n\n{nb.content or ''}"
                     zf.writestr(f"notebooks/{safe_title}.md", content.encode("utf-8"))
 
+            if options.include_drs:
+                from app.services.drs_service import list_objects as drs_list_objects
+
+                drs_manifest = drs_list_objects(current_user=current_user)
+                zf.writestr(
+                    "drs/manifest.json",
+                    json.dumps(drs_manifest, indent=2, ensure_ascii=False).encode("utf-8"),
+                )
+
             # FAIR compliance report
+            has_payload = (
+                options.include_papers or options.include_phenopackets or options.include_notebooks
+            )
             package_summary = {
                 "papers": options.include_papers,
                 "phenopackets": options.include_phenopackets,
@@ -149,13 +166,19 @@ class FAIRExportService:
                 "drs": options.include_drs,
                 "license": options.license,
                 "title": options.title,
+                "identifier": options.identifier,
+                "funding": options.funding,
+                "formats": ["json", "markdown"] if has_payload else [],
             }
             report = await self.check_fair_compliance(package_summary)
             fair_md = self._fair_report_markdown(report, options)
             zf.writestr("FAIR_compliance.md", fair_md.encode("utf-8"))
 
-        buf.seek(0)
-        return buf.getvalue()
+        spool.seek(0)
+        try:
+            return spool.read()
+        finally:
+            spool.close()
 
     def _build_readme(self, options: FAIRExportOptions) -> str:
         return f"""# {options.title}
@@ -168,13 +191,13 @@ class FAIRExportService:
 """
 
     def _build_dublin_core(self, options: FAIRExportOptions) -> str:
-        authors = "".join(f"  <dc:creator>{a}</dc:creator>\n" for a in options.authors)
+        authors = "".join(f"  <dc:creator>{html.escape(a)}</dc:creator>\n" for a in options.authors)
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
-  <dc:title>{options.title.replace("&", "&amp;")}</dc:title>
-  <dc:description>{options.description.replace("&", "&amp;")}</dc:description>
+  <dc:title>{html.escape(options.title)}</dc:title>
+  <dc:description>{html.escape(options.description or "")}</dc:description>
 {authors}
-  <dc:rights>{options.license}</dc:rights>
+  <dc:rights>{html.escape(options.license)}</dc:rights>
   <dc:date>{datetime.now(UTC).strftime("%Y-%m-%d")}</dc:date>
 </metadata>
 """
@@ -243,15 +266,43 @@ class FAIRExportService:
 """
 
     async def check_fair_compliance(self, package: dict) -> FAIRComplianceReport:
-        """Check FAIR principles and return score + recommendations."""
+        """Heuristic FAIR check — not a certification. False unless evidence is present."""
         recommendations: list[str] = []
-        findable = bool(package.get("title"))
-        if not findable:
+        title = bool(package.get("title"))
+        identifier = bool(package.get("identifier") or package.get("doi") or package.get("pid"))
+        findable = title and identifier
+        if not title:
             recommendations.append("Add a title for findability.")
-        accessible = True  # We describe access via license/README
-        interoperable = True  # We use JSON, Markdown
-        reusable = bool(package.get("license"))
-        if not reusable:
+        if not identifier:
+            recommendations.append(
+                "Add a persistent identifier (DOI, Handle, or accession) for findability."
+            )
+        license_id = str(package.get("license") or "").strip()
+        accessible = bool(license_id)
+        if not accessible:
+            recommendations.append("Describe access conditions (license / access statement).")
+        formats = package.get("formats") or []
+        if isinstance(formats, str):
+            formats = [formats]
+        has_payload = bool(
+            package.get("papers")
+            or package.get("phenopackets")
+            or package.get("notebooks")
+            or package.get("include_papers")
+            or package.get("include_phenopackets")
+            or package.get("include_notebooks")
+        )
+        interoperable = bool(formats) or has_payload
+        if not interoperable:
+            recommendations.append(
+                "Include standard formats (JSON Phenopackets, JSON literature, Markdown)."
+            )
+        reusable = license_id in _KNOWN_LICENSES
+        if license_id and not reusable:
+            recommendations.append(
+                f"Use a machine-readable SPDX license (e.g. CC-BY-4.0); got {license_id!r}."
+            )
+        if not license_id:
             recommendations.append("Specify a license (e.g. CC-BY-4.0) for reuse.")
         if not package.get("funding") and "funding" not in str(package):
             recommendations.append(
@@ -263,11 +314,15 @@ class FAIRExportService:
             + (25 if interoperable else 0)
             + (25 if reusable else 0)
         )
+        if recommendations:
+            score = min(score, 90)
+        elif package.get("funding"):
+            score = min(100, score + 10)
         return FAIRComplianceReport(
             findable=findable,
             accessible=accessible,
             interoperable=interoperable,
             reusable=reusable,
-            score=min(100, score + 10 if recommendations else 0),
+            score=score,
             recommendations=recommendations,
         )

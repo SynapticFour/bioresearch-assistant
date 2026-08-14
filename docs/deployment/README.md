@@ -14,14 +14,15 @@ Diese Seite ist der Einstiegspunkt fuer alle Installationswege.
 
 ## Kundenszenarien (typisch)
 
-- Klinik/Institut ohne externe API-Nutzung: lokales Ollama, `ISOLATION_MODE=user|team`, optional air-gapped.
+- Klinik/Institut ohne externe API-Nutzung: lokales Ollama, `ISOLATION_MODE=user|team`, Checkliste [UNIKLINIK.md](UNIKLINIK.md).
 - Forschungsgruppe mit GPU-Server (z. B. A100, >=100 GB RAM): groessere Ollama Modelle (`gpt-oss:120b`, `deepseek-r1:70b`) und Compose/K8s.
 - Schnelle Pilotphase: Azure ACI oder DFN/OTC VM mit `docker-compose.prod.yml`.
 - Datenschutzkritische Umgebung: Offline Bundle Pipeline und interne Artefakt-Freigabe.
 
 ## Artefakte pro Deployment-Weg
 
-- **Compose online:** `docker-compose.prod.yml`, `.env`, GHCR Images.
+- **Compose online:** `docker-compose.prod.yml` (Passwort Pflicht, kein Default `bioresearch`), `.env`, GHCR Images. Docker-Socket nicht gemountet.
+- **Nextflow DiD (nicht Klinik-Default):** `docker-compose.nextflow-dind.yml` nur nach Freigabe.
 - **Offline/Air-gapped:** exportiertes Bundle (`docker save` + optional Ollama Modelle) und Importskript.
 - **Cloud IaC:** `deployment/otc/` (OpenTofu).
 - **Kubernetes:** `deployment/azure/helm/` (Chart mit Backend/Frontend/Ollama/Postgres).
@@ -76,4 +77,3 @@ Empfohlene Release-Politik:
 
 SOP-Vorlage fuer Teams: `docs/deployment/UPDATE-SOP.md`.
 Release-Checkliste: `docs/deployment/RELEASE-CHECKLIST.md`.
-

@@ -7,7 +7,25 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+### Security (Uniklinik-Bar)
+
+- Production start refuses unauthenticated local auth, `ISOLATION_MODE=open`, CORS `*`, missing OIDC, and default DB password `bioresearch`.
+- OIDC callback sets an httpOnly session cookie and redirects to the SPA (`/auth/callback`); tokens are not returned as JSON.
+- WES/BLAST/PhenoFlow/DRS/notebook queries are tenant-scoped; owner-less workflow runs are rejected outside `open`.
+- BLAST databases and local `.nf` paths are allowlisted; HelixTest TRS stubs require `WES_HELIXTEST_STUBS=1`.
+- Markdown preview is sanitized (DOMPurify). Docker socket removed from default compose (optional DiD overlay only).
+- Nextflow install pinned to a GitHub release tag (no `curl | bash`).
+- Operator checklist: [docs/deployment/UNIKLINIK.md](docs/deployment/UNIKLINIK.md).
+
 - Locus (curated on-prem RAG): `locus_chunks` table, `LOCUS_ENABLED`, `GET/POST /api/v1/locus/*`, demo seed script — see [docs/LOCUS-MODULE.md](docs/LOCUS-MODULE.md).
+
+### Security (supply chain, 2026-08-15)
+
+- JWT verification uses PyJWT + cryptography (no python-jose / python-ecdsa).
+- `cryptography` ≥50 (Presidio anonymizer pinned at 2.2.362 so 2.2.364 cannot cap below 50).
+- `pytest` ≥9.0.3 with `pytest-asyncio` ≥1.3.
+- GitHub Actions checkout/setup-python/setup-node v7, cache v6.
+- Dependabot disabled again (unreviewed majors). Operator patching: `pip-audit` / `npm audit` in CI. Residual transformer 4.x advisories documented in [docs/SBOM.md](docs/SBOM.md).
 
 ## [1.0.0] - 2026-03-01
 

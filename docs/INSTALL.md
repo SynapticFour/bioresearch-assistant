@@ -5,14 +5,14 @@
 | Voraussetzung   | Minimum   | Empfohlen   |
 |-----------------|-----------|-------------|
 | Docker Desktop  | 24.x      | aktuell     |
-| Python          | 3.9       | 3.11+       |
+| Python          | 3.11      | 3.12        |
 | RAM             | 8 GB      | 16 GB (für Ollama) |
 | Speicher        | 10 GB     | 30 GB       |
 | Betriebssystem  | Windows 10, macOS 12, Ubuntu 20.04 | — |
 
 ## Schnellstart
 
-> Deployment-Uebersicht fuer alle Wege (online/offline/cloud/k8s):  
+> Deployment-Uebersicht fuer alle Wege (online/offline/cloud/k8s):
 > `docs/deployment/README.md`
 
 ### macOS / Linux
@@ -75,7 +75,10 @@ Wichtige Variablen:
 
 ```bash
 # Datenisolation
-ISOLATION_MODE=user    # user / team / open
+ISOLATION_MODE=user    # user / team; open nur Demo — Produktion lehnt open ab
+
+# Produktion: ENVIRONMENT=production + OIDC (siehe docs/deployment/UNIKLINIK.md)
+# DEPLOYMENT=local nur für lokale Entwicklung (unauthentifizierter Dev-User)
 
 # De-Pseudonymisierung Zugriff
 DEPSEUDO_ACCESS=owner  # owner / team / admin

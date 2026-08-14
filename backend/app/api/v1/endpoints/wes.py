@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.wes import (
     RunId,
     RunListResponse,
@@ -37,6 +38,9 @@ from app.services.wes_service import (
     get_run as service_get_run,
 )
 from app.services.wes_service import (
+    get_service_info as wes_static_service_info,
+)
+from app.services.wes_service import (
     get_system_state_counts,
     run_to_run_log,
     run_to_run_status,
@@ -54,6 +58,7 @@ router = APIRouter(tags=["WES"])
 def _service_info() -> ServiceInfo:
     """Build static ServiceInfo; system_state_counts are filled per-request from DB."""
     settings = get_settings()
+    meta = wes_static_service_info()
     return ServiceInfo(
         id="org.ga4gh.bioresearch.wes",
         name="BioResearch Assistant WES",
@@ -62,7 +67,7 @@ def _service_info() -> ServiceInfo:
             name="Synaptic Four",
             url="https://www.synapticfour.com",
         ),
-        version="0.1.0",
+        version="1.3.0",
         description="GA4GH WES v1.1 for Nextflow workflows (on-premise).",
         contactUrl="https://www.synapticfour.com",
         documentationUrl="https://ga4gh.github.io/workflow-execution-service-schemas/",
@@ -70,20 +75,20 @@ def _service_info() -> ServiceInfo:
         updatedAt="2024-01-01T00:00:00Z",
         environment=settings.environment,
         workflow_type_versions={
-            "NEXTFLOW": WorkflowTypeVersion(workflow_type_version=["DSL2"]),
-            "CWL": WorkflowTypeVersion(workflow_type_version=["v1.0"]),
-            "WDL": WorkflowTypeVersion(workflow_type_version=["1.0", "1.1"]),
+            name: WorkflowTypeVersion(workflow_type_version=versions)
+            for name, versions in meta["workflow_type_versions"].items()
         },
         # HelixTest expects at least "1.0" or "1.1" in addition to patch versions.
-        supported_wes_versions=["1.1.0", "1.1", "1.0"],
-        supported_filesystem_protocols=["file", "http", "https"],
+        supported_wes_versions=list(meta["supported_wes_versions"]),
+        supported_filesystem_protocols=list(meta["supported_filesystem_protocols"]),
         workflow_engine_versions={
-            "nextflow": WorkflowEngineVersion(workflow_engine_version=["23.10.0", "24.04.0"]),
+            name: WorkflowEngineVersion(workflow_engine_version=versions)
+            for name, versions in meta["workflow_engine_versions"].items()
         },
         default_workflow_engine_parameters=[],
         system_state_counts={},  # Filled in get_service_info
         auth_instructions_url="",
-        tags={"backend": "nextflow"},
+        tags=dict(meta["tags"]),
     )
 
 
@@ -127,12 +132,14 @@ async def list_runs(
         page_size=size,
         page_token=page_token,
         state_filter=state_filter,
+        current_user=current_user,
     )
     summaries = [run_to_run_summary(r) for r in runs]
     return RunListResponse(runs=summaries, next_page_token=next_token)
 
 
 @router.post("/runs", response_model=RunId, status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def run_workflow(
     request: Request,
     db: AsyncSession = Depends(get_db),
@@ -231,7 +238,9 @@ async def run_workflow(
         attachments = att_list if att_list else None
 
     try:
-        run_id = await service_create_run(db, run_req, workflow_attachments=attachments)
+        run_id = await service_create_run(
+            db, run_req, workflow_attachments=attachments, current_user=current_user
+        )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -252,7 +261,7 @@ async def get_run_status(
     Declared before ``GET /runs/{run_id}`` so frameworks that match in order
     never treat ``…/status`` as a run_id suffix (mirrors Ferrum WES routing fixes).
     """
-    run = await service_get_run(db, run_id)
+    run = await service_get_run(db, run_id, current_user=current_user)
     if not run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -268,7 +277,7 @@ async def cancel_run(
     current_user: dict = Depends(get_current_user),
 ) -> RunId:
     """Cancel a running workflow."""
-    found = await service_cancel_run(db, run_id)
+    found = await service_cancel_run(db, run_id, current_user=current_user)
     if not found:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -285,7 +294,7 @@ async def get_run_log(
     current_user: dict = Depends(get_current_user),
 ) -> RunLog:
     """Get detailed information about a workflow run (logs, outputs, state)."""
-    run = await service_get_run(db, run_id)
+    run = await service_get_run(db, run_id, current_user=current_user)
     if not run:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

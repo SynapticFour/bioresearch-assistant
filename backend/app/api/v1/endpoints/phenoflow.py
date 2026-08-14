@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
-from app.core.isolation import get_scope_filter
+from app.core.isolation import apply_scope, get_scope_filter
 from app.models.phenoflow_run import PhenoFlowRun
 from app.models.phenoflow_run_item import PhenoFlowRunItem
 from app.models.workflow_run import WorkflowRun
@@ -47,11 +47,7 @@ async def list_pheno_flow_runs(
 ) -> PhenoFlowRunListResponse:
     """List recent PhenoFlow runs in current isolation scope."""
     stmt = select(PhenoFlowRun).order_by(PhenoFlowRun.created_at.desc())
-    scope = get_scope_filter(current_user)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(PhenoFlowRun.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(PhenoFlowRun.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, PhenoFlowRun, get_scope_filter(current_user))
     r = await db.execute(stmt)
     runs = list(r.scalars().all())
 
@@ -95,11 +91,7 @@ async def get_pheno_flow_run(
         ) from e
 
     run_stmt = select(PhenoFlowRun).where(PhenoFlowRun.phenoflow_run_id == run_uuid)
-    scope = get_scope_filter(current_user)
-    if "user_id" in scope and scope["user_id"]:
-        run_stmt = run_stmt.where(PhenoFlowRun.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        run_stmt = run_stmt.where(PhenoFlowRun.team_id == scope["team_id"])
+    run_stmt = apply_scope(run_stmt, PhenoFlowRun, get_scope_filter(current_user))
 
     r = await db.execute(run_stmt)
     run = r.scalars().first()

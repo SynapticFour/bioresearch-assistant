@@ -2,7 +2,7 @@ import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Download, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
-import { marked } from "marked";
+import { renderMarkdownSafe } from "@/lib/markdown";
 import { notebooks as notebooksApi } from "@/api/endpoints";
 import type { NotebookItem } from "@/api/endpoints";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -196,7 +196,7 @@ function NotebookEditor({
     onError: () => showError("Löschen fehlgeschlagen"),
   });
 
-  const html = useMemo(() => (content ? marked(content) : ""), [content]);
+  const html = useMemo(() => (content ? renderMarkdownSafe(content) : ""), [content]);
 
   return (
     <div className="flex h-full flex-col">

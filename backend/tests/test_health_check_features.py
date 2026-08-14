@@ -2,6 +2,7 @@
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 
 from app.api.v1.endpoints import health
@@ -187,7 +188,7 @@ async def test_check_features_ollama_exception_keeps_llm_false() -> None:
         mock_settings.return_value.ollama_base_url = "http://localhost:11434"
         mock_settings.return_value.resolved_llm_backend = MagicMock(return_value="ollama")
         inst = MagicMock()
-        inst.get = AsyncMock(side_effect=Exception("connection refused"))
+        inst.get = AsyncMock(side_effect=httpx.ConnectError("connection refused"))
         MockClient.return_value.__aenter__ = AsyncMock(return_value=inst)
         MockClient.return_value.__aexit__ = AsyncMock(return_value=None)
         features = await health.check_features()

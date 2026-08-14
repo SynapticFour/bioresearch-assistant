@@ -23,33 +23,23 @@ class LLMServiceError(Exception):
 
 
 def _extract_json_block(text: str) -> str:
-    """Extract first JSON object or array from markdown code block or raw text."""
+    """Extract first JSON object or array from markdown code block or raw text.
+
+    Uses JSONDecoder.raw_decode so braces inside strings do not truncate the value.
+    """
     text = text.strip()
-    # Optional markdown code block
     match = re.search(r"```(?:json)?\s*([\s\S]*?)```", text)
     if match:
         text = match.group(1).strip()
-    # Find first { ... } or [ ... ]
-    start_obj = text.find("{")
-    start_arr = text.find("[")
-    if start_obj >= 0 and (start_arr < 0 or start_obj < start_arr):
-        depth = 0
-        for i in range(start_obj, len(text)):
-            if text[i] == "{":
-                depth += 1
-            elif text[i] == "}":
-                depth -= 1
-                if depth == 0:
-                    return text[start_obj : i + 1]
-    elif start_arr >= 0:
-        depth = 0
-        for i in range(start_arr, len(text)):
-            if text[i] == "[":
-                depth += 1
-            elif text[i] == "]":
-                depth -= 1
-                if depth == 0:
-                    return text[start_arr : i + 1]
+    decoder = json.JSONDecoder()
+    for i, ch in enumerate(text):
+        if ch not in "{[":
+            continue
+        try:
+            obj, _end = decoder.raw_decode(text[i:])
+            return json.dumps(obj, ensure_ascii=False)
+        except json.JSONDecodeError:
+            continue
     return text
 
 
@@ -85,6 +75,7 @@ class LLMService:
         self._openai_api_key = (ok or "").strip()
         self._client = http_client or httpx.AsyncClient(timeout=LLM_TIMEOUT)
         self._own_client = http_client is None
+        self._anthropic_client: object | None = None
 
     def _backend(self) -> str:
         from app.core.config import get_settings
@@ -107,7 +98,9 @@ class LLMService:
             from anthropic import AsyncAnthropic
         except ImportError as e:
             raise LLMServiceError("anthropic package not installed") from e
-        client = AsyncAnthropic(api_key=self._api_key)
+        if self._anthropic_client is None:
+            self._anthropic_client = AsyncAnthropic(api_key=self._api_key)
+        client = self._anthropic_client
         try:
             message = await client.messages.create(
                 model=self._claude_model,
@@ -187,18 +180,35 @@ class LLMService:
                 if not content:
                     raise LLMServiceError("Ollama returned empty content")
                 return content
-            except Exception as e:
+            except LLMServiceError:
+                raise
+            except httpx.HTTPStatusError as e:
                 last_error = e
-                if attempt < max_retries - 1:
-                    logger.warning(
-                        "Ollama attempt %d/%d failed: %s — retrying in %.0fs",
-                        attempt + 1,
-                        max_retries,
-                        e,
-                        retry_delay,
-                    )
-                    await asyncio.sleep(retry_delay)
-                    retry_delay *= 2
+                retryable = e.response.status_code in (429, 500, 502, 503)
+                if not retryable or attempt >= max_retries - 1:
+                    break
+                logger.warning(
+                    "Ollama attempt %d/%d failed: %s — retrying in %.0fs",
+                    attempt + 1,
+                    max_retries,
+                    e,
+                    retry_delay,
+                )
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2
+            except (httpx.RequestError, json.JSONDecodeError) as e:
+                last_error = e
+                if attempt >= max_retries - 1:
+                    break
+                logger.warning(
+                    "Ollama attempt %d/%d failed: %s — retrying in %.0fs",
+                    attempt + 1,
+                    max_retries,
+                    e,
+                    retry_delay,
+                )
+                await asyncio.sleep(retry_delay)
+                retry_delay *= 2
         if isinstance(last_error, httpx.HTTPStatusError):
             raise LLMServiceError(f"Ollama API error: {last_error}") from last_error
         if isinstance(last_error, httpx.RequestError):
@@ -420,7 +430,12 @@ class LLMService:
             f"{lang_instruction} "
             "Do not invent information."
         )
-        user = f"Paper excerpts:\n\n{context}\n\nQuestion: {question}"
+        from app.core.prompt_security import wrap_untrusted_context
+
+        user = (
+            f"{wrap_untrusted_context('PAPER EXCERPTS', context)}\n\n"
+            f"Question: {sanitize_for_llm(question)}"
+        )
         return (await self._complete(system=system, user=user)).strip()
 
     async def rag_answer_locus(
@@ -461,7 +476,12 @@ class LLMService:
             f"{lang_instruction} "
             "Prefer plain text; use markdown only if the user explicitly asks for it."
         )
-        user = f"Curated index excerpts (Locus):\n\n{context}\n\nQuestion: {question}"
+        from app.core.prompt_security import wrap_untrusted_context
+
+        user = (
+            f"{wrap_untrusted_context('LOCUS EXCERPTS', context)}\n\n"
+            f"Question: {sanitize_for_llm(question)}"
+        )
         return (await self._complete(system=system, user=user)).strip()
 
     async def notebook_ai_assist(
@@ -516,3 +536,22 @@ class LLMService:
             next_steps = (await self._complete(system=system, user=user)).strip()
 
         return (summary, next_steps)
+
+
+_llm_singleton: LLMService | None = None
+
+
+def get_llm_service() -> LLMService:
+    """Process-wide LLM client so request handlers do not leak httpx sessions."""
+    global _llm_singleton
+    if _llm_singleton is None:
+        _llm_singleton = LLMService()
+    return _llm_singleton
+
+
+async def close_llm_service() -> None:
+    """Close the process-wide LLM HTTP clients (app shutdown)."""
+    global _llm_singleton
+    if _llm_singleton is not None:
+        await _llm_singleton.close()
+        _llm_singleton = None

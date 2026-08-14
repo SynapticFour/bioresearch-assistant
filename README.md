@@ -6,8 +6,10 @@ Für datenschutzfreundliche Nutzung konzipiert (technisch, kein Rechtsrat) · On
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
 [![GA4GH Standards](https://img.shields.io/badge/GA4GH-Standards-blue.svg)](https://ga4gh.org)
-[![GAIA-X Ready (design)](https://img.shields.io/badge/GAIA--X-Ready%20(design)-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
+[![GAIA-X design alignment](https://img.shields.io/badge/GAIA--X-design%20alignment-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
 [![Datenschutz](https://img.shields.io/badge/Datenschutz-DSGVO%20orientiert-green.svg)](docs/COMPLIANCE.md)
+
+**Security reviewers:** [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md)
 
 ---
 
@@ -38,8 +40,8 @@ im DACH-Raum.
 | 🏥 MII-KDS Export + Broad Consent Tracker | FHIR R4 / MII-KDS-orientiert | ✅ (operational, partial profile mapping) |
 | 🔁 Search-to-Execution (PhenoFlow) | Phenopackets + DRS + WES | ✅ v0.1 |
 | 📓 Research Notebook (ELN) | Markdown + KI | ✅ |
-| 📦 FAIR Data Export | DataCite + Zenodo | ✅ |
-| 🌐 GAIA-X Self-Description | Gaia-X Standard | ✅ |
+| 🌐 GAIA-X Self-Description | Gaia-X Standard | ⚠️ Design alignment only, **not certified** |
+| 📦 FAIR Data Export | DataCite + Zenodo | ⚠️ Heuristic FAIR check, not a certification |
 
 ---
 
@@ -65,13 +67,13 @@ Konfiguration, Betriebsumgebung und den Verantwortlichen vor Ort ab.
 | 🇪🇺 DSGVO / GDPR | Pseudonymisierung, Audit-Logs, Isolation, Verschlüsselung (Details in `COMPLIANCE.md`) |
 | 🇩🇪 BDSG / §393 SGB V | Fokus auf On-Premise-Betrieb; Cloud-Einsatz erfordert separate Bewertung |
 | 🇩🇪 GDNG 2025 | Unterstützt pseudonymisierte Forschungs-Workflows, Audit-Trails |
-| 🌐 GAIA-X | Architektur „GAIA-X ready by design“, keine formale Zertifizierung |
+| 🌐 GAIA-X | Architektur an GAIA-X-Prinzipien ausgerichtet; **keine formale Zertifizierung**; API meldet `gaia_x_ready: false` |
 | 🧬 GA4GH WES / DRS / Phenopackets | Implementierung orientiert sich an den jeweiligen GA4GH-Spezifikationen |
 | 📊 FAIR Prinzipien | FAIR-Export, Metadaten & Compliance-Check als Hilfsmittel |
 | 🔒 OWASP Top 10 | Sicherheitsmaßnahmen an OWASP-Empfehlungen ausgerichtet |
 | 🏥 HIPAA / ICH GCP / EHDS | Ausgewählte technische Kontrollen vorhanden; rechtliche Bewertung bleibt Kund:in vorbehalten |
 
-Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)  
+Details und technische Einordnung: [docs/COMPLIANCE.md](docs/COMPLIANCE.md)
 Dieses Dokument ersetzt **keine** individuelle Rechtsberatung.
 
 ---
@@ -97,7 +99,7 @@ Wichtig zur Einordnung:
 
 ### Voraussetzungen
 - Docker Desktop
-- Python 3.9+ (3.11 empfohlen)
+- Python 3.11+ (3.12 empfohlen)
 - 8 GB RAM (16 GB empfohlen)
 - 10 GB freier Speicher
 
@@ -155,13 +157,16 @@ Details: `docs/INSTALL.md`.
 | [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
 | [MII-EXPORT.md](docs/MII-EXPORT.md) | MII-Export, Consent, Async-Jobs, Terminologie-Overrides |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
+| [deployment/UNIKLINIK.md](docs/deployment/UNIKLINIK.md) | Uniklinik-Produktionscheckliste (OIDC, Isolation, Secrets) |
 | [deployment/README.md](docs/deployment/README.md) | Deployment-Matrix (online, offline, bare metal, cloud, k8s) |
 | [deployment/OFFLINE-AIRGAP.md](docs/deployment/OFFLINE-AIRGAP.md) | Air-gapped / Offline Install |
 | [deployment/UPDATE-SOP.md](docs/deployment/UPDATE-SOP.md) | SOP-Vorlage für Updates, Bugfixes, Rollback |
 | [deployment/RELEASE-CHECKLIST.md](docs/deployment/RELEASE-CHECKLIST.md) | 10 Pflichtchecks vor Release/Hotfix |
 | `scripts/deployment_preflight.sh` | Szenario-basierte Deployment-Checks vor Rollout |
 | `scripts/docs_consistency_check.sh` | Konsistenzcheck für Dokumentation (Konstanten/Begriffe) |
-| [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit |
+| [AUDIT-REPORT.md](docs/AUDIT-REPORT.md) | Security Audit (internal technical assessment) |
+| [customer/SECURITY.md](docs/customer/SECURITY.md) | Customer security one-pager (DRS, US-LLM, clinical pilots) |
+| [SOLUM-SUBJECT-BRIDGE.md](docs/SOLUM-SUBJECT-BRIDGE.md) | Phenopacket → Solum `solum_subject_id` (ADR-0003) |
 | [SBOM.md](docs/SBOM.md) | Software Bill of Materials |
 | [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) | Open-core Lizenz- und Nutzungsmodell (BUSL) |
 | [LOCUS-MODULE.md](docs/LOCUS-MODULE.md) | **Locus**: On-Premise-RAG-Modul (Domäne klinische Bioinformatik, Indizes, BUSL) |

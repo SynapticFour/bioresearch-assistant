@@ -69,7 +69,7 @@ postgres:
     storageClassName: ""
   auth:
     username: bioresearch
-    password: bioresearch
+    password: ""  # required: helm --set postgres.auth.password=... (not "bioresearch")
     database: bioresearch
 
 ingress:
@@ -82,4 +82,3 @@ ingress:
         - path: /
           pathType: Prefix
   tls: []
-

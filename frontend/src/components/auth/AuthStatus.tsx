@@ -11,9 +11,9 @@ export function AuthStatus() {
   });
 
   const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ["auth-me", authService.getToken()],
+    queryKey: ["auth-me"],
     queryFn: () => authService.getMe(),
-    enabled: !!authService.getToken(),
+    enabled: !!status?.auth_enabled,
   });
 
   if (statusLoading || !status) {

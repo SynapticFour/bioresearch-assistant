@@ -11,7 +11,7 @@ from app.services.embedding_service import EmbeddingService
 
 @pytest.fixture
 def mock_embedding_model(mocker):
-    """Mock SentenceTransformer at source; encode returns 384-dim vector with .tolist()."""
+    """Mock SentenceTransformer at source; encode returns EMBEDDING_DIM vector with .tolist()."""
     mock_model = MagicMock()
     mock_encode_result = MagicMock()
     mock_encode_result.tolist.return_value = [0.1] * EMBEDDING_DIM
@@ -30,7 +30,7 @@ def embedding_service(mock_embedding_model):
 
 
 def test_embed_text_returns_vector_of_correct_length(mock_embedding_model):
-    """embed_text returns a list of length EMBEDDING_DIM (384)."""
+    """embed_text returns a list of length EMBEDDING_DIM (768)."""
     service = EmbeddingService()
     result = service.embed_text("Some text to embed.")
     assert len(result) == EMBEDDING_DIM
@@ -45,9 +45,6 @@ def test_embed_text_empty_string_returns_vector(mock_embedding_model):
     assert all(x == 0.0 for x in result)
 
 
-@pytest.mark.skip(
-    reason="cosine_distance requires pgvector — not available in SQLite test environment",
-)
 @pytest.mark.asyncio
 async def test_find_similar_returns_ranked_results(
     mock_embedding_model, db_session, embedding_service
@@ -70,9 +67,6 @@ async def test_find_similar_returns_ranked_results(
         assert results[0].pmid == "12345"
 
 
-@pytest.mark.skip(
-    reason="cosine_distance requires pgvector — not available in SQLite test environment",
-)
 @pytest.mark.asyncio
 async def test_find_similar_limit_zero_returns_empty(
     mock_embedding_model, db_session, embedding_service
@@ -125,3 +119,36 @@ async def test_store_paper_without_abstract_uses_title(mock_embedding_model, db_
     paper = await service.store_paper(db_session, article)
     assert paper.pmid == "88888"
     assert paper.embedding is not None
+
+
+@pytest.mark.asyncio
+async def test_store_paper_same_pmid_does_not_steal_ownership(
+    mock_embedding_model, db_session, embedding_service
+):
+    """Two users may store the same PMID; upsert must not overwrite the other row."""
+    article = PubMedArticle(
+        pmid="55555",
+        title="Shared PMID",
+        abstract="Abstract",
+        authors=["A"],
+        year=2024,
+        journal="J",
+    )
+    a = await embedding_service.store_paper(db_session, article, user_id="user-a", team_id="t-a")
+    b = await embedding_service.store_paper(db_session, article, user_id="user-b", team_id="t-b")
+    assert a.id != b.id
+    assert a.user_id == "user-a"
+    assert b.user_id == "user-b"
+
+    updated = PubMedArticle(
+        pmid="55555",
+        title="User A update",
+        abstract="New abstract",
+        authors=["A"],
+    )
+    a2 = await embedding_service.store_paper(db_session, updated, user_id="user-a")
+    assert a2.id == a.id
+    assert a2.title == "User A update"
+    await db_session.refresh(b)
+    assert b.title == "Shared PMID"
+    assert b.user_id == "user-b"

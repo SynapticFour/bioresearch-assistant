@@ -12,7 +12,7 @@ import {
   Search,
   Package,
 } from "lucide-react";
-import { marked } from "marked";
+import { renderMarkdownSafe } from "@/lib/markdown";
 import { library as libraryApi } from "@/api/endpoints";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -790,7 +790,7 @@ export function LibraryPage() {
               <div
                 className="prose prose-sm max-w-none text-slate-700"
                 dangerouslySetInnerHTML={{
-                  __html: marked(ragResult.answer) as string,
+                  __html: renderMarkdownSafe(ragResult.answer),
                 }}
               />
               <div>

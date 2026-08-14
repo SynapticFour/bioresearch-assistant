@@ -6,7 +6,7 @@ services:
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     environment:
       POSTGRES_USER: ${DB_USER:-bioresearch}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-bioresearch}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD to a unique secret (not bioresearch)}
       POSTGRES_DB: ${DB_NAME:-bioresearch}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -21,7 +21,7 @@ services:
     image: ghcr.io/synapticfour/bioresearch-assistant-backend:${BRA_VERSION}
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     environment:
-      DATABASE_URL: postgresql+asyncpg://${DB_USER:-bioresearch}:${DB_PASSWORD:-bioresearch}@postgres:5432/${DB_NAME:-bioresearch}
+      DATABASE_URL: postgresql+asyncpg://${DB_USER:-bioresearch}:${DB_PASSWORD:?Set DB_PASSWORD}@postgres:5432/${DB_NAME:-bioresearch}
       PSEUDONYMIZATION_ENCRYPTION_KEY: ${PSEUDONYMIZATION_ENCRYPTION_KEY}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       SECRET_KEY: ${SECRET_KEY}

@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.confirm == 'DEPLOY'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Vercel CLI
         run: npm install -g vercel

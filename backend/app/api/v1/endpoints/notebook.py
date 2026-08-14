@@ -9,15 +9,14 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import Select
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
-from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.isolation import apply_scope, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.notebook import Notebook
 from app.models.paper import Paper
-from app.services.llm_service import LLMService, LLMServiceError
+from app.services.llm_service import LLMServiceError, get_llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -84,15 +83,6 @@ def _notebook_to_dict(n: Notebook) -> dict:
     }
 
 
-def _apply_scope(stmt: Select[tuple[Notebook]], scope: dict) -> Select[tuple[Notebook]]:
-    """Apply user/team scope to query."""
-    if "user_id" in scope and scope["user_id"]:
-        return stmt.where(Notebook.user_id == scope["user_id"])
-    if "team_id" in scope and scope["team_id"]:
-        return stmt.where(Notebook.team_id == scope["team_id"])
-    return stmt
-
-
 @router.get("", status_code=status.HTTP_200_OK)
 @limiter.limit("60/minute")
 async def list_notebooks(
@@ -107,7 +97,7 @@ async def list_notebooks(
     """List all notebooks (paginated, optional search and tag filter)."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     if search and search.strip():
         q = f"%{search.strip()}%"
         stmt = stmt.where((Notebook.title.ilike(q)) | (Notebook.content.ilike(q)))
@@ -137,9 +127,11 @@ async def create_notebook(
 ) -> dict:
     """Create a new notebook."""
     logger.info(
-        "Creating notebook for user=%s body=%s",
+        "Creating notebook for user=%s title_len=%s content_len=%s tags=%s",
         current_user.get("sub", "dev"),
-        body.model_dump(),
+        len(body.title or ""),
+        len(body.content or ""),
+        len(body.tags or []),
     )
     scope_vals = get_scope_values(current_user)
     nb = Notebook(
@@ -166,7 +158,7 @@ async def get_notebook(
     """Get a single notebook by ID."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook).where(Notebook.id == notebook_id)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     result = await db.execute(stmt)
     nb = result.scalar_one_or_none()
     if not nb:
@@ -186,7 +178,7 @@ async def update_notebook(
     """Update a notebook (auto-save)."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook).where(Notebook.id == notebook_id)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     result = await db.execute(stmt)
     nb = result.scalar_one_or_none()
     if not nb:
@@ -213,7 +205,7 @@ async def delete_notebook(
     """Delete a notebook."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook).where(Notebook.id == notebook_id)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     result = await db.execute(stmt)
     nb = result.scalar_one_or_none()
     if not nb:
@@ -235,7 +227,7 @@ async def notebook_ai_assist(
     """Generate AI summary and/or next steps for notebook content."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook).where(Notebook.id == notebook_id)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     result = await db.execute(stmt)
     nb = result.scalar_one_or_none()
     if not nb:
@@ -247,6 +239,7 @@ async def notebook_ai_assist(
     linked_context = ""
     if nb.linked_pmids:
         papers_stmt = select(Paper).where(Paper.pmid.in_(nb.linked_pmids))
+        papers_stmt = apply_scope(papers_stmt, Paper, scope)
         papers_result = await db.execute(papers_stmt)
         linked_papers = papers_result.scalars().all()
         if linked_papers:
@@ -256,7 +249,7 @@ async def notebook_ai_assist(
             linked_context = "\n\n".join(parts)
 
     try:
-        llm = LLMService()
+        llm = get_llm_service()
         summary, next_steps = await llm.notebook_ai_assist(
             nb.content,
             mode=mode,
@@ -288,7 +281,7 @@ async def link_resource(
     """Link a paper, DRS object, or phenopacket to the notebook."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook).where(Notebook.id == notebook_id)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     result = await db.execute(stmt)
     nb = result.scalar_one_or_none()
     if not nb:
@@ -328,7 +321,7 @@ async def export_notebook(
     """Export notebook as Markdown or PDF."""
     scope = get_scope_filter(current_user)
     stmt = select(Notebook).where(Notebook.id == notebook_id)
-    stmt = _apply_scope(stmt, scope)
+    stmt = apply_scope(stmt, Notebook, scope)
     result = await db.execute(stmt)
     nb = result.scalar_one_or_none()
     if not nb:

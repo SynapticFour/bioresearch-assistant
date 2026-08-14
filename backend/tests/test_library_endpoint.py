@@ -125,7 +125,7 @@ async def test_summarize_paper_generates_new_summary(async_client: AsyncClient) 
             "journal": "J",
         },
     )
-    with patch("app.api.v1.endpoints.library.LLMService") as MockLLM:
+    with patch("app.api.v1.endpoints.library.get_llm_service") as MockLLM:
         mock_llm = MagicMock()
         mock_llm.summarize_paper = AsyncMock(
             return_value=PaperSummary(
@@ -186,7 +186,7 @@ async def test_summarize_paper_llm_error_502(async_client: AsyncClient) -> None:
             "journal": "J",
         },
     )
-    with patch("app.api.v1.endpoints.library.LLMService") as MockLLM:
+    with patch("app.api.v1.endpoints.library.get_llm_service") as MockLLM:
         mock_llm = MagicMock()
         mock_llm.summarize_paper = AsyncMock(side_effect=LLMServiceError("Ollama unreachable"))
         MockLLM.return_value = mock_llm
@@ -221,7 +221,7 @@ async def test_summarize_paper_language_de(async_client: AsyncClient) -> None:
             "journal": "J",
         },
     )
-    with patch("app.api.v1.endpoints.library.LLMService") as MockLLM:
+    with patch("app.api.v1.endpoints.library.get_llm_service") as MockLLM:
         mock_llm = MagicMock()
         mock_llm.summarize_paper = AsyncMock(
             return_value=PaperSummary(
@@ -254,7 +254,7 @@ async def test_summarize_paper_language_en(async_client: AsyncClient) -> None:
             "journal": "J",
         },
     )
-    with patch("app.api.v1.endpoints.library.LLMService") as MockLLM:
+    with patch("app.api.v1.endpoints.library.get_llm_service") as MockLLM:
         mock_llm = MagicMock()
         mock_llm.summarize_paper = AsyncMock(
             return_value=PaperSummary(
@@ -279,7 +279,7 @@ async def test_semantic_search_returns_results(async_client: AsyncClient) -> Non
 
     EmbeddingService is mocked; SQLite has no pgvector.
     """
-    with patch("app.api.v1.endpoints.library.EmbeddingService") as MockEmb:
+    with patch("app.api.v1.endpoints.library.get_embedding_service") as MockEmb:
         mock_svc = MagicMock()
         mock_svc.find_similar = AsyncMock(return_value=[])
         MockEmb.return_value = mock_svc
@@ -307,7 +307,7 @@ async def test_semantic_search_empty_query_returns_empty(
 @pytest.mark.asyncio
 async def test_semantic_search_with_threshold(async_client: AsyncClient) -> None:
     """POST /library/search/semantic with threshold parameter (mocked; no pgvector in SQLite)."""
-    with patch("app.api.v1.endpoints.library.EmbeddingService") as MockEmb:
+    with patch("app.api.v1.endpoints.library.get_embedding_service") as MockEmb:
         mock_svc = MagicMock()
         mock_svc.find_similar = AsyncMock(return_value=[])
         MockEmb.return_value = mock_svc
@@ -372,7 +372,7 @@ async def test_bulk_import_too_large_rejected(async_client: AsyncClient) -> None
 @pytest.mark.asyncio
 async def test_reembed_all_papers_returns_count(async_client: AsyncClient) -> None:
     """POST /library/reembed-all returns reembedded count (may be 0)."""
-    with patch("app.api.v1.endpoints.library.EmbeddingService") as MockEmb:
+    with patch("app.api.v1.endpoints.library.get_embedding_service") as MockEmb:
         mock_svc = MagicMock()
         mock_svc.embed_text_async = AsyncMock(return_value=[0.1] * 768)
         MockEmb.return_value = mock_svc
@@ -447,7 +447,7 @@ async def test_add_paper_embedding_error_502(async_client: AsyncClient) -> None:
     """POST /library/papers returns 502 when EmbeddingService raises."""
     from app.services.embedding_service import EmbeddingServiceError
 
-    with patch("app.api.v1.endpoints.library.EmbeddingService") as MockEmb:
+    with patch("app.api.v1.endpoints.library.get_embedding_service") as MockEmb:
         mock_svc = MagicMock()
         mock_svc.store_paper = AsyncMock(side_effect=EmbeddingServiceError("Model load failed"))
         MockEmb.return_value = mock_svc

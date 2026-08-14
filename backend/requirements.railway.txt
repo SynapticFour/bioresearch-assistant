@@ -7,8 +7,8 @@ python-multipart>=0.0.6,<1.0
 uvicorn[standard]>=0.27.0,<1.0
 
 # Database
-sqlalchemy[asyncio]>=2.0.25,<3.0
-asyncpg>=0.29.0,<1.0
+sqlalchemy[asyncio]>=2.0.52,<3.0
+asyncpg>=0.31.0,<1.0
 psycopg2-binary>=2.9.0,<3.0
 pgvector>=0.2.4,<1.0
 
@@ -17,20 +17,21 @@ pydantic>=2.5.0,<3.0
 pydantic-settings>=2.1.0,<3.0
 
 # Migrations
-alembic>=1.13.0,<2.0
+alembic>=1.19.1,<2.0
 
 # Utilities
 httpx>=0.26.0,<1.0
 slowapi>=0.1.9,<1.0
 
 # OAuth2 / OIDC (GA4GH Passport)
-python-jose[cryptography]>=3.3.0
+PyJWT[crypto]>=2.10.0,<3.0
 authlib>=1.2.0,<2.0
 
 # Pseudonymization (DSGVO) — Presidio regex-only on Railway (no spaCy)
 presidio-analyzer>=2.2.0,<3.0
-presidio-anonymizer>=2.2.0,<3.0
-cryptography>=48.0.1,<49.0
+# 2.2.364 caps cryptography<49; 2.2.362 allows cryptography 50 (PKCS#7 oracle fix).
+presidio-anonymizer==2.2.362
+cryptography>=50.0.0
 
 # GA4GH Phenopackets v2
 phenopackets>=2.0.0,<3.0

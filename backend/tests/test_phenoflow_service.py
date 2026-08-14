@@ -74,7 +74,7 @@ async def test_submit_pheno_flow_run_submits_matching_pairs(
                 {"type": {"id": "HP:0001250", "label": "Seizures"}},
             ],
         },
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(record)
@@ -84,7 +84,7 @@ async def test_submit_pheno_flow_run_submits_matching_pairs(
         pseudonym_id="pp-1",
         drs_object_id="asset-1.bam",
         file_type=PhenopacketAssetFileType.bam.value,
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(asset)
@@ -148,7 +148,7 @@ async def test_submit_pheno_flow_run_records_drs_errors_as_items(
                 {"type": {"id": "HP:0001250", "label": "Seizures"}},
             ],
         },
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(record)
@@ -158,7 +158,7 @@ async def test_submit_pheno_flow_run_records_drs_errors_as_items(
         pseudonym_id="pp-2",
         drs_object_id="asset-missing.bam",
         file_type=PhenopacketAssetFileType.bam.value,
-        user_id=None,
+        user_id="dev-user",
         team_id=None,
     )
     db_session.add(asset)

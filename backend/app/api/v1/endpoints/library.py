@@ -17,13 +17,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.core.isolation import get_scope_filter, get_scope_values
+from app.core.isolation import apply_scope, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle, PubMedSearchResponse
 from app.schemas.rag import RAGRequest, RAGResponse
-from app.services.embedding_service import EmbeddingService, EmbeddingServiceError
-from app.services.llm_service import LLMService, LLMServiceError
+from app.services.embedding_service import EmbeddingServiceError, get_embedding_service
+from app.services.llm_service import LLMServiceError, get_llm_service
 from app.services.metadata_service import MetadataService
 from app.services.rag_service import RAGService
 
@@ -116,10 +116,7 @@ async def summarize_paper(
     scope = get_scope_filter(current_user)
     language = (body.language or "de").strip().lower() or "de"
     stmt = select(Paper).where(Paper.pmid == body.pmid.strip())
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(Paper.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(Paper.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, Paper, scope)
     r = await db.execute(stmt)
     paper = r.scalars().first()
     if paper is None:
@@ -142,7 +139,7 @@ async def summarize_paper(
 
     # Kein Fallback auf Titel — fertig.
     try:
-        llm = LLMService()
+        llm = get_llm_service()
         result = await llm.summarize_paper(
             abstract=abstract,
             language=language,
@@ -213,10 +210,7 @@ async def list_papers(
     """List saved papers with optional filters; scoped by isolation mode."""
     scope = get_scope_filter(current_user)
     stmt = select(Paper).order_by(desc(Paper.created_at)).limit(limit).offset(offset)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(Paper.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(Paper.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, Paper, scope)
     if year is not None and year.strip():
         stmt = stmt.where(Paper.year == year.strip())
     if journal is not None and journal.strip():
@@ -238,7 +232,7 @@ async def add_paper(
 ) -> PubMedSearchResponse:
     """Add a paper to the library (same as POST /literature/papers)."""
     scope_values = get_scope_values(current_user)
-    service = EmbeddingService()
+    service = get_embedding_service()
     try:
         paper = await service.store_paper(
             db,
@@ -268,10 +262,7 @@ async def delete_paper(
     """Remove a paper from the library (scoped by isolation mode)."""
     scope = get_scope_filter(current_user)
     stmt = select(Paper).where(Paper.pmid == pmid)
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(Paper.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(Paper.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, Paper, scope)
     r = await db.execute(stmt)
     paper = r.scalars().first()
     if paper is None:
@@ -375,7 +366,7 @@ async def semantic_search(
     team_id = scope.get("team_id") if scope else None
 
     try:
-        service = EmbeddingService()
+        service = get_embedding_service()
         papers = await service.find_similar(
             db,
             query,
@@ -393,7 +384,10 @@ async def semantic_search(
         return responses
     except EmbeddingServiceError as e:
         logger.warning("Semantic search failed: %s", e)
-        return []
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        ) from e
 
 
 @router.post(
@@ -408,23 +402,32 @@ async def reembed_all_papers(
     """Re-embed all papers that have no embedding (e.g. saved before embeddings were enabled)."""
     scope = get_scope_filter(current_user)
     stmt = select(Paper).where(Paper.embedding.is_(None))
-    if "user_id" in scope and scope["user_id"]:
-        stmt = stmt.where(Paper.user_id == scope["user_id"])
-    elif "team_id" in scope and scope["team_id"]:
-        stmt = stmt.where(Paper.team_id == scope["team_id"])
+    stmt = apply_scope(stmt, Paper, scope)
     result = await db.execute(stmt)
     papers = result.scalars().all()
 
-    service = EmbeddingService()
+    service = get_embedding_service()
     count = 0
-    for paper in papers:
+    texts = [f"{paper.title} {paper.abstract or ''}".strip() or " " for paper in papers]
+    if texts:
         try:
-            text = f"{paper.title} {paper.abstract or ''}".strip() or " "
-            embedding = await service.embed_text_async(text)
-            paper.embedding = embedding
-            count += 1
+            embeddings = await service.embed_texts_async(texts)
+            for paper, embedding in zip(papers, embeddings, strict=True):
+                if embedding is None:
+                    continue
+                paper.embedding = embedding
+                count += 1
         except Exception as e:
-            logger.warning("Re-embed failed for %s: %s", paper.pmid, e)
+            logger.warning("Batch re-embed failed: %s", e)
+            for paper, text in zip(papers, texts, strict=True):
+                try:
+                    embedding = await service.embed_text_async(text)
+                    if embedding is None:
+                        continue
+                    paper.embedding = embedding
+                    count += 1
+                except Exception as inner:
+                    logger.warning("Re-embed failed for %s: %s", paper.pmid, inner)
     await db.commit()
     return {
         "reembedded": count,
@@ -464,10 +467,30 @@ async def _import_single_paper(
     scope_values: dict,
     db: AsyncSession,
     results: dict,
+    embedding_service: object,
 ) -> None:
-    """Import one paper into DB; updates results['imported'] and results['errors']."""
+    """Import one paper into DB with embeddings; updates results counters."""
     try:
         normalized = _normalize_paper_data(data)
+        article = PubMedArticle(
+            pmid=normalized["pmid"],
+            title=normalized["title"],
+            abstract=normalized["abstract"],
+            authors=normalized["authors"],
+            year=int(normalized["year"])
+            if normalized["year"] and str(normalized["year"]).isdigit()
+            else None,
+            journal=normalized["journal"],
+            doi=normalized["doi"],
+        )
+        await embedding_service.store_paper(
+            db,
+            article,
+            user_id=scope_values.get("user_id"),
+            team_id=scope_values.get("team_id"),
+        )
+        results["imported"] += 1
+    except EmbeddingServiceError:
         paper = Paper(
             pmid=normalized["pmid"],
             title=normalized["title"],
@@ -509,6 +532,7 @@ async def bulk_import(
     scope_values = get_scope_values(current_user)
     results: dict = {"imported": 0, "skipped": 0, "errors": []}
     filename = (file.filename or "").lower()
+    embedding_service = get_embedding_service()
 
     if filename.endswith(".zip"):
         try:
@@ -527,11 +551,15 @@ async def bulk_import(
                         data = json.loads(raw)
                         if isinstance(data, list):
                             for item in data:
-                                await _import_single_paper(item, scope_values, db, results)
+                                await _import_single_paper(
+                                    item, scope_values, db, results, embedding_service
+                                )
                                 if results["imported"] + results["skipped"] >= MAX_BULK_ENTRIES:
                                     break
                         else:
-                            await _import_single_paper(data, scope_values, db, results)
+                            await _import_single_paper(
+                                data, scope_values, db, results, embedding_service
+                            )
                     except Exception as e:
                         results["errors"].append(f"{name}: {e}")
                         results["skipped"] += 1
@@ -550,7 +578,7 @@ async def bulk_import(
             ) from err
         papers = data if isinstance(data, list) else [data]
         for paper_data in papers[:MAX_BULK_ENTRIES]:
-            await _import_single_paper(paper_data, scope_values, db, results)
+            await _import_single_paper(paper_data, scope_values, db, results, embedding_service)
     elif filename.endswith(".csv"):
         try:
             reader = csv.DictReader(io.StringIO(content.decode("utf-8")))
@@ -561,7 +589,7 @@ async def bulk_import(
                 detail="Ungültiges CSV",
             ) from err
         for row in rows:
-            await _import_single_paper(row, scope_values, db, results)
+            await _import_single_paper(row, scope_values, db, results, embedding_service)
     else:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
