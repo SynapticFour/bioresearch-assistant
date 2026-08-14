@@ -23,6 +23,7 @@ from app.core.config import get_settings
 from app.core.database import get_async_session_maker
 from app.core.isolation import (
     apply_scope,
+    current_isolation_mode,
     get_scope_filter,
     get_scope_values,
     object_visible_to_scope,
@@ -37,6 +38,20 @@ _run_tasks: dict[str, asyncio.Task[None]] = {}
 _run_processes: dict[str, asyncio.subprocess.Process] = {}
 
 ALLOWED_BLAST_PROGRAMS = frozenset({"blastn", "blastp", "blastx", "tblastn", "tblastx"})
+ALLOWED_BLAST_DATABASES = frozenset(
+    {
+        "nt",
+        "nr",
+        "swissprot",
+        "pdbaa",
+        "pdbnt",
+        "refseq_rna",
+        "refseq_protein",
+        "env_nt",
+        "env_nr",
+        "tsa_nt",
+    }
+)
 
 # Allowed workflow_url values (injection prevention; no user-controlled paths/URLs)
 ALLOWED_WORKFLOWS = frozenset(
@@ -91,6 +106,23 @@ def _is_helixtest_trs_workflow(workflow_url: str) -> bool:
     return workflow_url in HELIXTEST_TRS_URLS
 
 
+def _helixtest_stubs_enabled() -> bool:
+    """TRS echo/fail stubs exist only for HelixTest conformance, never by default."""
+    return os.environ.get("WES_HELIXTEST_STUBS") == "1" or os.environ.get("TESTING") == "1"
+
+
+def resolve_blast_database(name_or_path: str) -> str:
+    """Return an allowlisted BLAST database name (never a user-controlled path)."""
+    raw = (name_or_path or "nt").strip()
+    base = Path(raw).name
+    if not base or base not in ALLOWED_BLAST_DATABASES:
+        raise ValueError(
+            f"BLAST database {base!r} is not allowlisted. "
+            f"Allowed: {sorted(ALLOWED_BLAST_DATABASES)}"
+        )
+    return base
+
+
 def _validate_workflow_url(workflow_url: str) -> None:
     """Validate workflow URL against allowlist; remote http(s) is opt-in.
 
@@ -99,11 +131,18 @@ def _validate_workflow_url(workflow_url: str) -> None:
     WES_ALLOWED_WORKFLOW_HOSTS.
     """
     if _is_helixtest_trs_workflow(workflow_url):
+        if not _helixtest_stubs_enabled():
+            raise ValueError(
+                "HelixTest TRS stubs are disabled. Set WES_HELIXTEST_STUBS=1 "
+                "only for conformance runs."
+            )
         return
     if workflow_url in ALLOWED_WORKFLOWS:
         return
-    # Local .nf filenames only (no scheme) — staged under the run dir.
+    # Local .nf filenames only (basename, no path separators) — staged under the run dir.
     if workflow_url.endswith(".nf") and "://" not in workflow_url:
+        if "/" in workflow_url or "\\" in workflow_url or ".." in workflow_url:
+            raise ValueError("Local workflow files must be a basename ending in .nf")
         return
     parsed = urlparse(workflow_url)
     if parsed.scheme in ("http", "https") and parsed.netloc:
@@ -238,7 +277,20 @@ async def _run_blast_direct(
     if not query_file.exists():
         logger.warning("BLAST run %s: query.fasta not found", run_id)
         return
-    database = str(params.get("database", "nt"))
+    try:
+        database = resolve_blast_database(str(params.get("database", "nt")))
+    except ValueError as e:
+        await _persist_run_fields(
+            run_id,
+            State.EXECUTOR_ERROR,
+            end_time=_iso_now(),
+            run_log={
+                "name": "blast",
+                "stderr": str(e),
+                "exit_code": -1,
+            },
+        )
+        return
     program = str(params.get("program", "blastn")).strip().lower()
     if program not in ALLOWED_BLAST_PROGRAMS:
         await _persist_run_fields(
@@ -558,7 +610,22 @@ async def _execute_nextflow(
         if not workflow_url.startswith(("http://", "https://"))
         else None
     )
-    cmd_target = str(workflow_path) if workflow_path and workflow_path.exists() else workflow_url
+    if workflow_path is not None:
+        if not workflow_path.exists():
+            await _persist_run_fields(
+                run_id,
+                State.EXECUTOR_ERROR,
+                end_time=_iso_now(),
+                run_log={
+                    "name": "nextflow",
+                    "stderr": f"Workflow file not staged: {workflow_path.name}",
+                    "exit_code": -1,
+                },
+            )
+            return
+        cmd_target = str(workflow_path)
+    else:
+        cmd_target = workflow_url
 
     start_time = _iso_now()
     cmd = ["nextflow", "run", cmd_target]
@@ -570,7 +637,11 @@ async def _execute_nextflow(
             if not re.fullmatch(r"[A-Za-z0-9_]+", key):
                 logger.warning("Skipping unsafe Nextflow param key %r", key)
                 continue
-            cmd.extend(["--" + key, str(v)])
+            value = str(v)
+            if len(value) > 4096 or value.startswith("-") or "\n" in value or "\0" in value:
+                logger.warning("Skipping unsafe Nextflow param value for key %r", key)
+                continue
+            cmd.extend(["--" + key, value])
 
     run_log_obj: dict[str, Any] = {
         "name": "nextflow",
@@ -786,8 +857,10 @@ async def create_run(
 
     if current_user:
         scope_vals = get_scope_values(current_user)
-    else:
+    elif current_isolation_mode() == "open":
         scope_vals = {"user_id": None, "team_id": None}
+    else:
+        raise ValueError("Authenticated user required to create workflow runs")
     request_dict = normalized.model_dump(mode="json")
     row = WorkflowRun(
         run_id=run_id,
@@ -862,6 +935,8 @@ async def get_run(
         scope = get_scope_filter(current_user)
         if not object_visible_to_scope(run.user_id, run.team_id, scope):
             return None
+    elif current_isolation_mode() != "open":
+        return None
     return run
 
 
@@ -876,6 +951,8 @@ async def list_runs(
     stmt = select(WorkflowRun).order_by(WorkflowRun.created_at.desc())
     if current_user is not None:
         stmt = apply_scope(stmt, WorkflowRun, get_scope_filter(current_user))
+    elif current_isolation_mode() != "open":
+        return [], ""
     if state_filter is not None:
         stmt = stmt.where(WorkflowRun.state == state_filter)
     offset = int(page_token) if page_token else 0

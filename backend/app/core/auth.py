@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from fastapi import Depends, HTTPException, Security, status
+from fastapi import Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
@@ -43,10 +43,11 @@ def reset_auth_service() -> None:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials | None = Security(security),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> dict[str, Any]:
-    """Extract the current user from a Bearer token.
+    """Extract the current user from a Bearer token or httpOnly session cookie.
 
     If auth is not configured and the deployment is an explicit local/test
     target, return a non-production dev user. Otherwise 401 / fail closed.
@@ -63,6 +64,12 @@ async def get_current_user(
                 ),
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        if settings.is_production_runtime is True:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthenticated development mode is forbidden in production",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
         return {
             "sub": "dev-user",
             "email": "contact@synapticfour.com",
@@ -72,7 +79,9 @@ async def get_current_user(
             "visas": [],
         }
 
-    if not credentials:
+    access_cookie = request.cookies.get(settings.session_cookie_name)
+    token = credentials.credentials if credentials else access_cookie
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
@@ -80,7 +89,7 @@ async def get_current_user(
         )
 
     try:
-        user = await auth_service.extract_ga4gh_passports(credentials.credentials)
+        user = await auth_service.extract_ga4gh_passports(token)
         return user
     except ValueError as e:
         raise HTTPException(

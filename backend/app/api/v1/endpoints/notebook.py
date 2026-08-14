@@ -239,6 +239,7 @@ async def notebook_ai_assist(
     linked_context = ""
     if nb.linked_pmids:
         papers_stmt = select(Paper).where(Paper.pmid.in_(nb.linked_pmids))
+        papers_stmt = apply_scope(papers_stmt, Paper, scope)
         papers_result = await db.execute(papers_stmt)
         linked_papers = papers_result.scalars().all()
         if linked_papers:

@@ -245,6 +245,28 @@ async def test_team_isolation_hides_from_other_domain(async_client: AsyncClient)
 
 
 @pytest.mark.asyncio
+async def test_wes_blast_run_hidden_from_other_user(db_session) -> None:
+    """User B cannot read a WES/BLAST run owned by user A (no IDOR)."""
+    from app.schemas.wes import RunRequest, State
+    from app.services import wes_service
+
+    req = RunRequest(
+        workflow_url="blast",
+        workflow_type="BLAST",
+        workflow_type_version="1.0",
+        workflow_params={"database": "nt"},
+        workflow_engine="blast",
+    )
+    run_id = await wes_service.create_run(db_session, req, current_user=USER_A)
+    await db_session.flush()
+    own = await wes_service.get_run(db_session, str(run_id), current_user=USER_A)
+    other = await wes_service.get_run(db_session, str(run_id), current_user=USER_B)
+    assert own is not None
+    assert own.state == State.QUEUED.value
+    assert other is None
+
+
+@pytest.mark.asyncio
 async def test_open_mode_shows_all(async_client: AsyncClient) -> None:
     """In open mode, list papers returns 200."""
     with patch("app.core.isolation.get_settings") as m:

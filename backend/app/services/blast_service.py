@@ -4,16 +4,19 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.isolation import apply_scope, get_scope_filter
 from app.models.paper import Paper
 from app.schemas.blast import HSP, BLASTHit, BLASTParams, BLASTResults, BLASTStatistics
 from app.schemas.wes import RunRequest, State
 from app.services.wes_service import create_run as wes_create_run
 from app.services.wes_service import get_run as wes_get_run
+from app.services.wes_service import resolve_blast_database
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +47,8 @@ async def run_blast_search(
     query: str,
     database: str,
     params: BLASTParams,
+    *,
+    current_user: dict[str, Any],
 ) -> str:
     """Start a BLAST search via direct binary (WES run with workflow_url='blast'). Returns run_id.
 
@@ -52,16 +57,15 @@ async def run_blast_search(
     Requires BLAST DB to be installed (see docs/TOOLS-SETUP.md).
     """
     fasta_bytes = _query_to_fasta(query)
-    program = "blastn"  # blastp for protein; could be extended via params later
+    program = "blastn"
+    db_name = resolve_blast_database(database)
 
     workflow_params: dict[str, str | float | int | None] = {
-        "database": database,
+        "database": db_name,
         "evalue": params.evalue,
         "max_hits": params.max_hits,
         "program": program,
     }
-    if params.db_path:
-        workflow_params["db_path"] = params.db_path
 
     request = RunRequest(
         workflow_type="BLAST",
@@ -71,7 +75,9 @@ async def run_blast_search(
         workflow_engine="blast",
     )
     attachments = [("query.fasta", fasta_bytes)]
-    run_id = await wes_create_run(db, request, workflow_attachments=attachments)
+    run_id = await wes_create_run(
+        db, request, workflow_attachments=attachments, current_user=current_user
+    )
     return str(run_id)
 
 
@@ -192,14 +198,16 @@ def _parse_blast_xml(xml_path: Path) -> BLASTResults:
     return BLASTResults(run_id="", hits=hits, statistics=statistics)
 
 
-async def get_blast_results(db: AsyncSession, run_id: str) -> BLASTResults:
+async def get_blast_results(
+    db: AsyncSession, run_id: str, *, current_user: dict[str, Any]
+) -> BLASTResults:
     """Load BLAST results for a WES run_id: read results.xml from run dir and parse with Biopython.
 
     Raises:
         ValueError: If run not found or not COMPLETE.
         FileNotFoundError: If results.xml missing.
     """
-    run = await wes_get_run(db, run_id)
+    run = await wes_get_run(db, run_id, current_user=current_user)
     if not run:
         raise ValueError(f"Run not found: {run_id}")
     if run.state != State.COMPLETE.value:
@@ -222,6 +230,8 @@ async def find_papers_for_hits(
     db: AsyncSession,
     blast_results: BLASTResults,
     max_papers_per_hit: int = 5,
+    *,
+    current_user: dict[str, Any],
 ) -> list[Paper]:
     """Find PubMed papers relevant to BLAST hits (Literature Mining ↔ BLAST).
 
@@ -254,5 +264,6 @@ async def find_papers_for_hits(
         return []
 
     stmt = select(Paper).where(Paper.pmid.in_(pmids))
+    stmt = apply_scope(stmt, Paper, get_scope_filter(current_user))
     r = await db.execute(stmt)
     return list(r.scalars().unique().all())

@@ -130,12 +130,11 @@ async def login(
 @router.get("/callback")
 async def callback(
     request: Request,
-    response: Response,
     code: str,
     state: str = Query(default=""),
     auth_service: AuthService = Depends(get_auth_service),
-) -> dict:
-    """OIDC callback — exchange code for tokens after CSRF state check."""
+) -> RedirectResponse:
+    """OIDC callback — exchange code, set httpOnly cookie, redirect to SPA."""
     settings = get_settings()
     if not settings.auth_enabled:
         raise HTTPException(
@@ -171,14 +170,40 @@ async def callback(
         )
         token_response.raise_for_status()
         tokens = token_response.json()
+    access_token = tokens.get("access_token")
+    if not access_token:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="Identity provider returned no access_token",
+        )
+    try:
+        expires_in = int(tokens.get("expires_in") or 3600)
+    except (TypeError, ValueError):
+        expires_in = 3600
+    frontend = (settings.frontend_base_url or "http://localhost:5173").rstrip("/")
+    redirect = RedirectResponse(url=f"{frontend}/auth/callback", status_code=status.HTTP_302_FOUND)
+    cookie_kw = {
+        "max_age": max(60, min(expires_in, 86400)),
+        "httponly": True,
+        "samesite": "lax",
+        "secure": not settings.allows_unauthenticated_dev,
+        "path": "/",
+    }
+    redirect.set_cookie(key=settings.session_cookie_name, value=str(access_token), **cookie_kw)
+    redirect.delete_cookie(_OAUTH_STATE_COOKIE, path="/")
+    redirect.delete_cookie(_OAUTH_VERIFIER_COOKIE, path="/")
+    return redirect
+
+
+@router.post("/logout")
+async def logout() -> Response:
+    """Clear the httpOnly session cookie."""
+    settings = get_settings()
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    response.delete_cookie(settings.session_cookie_name, path="/")
     response.delete_cookie(_OAUTH_STATE_COOKIE, path="/")
     response.delete_cookie(_OAUTH_VERIFIER_COOKIE, path="/")
-    return {
-        "access_token": tokens.get("access_token"),
-        "id_token": tokens.get("id_token"),
-        "token_type": "Bearer",
-        "expires_in": tokens.get("expires_in"),
-    }
+    return response
 
 
 @router.get("/me")
@@ -209,6 +234,5 @@ async def auth_status() -> dict:
             "ELIXIR AAI",
             "Google",
             "Microsoft",
-            "GitHub",
         ],
     }

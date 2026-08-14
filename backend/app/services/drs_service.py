@@ -15,7 +15,12 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import get_settings
-from app.core.isolation import get_scope_filter, get_scope_values, object_visible_to_scope
+from app.core.isolation import (
+    current_isolation_mode,
+    get_scope_filter,
+    get_scope_values,
+    object_visible_to_scope,
+)
 from app.schemas.drs import (
     AccessMethod,
     AccessURL,
@@ -120,7 +125,7 @@ def _acl_entry(object_id: str) -> dict[str, Any]:
 def object_allowed_for_user(object_id: str, current_user: dict[str, Any] | None) -> bool:
     """True if isolation scope may see this object. Legacy (no ACL) hidden unless open."""
     if current_user is None:
-        return True
+        return current_isolation_mode() == "open"
     scope = get_scope_filter(current_user)
     if not scope:
         return True
@@ -168,7 +173,7 @@ def get_service_info(
             name="Synaptic Four",
             url="https://www.synapticfour.com",
         ),
-        version="0.1.0",
+        version="1.3.0",
         description="GA4GH DRS v1.3 for on-premise data objects (file-backed).",
         drs=DrsServiceStats(
             maxBulkRequestLength=1,

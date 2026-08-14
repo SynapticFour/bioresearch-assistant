@@ -75,7 +75,10 @@ Wichtige Variablen:
 
 ```bash
 # Datenisolation
-ISOLATION_MODE=user    # user / team / open
+ISOLATION_MODE=user    # user / team; open nur Demo — Produktion lehnt open ab
+
+# Produktion: ENVIRONMENT=production + OIDC (siehe docs/deployment/UNIKLINIK.md)
+# DEPLOYMENT=local nur für lokale Entwicklung (unauthentifizierter Dev-User)
 
 # De-Pseudonymisierung Zugriff
 DEPSEUDO_ACCESS=owner  # owner / team / admin

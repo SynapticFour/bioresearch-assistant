@@ -33,7 +33,7 @@ echo "ci-check: npm run build (frontend)"
 # tsc -b rewrites incremental caches; restore so pre-commit does not fail
 # docs-only commits when those tracked files are otherwise unchanged.
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git checkout -- frontend/tsconfig.tsbuildinfo frontend/tsconfig.node.tsbuildinfo 2>/dev/null || true
+  git checkout -- frontend/tsconfig.tsbuildinfo frontend/tsconfig.node.tsbuildinfo frontend/vite.config.js 2>/dev/null || true
 fi
 
 echo "ci-check: OK (matches bioresearch-assistant CI)"

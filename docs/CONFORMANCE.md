@@ -98,8 +98,9 @@ cargo run -p helixtest-cli --bin helixtest -- \
    (siehe `scripts/helixtest-patches/README.md`). Ziel: DRS/WES Contract-Calls authentifizieren, während
    reine Auth-Negativtests weiterhin ohne Default-Bearer laufen.
 
-**WES / HelixTest:** Das Backend implementiert die in HelixTest verwendeten **`trs://...`-Stubs** (Echo / Fail / CWL-Echo / Invalid)
-in-process, inkl. Timing für den Robustness-Poll-Test (mindestens ~2 s bis zum Terminal-Complete beim Echo).
+**WES / HelixTest:** Die `trs://...`-Stubs (Echo / Fail / CWL-Echo / Invalid) sind **nur** aktiv, wenn
+`WES_HELIXTEST_STUBS=1` (Conformance-Job) oder `TESTING=1` (pytest). In Produktionsruntime sind sie
+abgeschaltet. Timing für den Robustness-Poll-Test bleibt im Conformance-Profil (mindestens ~2 s bis Complete).
 
 **DRS / Range:** `GET …/stream` unterstützt `Range: bytes=…` mit **206** und `Content-Range` (HelixTest Level 2).
 

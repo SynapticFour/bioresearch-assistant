@@ -29,7 +29,9 @@ router = APIRouter(prefix="/locus", tags=["locus"])
 )
 async def locus_status(
     db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
 ) -> LocusStatusResponse:
+    _ = current_user
     settings = get_settings()
     if not settings.locus_enabled:
         return LocusStatusResponse(

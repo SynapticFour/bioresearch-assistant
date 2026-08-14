@@ -375,6 +375,18 @@ async def export_phenopacket_endpoint(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Phenopacket not found",
         )
+    policy_id = get_settings().mii_default_consent_policy_id
+    from app.services import consent_service as cs
+
+    consent = await cs.find_active_consent(db, id, policy_id, scope)
+    if not consent:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=(
+                "No active research consent for this pseudonym. "
+                "Record Broad Consent before exporting Phenopackets."
+            ),
+        )
     phenopacket_data = (
         json.loads(row.phenopacket_json)
         if isinstance(row.phenopacket_json, str)
@@ -470,6 +482,10 @@ async def phenopacket_solum_subject_link(
 
 
 @router.post("/validate", response_model=ValidationResult, status_code=status.HTTP_200_OK)
-async def validate_phenopacket_endpoint(phenopacket: dict[str, Any]) -> ValidationResult:
+async def validate_phenopacket_endpoint(
+    phenopacket: dict[str, Any],
+    current_user: dict = Depends(get_current_user),
+) -> ValidationResult:
     """Validate a phenopacket dict against Phenopackets v2 schema."""
+    _ = current_user
     return validate_phenopacket(phenopacket)

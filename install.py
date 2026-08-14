@@ -28,6 +28,7 @@ import secrets
 import shutil
 import json
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -204,8 +205,9 @@ def wait_for_backend(install_dir: Path, port: int = 8000, max_wait: int = 60) ->
             with urllib.request.urlopen(url, timeout=3) as r:
                 if r.status == 200:
                     return True
-        except Exception:
-            pass
+        except (urllib.error.URLError, TimeoutError, OSError):
+            time.sleep(3)
+            continue
         time.sleep(3)
     return False
 
@@ -229,7 +231,7 @@ def check_prerequisites() -> bool:
                 err("Docker ist installiert aber läuft nicht")
                 info("Bitte Docker Desktop starten")
                 all_ok = False
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
             err("Docker nicht erreichbar")
             all_ok = False
     else:
@@ -249,7 +251,7 @@ def check_prerequisites() -> bool:
                 ok("Docker Compose verfügbar")
                 compose_ok = True
                 break
-        except Exception:
+        except (OSError, subprocess.SubprocessError):
             continue
     if not compose_ok:
         err("Docker Compose nicht gefunden")
@@ -1071,7 +1073,7 @@ def health_check(config: dict) -> bool:
                         else:
                             info(f"Feature inaktiv: {feat} (optional)")
                     return True
-        except Exception:
+        except (urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError):
             time.sleep(3)
             print(f"  Warte... ({i + 1}/15)", end="\r")
 

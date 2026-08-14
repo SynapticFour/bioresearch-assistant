@@ -9,6 +9,8 @@ from app.models.workflow_run import WorkflowRun
 from app.schemas.wes import RunRequest, State
 from app.services import wes_service
 
+OWNER = {"sub": "dev-user", "email": "t@test.de", "roles": ["admin"]}
+
 
 @pytest.fixture
 def mock_nextflow(mocker):
@@ -45,7 +47,7 @@ async def test_submit_run_creates_workflow_run_in_db(
 ):
     """create_run adds a WorkflowRun row in QUEUED state."""
     # Prevent background task from using real DB (patch update_db path)
-    run_id = await wes_service.create_run(db_session, run_request)
+    run_id = await wes_service.create_run(db_session, run_request, current_user=OWNER)
     await db_session.flush()
     stmt = select(WorkflowRun).where(WorkflowRun.run_id == run_id)
     r = await db_session.execute(stmt)
@@ -57,7 +59,7 @@ async def test_submit_run_creates_workflow_run_in_db(
 @pytest.mark.asyncio
 async def test_submit_run_returns_run_id(db_session, mock_nextflow, wes_work_dir, run_request):
     """create_run returns a valid run_id (UUID)."""
-    run_id = await wes_service.create_run(db_session, run_request)
+    run_id = await wes_service.create_run(db_session, run_request, current_user=OWNER)
     assert run_id is not None
     assert str(run_id)  # UUID string representation
 
@@ -73,10 +75,11 @@ async def test_get_run_status_returns_correct_state(db_session):
             workflow_url="x.nf",
             workflow_type="NEXTFLOW",
             workflow_type_version="1.0",
+            user_id="dev-user",
         )
     )
     await db_session.flush()
-    run = await wes_service.get_run(db_session, str(run_id))
+    run = await wes_service.get_run(db_session, str(run_id), current_user=OWNER)
     assert run is not None
     status = wes_service.run_to_run_status(run)
     assert status.run_id == str(run_id)
@@ -94,10 +97,11 @@ async def test_cancel_run_updates_state(db_session):
             workflow_url="x.nf",
             workflow_type="NEXTFLOW",
             workflow_type_version="1.0",
+            user_id="dev-user",
         )
     )
     await db_session.flush()
-    ok = await wes_service.cancel_run(db_session, str(run_id))
+    ok = await wes_service.cancel_run(db_session, str(run_id), current_user=OWNER)
     assert ok is True
     r = await db_session.execute(select(WorkflowRun).where(WorkflowRun.run_id == run_id))
     row = r.scalars().first()
@@ -108,14 +112,14 @@ async def test_cancel_run_updates_state(db_session):
 @pytest.mark.asyncio
 async def test_get_nonexistent_run_raises_404(db_session):
     """get_run for non-existent run_id returns None (API layer returns 404)."""
-    run = await wes_service.get_run(db_session, str(uuid4()))
+    run = await wes_service.get_run(db_session, str(uuid4()), current_user=OWNER)
     assert run is None
 
 
 @pytest.mark.asyncio
 async def test_get_run_invalid_uuid_returns_none(db_session):
     """get_run with invalid UUID string returns None."""
-    run = await wes_service.get_run(db_session, "not-a-uuid")
+    run = await wes_service.get_run(db_session, "not-a-uuid", current_user=OWNER)
     assert run is None
 
 
@@ -163,7 +167,7 @@ async def test_create_run_normalizes_workflow_type_alias(
         workflow_type="NFL",
         workflow_type_version="DSL2",
     )
-    run_id = await wes_service.create_run(db_session, req)
+    run_id = await wes_service.create_run(db_session, req, current_user=OWNER)
     await db_session.flush()
     stmt = select(WorkflowRun).where(WorkflowRun.run_id == run_id)
     row = (await db_session.execute(stmt)).scalars().first()
@@ -188,6 +192,7 @@ async def test_list_runs_filters_by_state(db_session) -> None:
             workflow_url="a.nf",
             workflow_type="NEXTFLOW",
             workflow_type_version="1.0",
+            user_id="dev-user",
         )
     )
     db_session.add(
@@ -197,6 +202,7 @@ async def test_list_runs_filters_by_state(db_session) -> None:
             workflow_url="b.nf",
             workflow_type="NEXTFLOW",
             workflow_type_version="1.0",
+            user_id="dev-user",
         )
     )
     await db_session.flush()
@@ -204,6 +210,7 @@ async def test_list_runs_filters_by_state(db_session) -> None:
         db_session,
         page_size=100,
         state_filter=State.QUEUED.value,
+        current_user=OWNER,
     )
     returned_ids = {r.run_id for r in rows}
     assert r2 in returned_ids

@@ -7,9 +7,10 @@ RUN apt-get update && apt-get install -y \
     default-jre-headless && \
     rm -rf /var/lib/apt/lists/*
 
-# Nextflow als Binary installieren (für WES-Pipelines)
-RUN curl -s https://get.nextflow.io | bash && \
-    mv nextflow /usr/local/bin/ && \
+# Nextflow pinned release (no curl|bash). Bump with a reviewed GitHub release tag.
+ARG NEXTFLOW_VERSION=24.10.6
+RUN curl -fsSL "https://github.com/nextflow-io/nextflow/releases/download/v${NEXTFLOW_VERSION}/nextflow" \
+    -o /usr/local/bin/nextflow && \
     chmod +x /usr/local/bin/nextflow
 
 COPY requirements.txt .

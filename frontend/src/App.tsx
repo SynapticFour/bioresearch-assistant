@@ -2,6 +2,7 @@ import { Route, Routes } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ToastProvider } from "@/contexts/ToastContext";
 import { AuditPage } from "@/pages/AuditPage";
+import { AuthCallbackPage } from "@/pages/AuthCallbackPage";
 import { BlastPage } from "@/pages/BlastPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DRSPage } from "@/pages/DRSPage";
@@ -23,6 +24,7 @@ function App() {
     <ToastProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/literature" element={<LiteraturePage />} />

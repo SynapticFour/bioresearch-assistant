@@ -2,7 +2,9 @@
 
 import logging
 from io import BytesIO
+from urllib.parse import urlparse
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -129,8 +131,10 @@ async def fair_export_zenodo(
     )
     service = FAIRExportService()
     zip_bytes = await service.create_export_package(db, current_user, body.options)
-    # Zenodo API: only use allowlisted hosts (SSRF protection)
-    import httpx
+
+    def _zenodo_host_allowed(url: str) -> bool:
+        host = (urlparse(url).hostname or "").lower()
+        return host in ALLOWED_ZENODO_HOSTS
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -148,10 +152,10 @@ async def fair_export_zenodo(
                     detail="Zenodo: no deposition ID",
                 )
             upload_url = dep.get("links", {}).get("bucket")
-            if not upload_url:
+            if not upload_url or not _zenodo_host_allowed(str(upload_url)):
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail="Zenodo: no bucket URL",
+                    detail="Zenodo: bucket URL missing or not on an allowlisted host",
                 )
             safe_title = (
                 "".join(c for c in body.options.title if c.isalnum() or c in " ._-").strip()

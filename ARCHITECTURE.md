@@ -60,7 +60,7 @@ These remain open on purpose. Revisit when the product needs the extra architect
 | WES/MII as Redis/Celery job queue | Cross-node cancel/retry needs a queue. Same-host WES cancel now kills via PID file; MII retries add jitter. |
 | Full Presidio/spaCy on Railway | Slim image is intentional; `DEPLOYMENT=railway` uses the lightweight PII path. |
 | Full mypy/pyright | Untyped codebase; multi-day, not a bugfix. |
-| Default tests to `ISOLATION_MODE=user` | HTTP tests share one `dev-user`; `conftest` sets `open`. Isolation coverage lives in `test_isolation.py`. |
+| Default tests to `ISOLATION_MODE=user` | HTTP tests share one `dev-user`; `conftest` sets `user`. Isolation coverage lives in `test_isolation.py` and `test_hospital_hardening.py`. |
 | DRS catalog index (replace `rglob`) | List is now paginated; a DB-backed catalog is larger scope. |
 | FAIR `accessible`/`interoperable` hardcoded True | Scoring heuristic, not a security bug. ZIP build now uses a spooled temp file. |
 | `poetry.lock` regeneration | `package = []` is a stub. `uv.lock` and `requirements.txt` are the install source of truth. |

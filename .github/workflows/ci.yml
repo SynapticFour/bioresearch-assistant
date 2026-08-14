@@ -28,7 +28,7 @@ jobs:
       TESTING: "1"
       DATABASE_URL: "sqlite+aiosqlite:///:memory:"
       DEPLOYMENT: test
-      ISOLATION_MODE: open
+      ISOLATION_MODE: user
       PSEUDONYMIZATION_ENCRYPTION_KEY: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SECRET_KEY: ci-secret-key-for-tests
@@ -103,6 +103,9 @@ jobs:
       - name: TypeScript check
         run: cd frontend && npx tsc --noEmit
 
+      - name: Unit tests
+        run: cd frontend && npm test
+
       - name: Build
         run: cd frontend && npm run build
         env:
@@ -112,8 +115,6 @@ jobs:
     if: github.actor != 'dependabot[bot]'
     name: pip-audit + npm audit
     runs-on: ubuntu-latest
-    # Surface findings without blocking main until monthly hygiene clears the baseline.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v6
       - name: Set up Python 3.12
@@ -135,4 +136,4 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npm audit --omit=dev
+          npm audit --omit=dev --audit-level=high

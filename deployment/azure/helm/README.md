@@ -12,7 +12,8 @@ Dieses Verzeichnis enthaelt ein lauffaehiges Basis-Helm-Chart fuer:
 
 ```bash
 cd deployment/azure/helm
-helm install bioresearch . -n bioresearch --create-namespace
+helm install bioresearch . -n bioresearch --create-namespace \
+  --set postgres.auth.password='<einzigartiges-geheimnis>'
 ```
 
 Upgrade:
@@ -20,6 +21,17 @@ Upgrade:
 ```bash
 helm upgrade bioresearch . -n bioresearch
 ```
+
+## Secrets
+
+Postgres-Passwort ist **pflicht** und darf nicht `bioresearch` sein:
+
+```bash
+helm upgrade --install bioresearch . -n bioresearch --create-namespace \
+  --set postgres.auth.password='<einzigartiges-geheimnis>'
+```
+
+Leeres Passwort oder `bioresearch` lässt das Chart fehlschlagen. Uniklinik-Checkliste: [docs/deployment/UNIKLINIK.md](../../../docs/deployment/UNIKLINIK.md).
 
 ## Wichtige Values
 

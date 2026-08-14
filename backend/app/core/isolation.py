@@ -39,6 +39,11 @@ def _normalized_mode() -> IsolationMode:
     return "user"
 
 
+def current_isolation_mode() -> IsolationMode:
+    """Public alias for the configured isolation mode (fail-closed to user)."""
+    return _normalized_mode()
+
+
 def get_scope_filter(current_user: dict[str, Any]) -> ScopeFilter:
     """Return the correct filter dict for DB queries.
 

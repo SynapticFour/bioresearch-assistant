@@ -1,6 +1,6 @@
 """GA4GH Passport-compatible auth service.
 
-Supports: Keycloak, ELIXIR AAI, Google, GitHub / Microsoft Entra.
+Supports: Keycloak, ELIXIR AAI, Google, Microsoft Entra.
 """
 
 from __future__ import annotations
@@ -84,21 +84,23 @@ class AuthService:
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """Verify JWT and extract claims. Refresh JWKS once on unknown kid."""
-        algorithms = [self.settings.jwt_algorithm] if self.settings.jwt_algorithm else ["RS256"]
-        if "RS256" not in algorithms:
-            algorithms.append("RS256")
-        if "ES256" not in algorithms:
-            algorithms.append("ES256")
+        algorithms = ["RS256", "ES256"]
+        if (self.settings.jwt_algorithm or "").upper() not in ("", "RS256", "ES256"):
+            logger.warning(
+                "Ignoring JWT_ALGORITHM=%s for OIDC; using RS256/ES256 only",
+                self.settings.jwt_algorithm,
+            )
 
         async def _decode(jwks: dict[str, Any]) -> dict[str, Any]:
             key = _get_signing_key_from_jwks(token, jwks)
-            return jwt.decode(
-                token,
-                key,
-                algorithms=algorithms,
-                audience=self.settings.oidc_client_id,
-                options={"verify_aud": bool(self.settings.oidc_client_id)},
-            )
+            kwargs: dict[str, Any] = {
+                "algorithms": algorithms,
+                "audience": self.settings.oidc_client_id,
+                "options": {"verify_aud": bool(self.settings.oidc_client_id)},
+            }
+            if self.settings.oidc_issuer:
+                kwargs["issuer"] = self.settings.oidc_issuer
+            return jwt.decode(token, key, **kwargs)
 
         jwks = await self.get_jwks()
         try:

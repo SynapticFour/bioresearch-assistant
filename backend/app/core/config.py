@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     # Application
     app_name: str = Field(default="BioResearch Assistant", description="Application name")
     version: str = Field(
-        default="0.1.0",
+        default="1.3.0",
         description="Application version (e.g. for /health and UI)",
         validation_alias="APP_VERSION",
     )
@@ -189,6 +189,16 @@ class Settings(BaseSettings):
         default="http://localhost:8000/api/v1/auth/callback",
         description="OIDC redirect URI after login",
     )
+    frontend_base_url: str = Field(
+        default="http://localhost:5173",
+        description="SPA origin for post-login redirect (OIDC callback)",
+        validation_alias="FRONTEND_BASE_URL",
+    )
+    session_cookie_name: str = Field(
+        default="bra_access_token",
+        description="httpOnly session cookie name",
+        validation_alias="SESSION_COOKIE_NAME",
+    )
     jwt_secret: str = Field(default="", description="JWT secret for session (optional)")
     jwt_algorithm: str = Field(default="RS256", description="JWT algorithm")
     microsoft_tenant_id: str = Field(
@@ -299,6 +309,41 @@ class Settings(BaseSettings):
         """True only for explicit local/test deploys — not the empty default."""
         dep = (self.deployment or "").strip().lower()
         return dep in ("local", "development", "test")
+
+    @property
+    def is_production_runtime(self) -> bool:
+        """True when ENVIRONMENT or DEPLOYMENT indicates a production target."""
+        env = (self.environment or "").strip().lower()
+        dep = (self.deployment or "").strip().lower()
+        return env == "production" or dep in {
+            "production",
+            "prod",
+            "azure",
+            "otc",
+            "dfn",
+            "k8s",
+        }
+
+    def assert_runtime_hardened(self) -> None:
+        """Refuse production start with lab/demo defaults (Uniklinik bar)."""
+        if not self.is_production_runtime:
+            return
+        if self.allows_unauthenticated_dev:
+            raise RuntimeError(
+                "DEPLOYMENT=local|development|test is forbidden when ENVIRONMENT=production"
+            )
+        if (self.isolation_mode or "").strip().lower() == "open":
+            raise RuntimeError("ISOLATION_MODE=open is forbidden in production")
+        if "*" in self.cors_origins:
+            raise RuntimeError("CORS_ORIGINS=* is forbidden in production")
+        if not self.auth_enabled:
+            raise RuntimeError("OIDC_ISSUER and OIDC_CLIENT_ID are required in production")
+        url = (self.database_url or "").lower()
+        if ":bioresearch@" in url or url.endswith(":bioresearch/") or "/bioresearch:" in url:
+            raise RuntimeError(
+                "Default database password 'bioresearch' is forbidden in production. "
+                "Set DB_PASSWORD to a unique secret."
+            )
 
     @property
     def is_user_isolation(self) -> bool:

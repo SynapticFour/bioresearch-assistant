@@ -40,7 +40,12 @@ def upgrade() -> None:
     try:
         op.execute("CREATE EXTENSION IF NOT EXISTS vector")
     except Exception:
-        pass
+        import logging
+
+        logging.getLogger("alembic").warning(
+            "Could not CREATE EXTENSION vector "
+            "(expected on SQLite or without superuser). pgvector embeddings disabled."
+        )
 
     # ── papers ──────────────────────────────────────
     op.create_table(

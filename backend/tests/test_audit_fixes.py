@@ -23,7 +23,11 @@ async def test_get_current_user_fail_closed_when_deployment_empty() -> None:
     settings.allows_unauthenticated_dev = False
     with patch("app.core.auth.get_settings", return_value=settings):
         with pytest.raises(HTTPException) as exc:
-            await get_current_user(credentials=None, auth_service=MagicMock())
+            await get_current_user(
+                request=MagicMock(cookies={}),
+                credentials=None,
+                auth_service=MagicMock(),
+            )
     assert exc.value.status_code == 401
 
 
@@ -90,15 +94,24 @@ async def test_fair_score_bonus_only_when_no_recommendations() -> None:
     """Complete packages keep a 100 score; missing fields must not collapse to 0."""
     svc = FAIRExportService()
     complete = await svc.check_fair_compliance(
-        {"title": "Dataset", "license": "CC-BY-4.0", "funding": "DFG"}
+        {
+            "title": "Dataset",
+            "identifier": "10.5281/zenodo.example",
+            "license": "CC-BY-4.0",
+            "funding": "DFG",
+            "formats": ["application/json"],
+        }
     )
     assert complete.recommendations == []
     assert complete.score == 100
 
     incomplete = await svc.check_fair_compliance({})
     assert incomplete.recommendations
-    assert incomplete.score == 50
-    assert incomplete.score != 0
+    assert incomplete.score == 0
+    assert incomplete.findable is False
+    assert incomplete.accessible is False
+    assert incomplete.interoperable is False
+    assert incomplete.reusable is False
 
 
 @pytest.mark.asyncio

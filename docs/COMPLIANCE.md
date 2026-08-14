@@ -2,9 +2,9 @@
 
 ## BioResearch Assistant — Synaptic Four
 
-### Stand: März 2026 | Version: 1.0.0
+### Stand: August 2026 | Version: 1.3.0
 
-> **Wichtiger Hinweis (kein Rechtsrat):**  
+> **Wichtiger Hinweis (kein Rechtsrat):**
 > Dieses Dokument beschreibt technische und organisatorische Maßnahmen,
 > die den datenschutzfreundlichen Einsatz des BioResearch Assistant
 > unterstützen sollen. Es stellt **keine verbindliche Aussage zur
@@ -251,7 +251,7 @@ Für klinische Forschung:
 
 | Bereich | Methode | Standard |
 |---------|---------|----------|
-| Daten in Ruhe | Fernet (AES-128-CBC) | NIST |
+| Daten in Ruhe | AES-256-GCM (Pseudonym-Mappings) | NIST SP 800-38D |
 | Daten in Transit | TLS 1.2+ | BSI TR-02102 |
 | Passwörter | secrets.token_urlsafe(64) | OWASP |
 | Pseudonym-Mappings | AES-256 | NIST |
@@ -296,15 +296,15 @@ Bei einem Datenleck ohne Verschlüsselung:
 Die folgende Liste bietet eine technische Orientierung und ersetzt keine
 individuelle Beratung:
 
-- ☐ Datenschutz-Folgenabschätzung (DSFA/DPIA) gemäß Art. 35 DSGVO prüfen und ggf. durchführen  
-- ☐ Rollenklärung: Verantwortlicher / Auftragsverarbeiter / ggf. gemeinsame Verantwortlichkeit  
-- ☐ Vertragslage prüfen (z. B. AVV/BAA mit Hosting‑Provider und ggf. Synaptic Four)  
-- ☐ Lokalen Datenschutzbeauftragten und Informationssicherheitsbeauftragten einbinden  
-- ☐ Verzeichnis der Verarbeitungstätigkeiten (VVT) aktualisieren  
-- ☐ OIDC Provider konfigurieren (kein Dev‑Mode in Produktion)  
-- ☐ CORS_ORIGINS auf notwendige Domains einschränken  
-- ☐ Verschlüsselung at rest (Datenbank/Volumes) und Backups implementieren  
-- ☐ Monitoring und Incident‑Prozess (z. B. Log‑Überwachung, Alarmierung) etablieren  
+- ☐ Datenschutz-Folgenabschätzung (DSFA/DPIA) gemäß Art. 35 DSGVO prüfen und ggf. durchführen
+- ☐ Rollenklärung: Verantwortlicher / Auftragsverarbeiter / ggf. gemeinsame Verantwortlichkeit
+- ☐ Vertragslage prüfen (z. B. AVV/BAA mit Hosting‑Provider und ggf. Synaptic Four)
+- ☐ Lokalen Datenschutzbeauftragten und Informationssicherheitsbeauftragten einbinden
+- ☐ Verzeichnis der Verarbeitungstätigkeiten (VVT) aktualisieren
+- ☐ OIDC Provider konfigurieren (kein Dev‑Mode in Produktion)
+- ☐ CORS_ORIGINS auf notwendige Domains einschränken
+- ☐ Verschlüsselung at rest (Datenbank/Volumes) und Backups implementieren
+- ☐ Monitoring und Incident‑Prozess (z. B. Log‑Überwachung, Alarmierung) etablieren
 
 ### 7.2 KI-Konfiguration
 
@@ -402,19 +402,19 @@ Für NIS2-betroffene Kunden ist BioResearch Assistant mit:
 
 ## 10. Kontakt & Verantwortlichkeit
 
-**Verantwortlicher (Art. 4 Nr. 7 DSGVO):**  
-Synaptic Four  
-[Adresse]  
+**Verantwortlicher (Art. 4 Nr. 7 DSGVO):**
+Synaptic Four
+[Adresse]
 contact@synapticfour.com
 
-**Technisch-organisatorische Maßnahmen (TOM):**  
+**Technisch-organisatorische Maßnahmen (TOM):**
 Auf Anfrage: contact@synapticfour.com
 
-**Sicherheitsmeldungen:**  
-contact@synapticfour.com  
+**Sicherheitsmeldungen:**
+contact@synapticfour.com
 (PGP Key auf Anfrage)
 
 ---
 
-*Dieses Dokument wird bei wesentlichen Änderungen der Rechtslage aktualisiert. Letzte Überprüfung: März 2026.*  
+*Dieses Dokument wird bei wesentlichen Änderungen der Rechtslage aktualisiert. Letzte Überprüfung: März 2026.*
 *Kein Rechtsrat — für verbindliche Einschätzung deutschen IT-Anwalt konsultieren.*

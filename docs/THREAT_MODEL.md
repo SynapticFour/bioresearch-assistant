@@ -1,7 +1,7 @@
 # BioResearch Assistant — Threat Model
 
 **Status:** Living · customer-shareable
-**Version:** 1.0 · 2026-08-12
+**Version:** 1.1 · 2026-08-15
 **Audience:** Security reviewers, operators, procurement
 **Related:** product README · Showcase [co-custody.md](https://github.com/SynapticFour/SynapticFour-Showcase/blob/main/docs/for-customers/co-custody.md) · [key-custody.md](https://github.com/SynapticFour/SynapticFour-Showcase/blob/main/docs/for-customers/key-custody.md) · Solum subject bridge docs
 
@@ -72,10 +72,17 @@ BRA is a **customer-operated on-premise research platform** (literature mining, 
 ## 5. Controls (as designed)
 
 - Customer-hosted deployment; no Synaptic Four production custody by default
+- Production process refuses local-auth, `ISOLATION_MODE=open`, CORS `*`, missing OIDC, default DB password
+- httpOnly session cookie (no access token in localStorage); SPA auth gate
+- Tenant isolation on WES/BLAST/DRS/notebook/PhenoFlow; BLAST DB and `.nf` path allowlists
+- Markdown HTML sanitized (DOMPurify); HelixTest stubs opt-in only
+- Default compose does not mount the Docker socket; Nextflow binary pinned
 - Pseudonymisation and export validation reports as **technical evidence**
 - Optional Solum subject link (`solum_subject_id`) documented; fails closed when misconfigured
 - Optional Locus RAG intended for operator-controlled models/indexes
 - Support / IR: founder-scale; see Showcase support-tiers and company IR pointers
+
+Hospital operator checklist: [deployment/UNIKLINIK.md](deployment/UNIKLINIK.md).
 
 ---
 
@@ -85,6 +92,7 @@ BRA is a **customer-operated on-premise research platform** (literature mining, 
 2. **Subject-link misuse** — a wrong `solum_subject_id` joins the wrong clinical identity; operators own join discipline.
 3. **LLM leakage** — if a cloud LLM is configured, prompts may leave the trust boundary; default guidance is local.
 4. **Not a medical device** — no diagnosis/therapy claims.
+5. **Docker-in-Docker** — mounting the host Docker socket is a host-escape path; not in the default stack.
 
 ---
 

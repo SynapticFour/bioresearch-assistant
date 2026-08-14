@@ -48,8 +48,9 @@ async def get_compliance_status() -> dict:
         GAIA-X-Compliance oder einer Zertifizierung dar.
     """
     return {
-        "gaia_x_ready": True,
-        "version": "1.0.0",
+        "gaia_x_ready": False,
+        "gaia_x_certified": False,
+        "version": "1.3.0",
         "principles": {
             "data_sovereignty": True,
             "gdpr_alignment": True,

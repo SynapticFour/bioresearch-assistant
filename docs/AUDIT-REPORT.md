@@ -1,8 +1,8 @@
 # Code Quality & Security Audit Report
 
 **Projekt:** BioResearch Assistant
-**Version:** 1.0.0
-**Datum:** März 2026
+**Version:** 1.3.0
+**Datum:** August 2026
 **Erstellt von:** Synaptic Four
 **Methode:** Automatisierte Analyse + manuelle Review
 
@@ -19,7 +19,7 @@ oder rechtliche Bewertung.
 |----------------|----------------------|------------------|
 | Sicherheit     | solide Basis         | OWASP-orientierter Review, Security Headers, Input Validation, SSRF-Schutz |
 | Code-Qualität  | gut strukturiert     | Klare Schichten, Linting, Typisierung |
-| Test-Coverage  | ausbaufähig          | ca. 68 %, Ziel 80 %+ |
+| Test-Coverage  | ausbaufähig          | Backend ~74 % Line Coverage; Frontend: Vitest-Sanitizer-Tests |
 | Dokumentation  | umfangreich          | Benutzer-, Entwickler- und Compliance-Doku vorhanden |
 | Datenschutz    | technisch vorbereitet| Pseudonymisierung, Audit, Isolation; rechtliche Bewertung bleibt Betreiber:in vorbehalten |
 | GA4GH Standards| weitgehend umgesetzt | WES, DRS, Phenopackets (siehe Developer Guide) |
@@ -35,7 +35,7 @@ und ohne Anspruch auf formale Zertifizierung oder Rechtskonformität.
 |---------|-----------|------------------|
 | RAG — Frag deine Bibliothek | ⭐⭐⭐⭐⭐ | Rate limit, Scope, Prompt-Injection-Schutz |
 | Research Notebook (ELN) | ⭐⭐⭐⭐☆ | Markdown-ELN, KI-Assistent, Auto-Save. Besonders für Labor-Tagebücher. |
-| FAIR Export | ⭐⭐⭐⭐⭐ | FAIR-Compliance, DataCite, Zenodo. Besonders relevant für DFG-geförderte Projekte. |
+| FAIR Export | ⭐⭐⭐☆☆ | Heuristischer FAIR-Check (nicht zertifiziert); DataCite/Zenodo-Export |
 
 ---
 
@@ -62,7 +62,7 @@ und ohne Anspruch auf formale Zertifizierung oder Rechtskonformität.
 - Literatursuche: 20/Minute
 
 ### 1.4 Datenverschlüsselung
-- Pseudonymisierungs-Mappings verschlüsselt (Fernet)
+- Pseudonymisierungs-Mappings verschlüsselt (AES-256-GCM, nicht Fernet)
 - DB-Verbindung via SSL (Produktions-Konfiguration)
 - Bekannte Lücke: DRS Dateien nicht at-rest verschlüsselt (Roadmap v1.5)
 
@@ -70,7 +70,9 @@ und ohne Anspruch auf formale Zertifizierung oder Rechtskonformität.
 - Eingeschränkte Origins (kein Wildcard in Produktion)
 - Spezifische Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH
 - Spezifische Headers: Authorization, Content-Type, Accept, Origin
-- Credentials nur für bekannte Origins
+- CORS: kein Wildcard in Produktion (`assert_runtime_hardened`); Credentials nur für bekannte Origins
+- Session: httpOnly Cookie (`bra_access_token`), kein Token in localStorage
+- Bekannte Frontend-Abhängigkeit: react-router 6.x hat moderate Advisories (GHSA-wrjc-x8rr-h8h6, GHSA-337j-9hxr-rhxg); CI blockiert high/critical. Upgrade auf Router 7 ist geplant.
 
 ### 1.6 Audit Trail
 - Alle Pseudonymisierungen werden geloggt

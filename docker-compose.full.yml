@@ -67,10 +67,9 @@ services:
     restart: unless-stopped
 
   nextflow:
-    image: nextflow/nextflow:latest
+    image: nextflow/nextflow:24.10.6
     volumes:
       - nextflow_data:/workspace
-      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
 volumes:

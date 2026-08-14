@@ -71,7 +71,7 @@ async def test_wes_run_workflow_returns_run_id(async_client: AsyncClient) -> Non
         response = await async_client.post(
             "/ga4gh/wes/v1/runs",
             data={
-                "workflow_url": "pipelines/blast/blast_search.nf",
+                "workflow_url": "main.nf",
                 "workflow_type": "NEXTFLOW",
                 "workflow_type_version": "DSL2",
                 "workflow_params": "{}",

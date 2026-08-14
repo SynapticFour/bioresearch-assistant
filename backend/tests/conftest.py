@@ -27,8 +27,9 @@ os.environ.setdefault(
     "PSEUDONYMIZATION_ENCRYPTION_KEY",
     "a" * 64,
 )
-os.environ.setdefault("ISOLATION_MODE", "open")
+os.environ.setdefault("ISOLATION_MODE", "user")
 os.environ.setdefault("DEPLOYMENT", "test")
+os.environ.setdefault("ENVIRONMENT", "test")
 
 from app.core.auth import get_current_user
 from app.core.database import Base, get_db, get_engine_instance
@@ -270,7 +271,7 @@ def mock_encryption_key(monkeypatch):
         "PSEUDONYMIZATION_ENCRYPTION_KEY",
         "a" * 64,
     )
-    monkeypatch.setenv("ISOLATION_MODE", "open")
+    monkeypatch.setenv("ISOLATION_MODE", "user")
     monkeypatch.setenv("DEPLOYMENT", "test")
 
 

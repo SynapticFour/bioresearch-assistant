@@ -8,8 +8,12 @@ from app.services.drs_service import (
     get_access_url,
     get_object,
     get_service_info,
+    register_object,
+    register_object_from_path,
     resolve_object_identifier,
 )
+
+OWNER = {"sub": "dev-user", "email": "contact@synapticfour.com", "roles": ["admin"]}
 
 
 @pytest.fixture
@@ -23,9 +27,8 @@ def drs_storage(tmp_path, mocker):
 
 def test_get_object_creates_drs_object_with_checksums(drs_storage):
     """Placing a file in storage and get_object returns DrsObject with checksums."""
-    test_file = drs_storage / "sample.txt"
-    test_file.write_text("hello world")
-    obj = get_object("sample.txt")
+    register_object("sample.txt", b"hello world", current_user=OWNER)
+    obj = get_object("sample.txt", current_user=OWNER)
     assert obj is not None
     assert obj.id == "sample.txt"
     assert obj.size == 11
@@ -37,8 +40,8 @@ def test_get_object_creates_drs_object_with_checksums(drs_storage):
 def test_get_object_calculates_md5_and_sha256(drs_storage):
     """get_object returns correct md5 checksum for file content."""
     content = b"drs test content"
-    (drs_storage / "checksum_test.bin").write_bytes(content)
-    obj = get_object("checksum_test.bin")
+    register_object("checksum_test.bin", content, current_user=OWNER)
+    obj = get_object("checksum_test.bin", current_user=OWNER)
     assert obj is not None
     expected_md5 = hashlib.md5(content).hexdigest()
     assert obj.checksums[0].type == "md5"
@@ -47,8 +50,8 @@ def test_get_object_calculates_md5_and_sha256(drs_storage):
 
 def test_get_access_url_returns_valid_url(drs_storage):
     """get_access_url returns a valid URL for an existing object."""
-    (drs_storage / "access_test.txt").write_text("data")
-    url_result = get_access_url("access_test.txt", "default")
+    register_object("access_test.txt", b"data", current_user=OWNER)
+    url_result = get_access_url("access_test.txt", "default", current_user=OWNER)
     assert url_result is not None
     assert "access_test.txt" in url_result.url
     assert "/stream" in url_result.url
@@ -79,17 +82,18 @@ def test_get_object_nested_path_under_storage(drs_storage):
     """object_id may contain slashes (relative path under DRS root)."""
     (drs_storage / "a").mkdir()
     (drs_storage / "a" / "b.txt").write_text("nested")
-    obj = get_object("a/b.txt")
+    register_object_from_path("a/b.txt", current_user=OWNER)
+    obj = get_object("a/b.txt", current_user=OWNER)
     assert obj is not None
     assert obj.id == "a/b.txt"
 
 
 def test_resolve_object_identifier_matching_drs_uri(drs_storage):
     """drs://host/path resolves to object id when host matches drs_base_url."""
-    (drs_storage / "by-uri.txt").write_text("x")
+    register_object("by-uri.txt", b"x", current_user=OWNER)
     uri = "drs://localhost:8000/by-uri.txt"
     assert resolve_object_identifier(uri) == "by-uri.txt"
-    obj = get_object(uri)
+    obj = get_object(uri, current_user=OWNER)
     assert obj is not None
     assert obj.id == "by-uri.txt"
 

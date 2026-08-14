@@ -18,6 +18,19 @@ from app.schemas.fair_export import FAIRComplianceReport, FAIRExportOptions
 
 logger = logging.getLogger(__name__)
 
+_KNOWN_LICENSES = frozenset(
+    {
+        "CC-BY-4.0",
+        "CC-BY-SA-4.0",
+        "CC0-1.0",
+        "CC-BY-NC-4.0",
+        "MIT",
+        "Apache-2.0",
+        "BSD-3-Clause",
+        "BSD-2-Clause",
+    }
+)
+
 
 class FAIRExportService:
     """Build FAIR-compliant export packages and run compliance checks."""
@@ -85,19 +98,36 @@ class FAIRExportService:
                     json.dumps(papers_data, indent=2, ensure_ascii=False).encode("utf-8"),
                 )
 
-            # Phenopackets
+            # Phenopackets (skip records without active research consent)
             if options.include_phenopackets:
+                from app.core.config import get_settings
+                from app.services import consent_service as cs
+
+                policy_id = get_settings().mii_default_consent_policy_id
                 pp_stmt = select(PatientRecordModel)
                 pp_stmt = apply_scope(pp_stmt, PatientRecordModel, scope)
                 result = await db.execute(pp_stmt)
                 records = result.scalars().all()
+                skipped_no_consent = 0
                 for rec in records:
+                    consent = await cs.find_active_consent(db, rec.pseudonym_id, policy_id, scope)
+                    if not consent:
+                        skipped_no_consent += 1
+                        continue
                     safe_name = "".join(c for c in rec.pseudonym_id if c.isalnum() or c in "._-")
                     zf.writestr(
                         f"phenopackets/{safe_name or 'phenopacket'}.json",
                         json.dumps(rec.phenopacket_json, indent=2, ensure_ascii=False).encode(
                             "utf-8"
                         ),
+                    )
+                if skipped_no_consent:
+                    zf.writestr(
+                        "phenopackets/CONSENT_SKIPPED.txt",
+                        (
+                            f"{skipped_no_consent} phenopacket(s) omitted: no active "
+                            f"research consent for policy {policy_id}.\n"
+                        ).encode(),
                     )
 
             # Notebooks
@@ -126,6 +156,9 @@ class FAIRExportService:
                 )
 
             # FAIR compliance report
+            has_payload = (
+                options.include_papers or options.include_phenopackets or options.include_notebooks
+            )
             package_summary = {
                 "papers": options.include_papers,
                 "phenopackets": options.include_phenopackets,
@@ -133,6 +166,9 @@ class FAIRExportService:
                 "drs": options.include_drs,
                 "license": options.license,
                 "title": options.title,
+                "identifier": options.identifier,
+                "funding": options.funding,
+                "formats": ["json", "markdown"] if has_payload else [],
             }
             report = await self.check_fair_compliance(package_summary)
             fair_md = self._fair_report_markdown(report, options)
@@ -230,15 +266,43 @@ class FAIRExportService:
 """
 
     async def check_fair_compliance(self, package: dict) -> FAIRComplianceReport:
-        """Check FAIR principles and return score + recommendations."""
+        """Heuristic FAIR check — not a certification. False unless evidence is present."""
         recommendations: list[str] = []
-        findable = bool(package.get("title"))
-        if not findable:
+        title = bool(package.get("title"))
+        identifier = bool(package.get("identifier") or package.get("doi") or package.get("pid"))
+        findable = title and identifier
+        if not title:
             recommendations.append("Add a title for findability.")
-        accessible = True  # We describe access via license/README
-        interoperable = True  # We use JSON, Markdown
-        reusable = bool(package.get("license"))
-        if not reusable:
+        if not identifier:
+            recommendations.append(
+                "Add a persistent identifier (DOI, Handle, or accession) for findability."
+            )
+        license_id = str(package.get("license") or "").strip()
+        accessible = bool(license_id)
+        if not accessible:
+            recommendations.append("Describe access conditions (license / access statement).")
+        formats = package.get("formats") or []
+        if isinstance(formats, str):
+            formats = [formats]
+        has_payload = bool(
+            package.get("papers")
+            or package.get("phenopackets")
+            or package.get("notebooks")
+            or package.get("include_papers")
+            or package.get("include_phenopackets")
+            or package.get("include_notebooks")
+        )
+        interoperable = bool(formats) or has_payload
+        if not interoperable:
+            recommendations.append(
+                "Include standard formats (JSON Phenopackets, JSON literature, Markdown)."
+            )
+        reusable = license_id in _KNOWN_LICENSES
+        if license_id and not reusable:
+            recommendations.append(
+                f"Use a machine-readable SPDX license (e.g. CC-BY-4.0); got {license_id!r}."
+            )
+        if not license_id:
             recommendations.append("Specify a license (e.g. CC-BY-4.0) for reuse.")
         if not package.get("funding") and "funding" not in str(package):
             recommendations.append(
@@ -250,11 +314,15 @@ class FAIRExportService:
             + (25 if interoperable else 0)
             + (25 if reusable else 0)
         )
+        if recommendations:
+            score = min(score, 90)
+        elif package.get("funding"):
+            score = min(100, score + 10)
         return FAIRComplianceReport(
             findable=findable,
             accessible=accessible,
             interoperable=interoperable,
             reusable=reusable,
-            score=min(100, score + (0 if recommendations else 10)),
+            score=score,
             recommendations=recommendations,
         )

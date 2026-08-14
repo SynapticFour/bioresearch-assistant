@@ -7,7 +7,7 @@ This document is a **human-readable summary**. For machine-readable SBOMs, gener
 
 ## Backend Dependencies (Python)
 
-Source of truth: `backend/requirements.txt` (and transitive resolves at install time).
+Source of truth: `backend/requirements.txt` plus hashed `backend/requirements.lock` (`uv pip compile --generate-hashes`).
 
 | Package | Version constraint | Lizenz | Verwendung |
 |---------|-------------------|--------|------------|

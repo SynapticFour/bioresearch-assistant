@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import get_current_user
 from app.core.config import get_settings
 from app.core.database import get_db
+from app.core.limiter import limiter
 from app.schemas.wes import (
     RunId,
     RunListResponse,
@@ -66,7 +67,7 @@ def _service_info() -> ServiceInfo:
             name="Synaptic Four",
             url="https://www.synapticfour.com",
         ),
-        version="0.1.0",
+        version="1.3.0",
         description="GA4GH WES v1.1 for Nextflow workflows (on-premise).",
         contactUrl="https://www.synapticfour.com",
         documentationUrl="https://ga4gh.github.io/workflow-execution-service-schemas/",
@@ -138,6 +139,7 @@ async def list_runs(
 
 
 @router.post("/runs", response_model=RunId, status_code=status.HTTP_200_OK)
+@limiter.limit("10/minute")
 async def run_workflow(
     request: Request,
     db: AsyncSession = Depends(get_db),

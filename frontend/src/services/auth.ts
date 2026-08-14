@@ -1,11 +1,13 @@
 /**
- * Auth service: OIDC status, login redirect, token storage, current user.
+ * Auth service: OIDC status, login redirect, cookie session (no localStorage tokens).
  */
 
 const API_URL =
   typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL
     ? String(import.meta.env.VITE_API_URL).replace(/\/$/, "")
     : "";
+
+const fetchOpts: RequestInit = { credentials: "include" };
 
 export interface AuthStatusResponse {
   auth_enabled: boolean;
@@ -29,7 +31,7 @@ export interface AuthUser {
 
 export const authService = {
   async getStatus(): Promise<AuthStatusResponse> {
-    const res = await fetch(`${API_URL}/api/v1/auth/status`);
+    const res = await fetch(`${API_URL}/api/v1/auth/status`, fetchOpts);
     if (!res.ok) throw new Error("Failed to fetch auth status");
     return res.json();
   },
@@ -43,25 +45,19 @@ export const authService = {
     window.location.href = `${API_URL}/api/v1/auth/login?${params.toString()}`;
   },
 
-  logout(): void {
-    localStorage.removeItem("access_token");
-    window.location.href = "/";
-  },
-
-  getToken(): string | null {
-    return localStorage.getItem("access_token");
-  },
-
-  setToken(token: string): void {
-    localStorage.setItem("access_token", token);
+  async logout(): Promise<void> {
+    try {
+      await fetch(`${API_URL}/api/v1/auth/logout`, {
+        ...fetchOpts,
+        method: "POST",
+      });
+    } finally {
+      window.location.href = "/login";
+    }
   },
 
   async getMe(): Promise<AuthUser | null> {
-    const token = this.getToken();
-    if (!token) return null;
-    const res = await fetch(`${API_URL}/api/v1/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await fetch(`${API_URL}/api/v1/auth/me`, fetchOpts);
     if (!res.ok) return null;
     return res.json();
   },

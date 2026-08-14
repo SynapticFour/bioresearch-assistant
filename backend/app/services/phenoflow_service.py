@@ -325,7 +325,7 @@ async def submit_pheno_flow_run(
                 tags=wes_tags,
             )
             try:
-                wes_run_id = await _submit_wes_run(db, run_req)
+                wes_run_id = await _submit_wes_run(db, run_req, current_user=current_user)
             except Exception as e:  # noqa: BLE001
                 err = (
                     "WES submission failed for "
@@ -393,8 +393,12 @@ async def submit_pheno_flow_run(
     )
 
 
-async def _submit_wes_run(db: AsyncSession, run_req: RunRequest) -> UUID:
+async def _submit_wes_run(
+    db: AsyncSession, run_req: RunRequest, *, current_user: dict[str, Any]
+) -> UUID:
     """Submit a WES run and return its UUID."""
-    wes_run_id = await create_wes_run(db, run_req, workflow_attachments=None)
+    wes_run_id = await create_wes_run(
+        db, run_req, workflow_attachments=None, current_user=current_user
+    )
     # create_wes_run writes WorkflowRun row + schedules background task but doesn't commit.
     return UUID(str(wes_run_id))

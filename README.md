@@ -40,8 +40,8 @@ im DACH-Raum.
 | 🏥 MII-KDS Export + Broad Consent Tracker | FHIR R4 / MII-KDS-orientiert | ✅ (operational, partial profile mapping) |
 | 🔁 Search-to-Execution (PhenoFlow) | Phenopackets + DRS + WES | ✅ v0.1 |
 | 📓 Research Notebook (ELN) | Markdown + KI | ✅ |
-| 📦 FAIR Data Export | DataCite + Zenodo | ✅ |
-| 🌐 GAIA-X Self-Description | Gaia-X Standard | ✅ |
+| 🌐 GAIA-X Self-Description | Gaia-X Standard | ⚠️ Design alignment only, **not certified** |
+| 📦 FAIR Data Export | DataCite + Zenodo | ⚠️ Heuristic FAIR check, not a certification |
 
 ---
 
@@ -67,7 +67,7 @@ Konfiguration, Betriebsumgebung und den Verantwortlichen vor Ort ab.
 | 🇪🇺 DSGVO / GDPR | Pseudonymisierung, Audit-Logs, Isolation, Verschlüsselung (Details in `COMPLIANCE.md`) |
 | 🇩🇪 BDSG / §393 SGB V | Fokus auf On-Premise-Betrieb; Cloud-Einsatz erfordert separate Bewertung |
 | 🇩🇪 GDNG 2025 | Unterstützt pseudonymisierte Forschungs-Workflows, Audit-Trails |
-| 🌐 GAIA-X | Architektur „GAIA-X ready by design“, keine formale Zertifizierung |
+| 🌐 GAIA-X | Architektur an GAIA-X-Prinzipien ausgerichtet; **keine formale Zertifizierung**; API meldet `gaia_x_ready: false` |
 | 🧬 GA4GH WES / DRS / Phenopackets | Implementierung orientiert sich an den jeweiligen GA4GH-Spezifikationen |
 | 📊 FAIR Prinzipien | FAIR-Export, Metadaten & Compliance-Check als Hilfsmittel |
 | 🔒 OWASP Top 10 | Sicherheitsmaßnahmen an OWASP-Empfehlungen ausgerichtet |
@@ -157,6 +157,7 @@ Details: `docs/INSTALL.md`.
 | [CONFORMANCE.md](docs/CONFORMANCE.md) | Conformance / QA (GA4GH & verwandte Endpunkte) |
 | [MII-EXPORT.md](docs/MII-EXPORT.md) | MII-Export, Consent, Async-Jobs, Terminologie-Overrides |
 | [TOOLS-SETUP.md](docs/TOOLS-SETUP.md) | BLAST, Nextflow Setup |
+| [deployment/UNIKLINIK.md](docs/deployment/UNIKLINIK.md) | Uniklinik-Produktionscheckliste (OIDC, Isolation, Secrets) |
 | [deployment/README.md](docs/deployment/README.md) | Deployment-Matrix (online, offline, bare metal, cloud, k8s) |
 | [deployment/OFFLINE-AIRGAP.md](docs/deployment/OFFLINE-AIRGAP.md) | Air-gapped / Offline Install |
 | [deployment/UPDATE-SOP.md](docs/deployment/UPDATE-SOP.md) | SOP-Vorlage für Updates, Bugfixes, Rollback |

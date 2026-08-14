@@ -7,6 +7,16 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+### Security (Uniklinik-Bar)
+
+- Production start refuses unauthenticated local auth, `ISOLATION_MODE=open`, CORS `*`, missing OIDC, and default DB password `bioresearch`.
+- OIDC callback sets an httpOnly session cookie and redirects to the SPA (`/auth/callback`); tokens are not returned as JSON.
+- WES/BLAST/PhenoFlow/DRS/notebook queries are tenant-scoped; owner-less workflow runs are rejected outside `open`.
+- BLAST databases and local `.nf` paths are allowlisted; HelixTest TRS stubs require `WES_HELIXTEST_STUBS=1`.
+- Markdown preview is sanitized (DOMPurify). Docker socket removed from default compose (optional DiD overlay only).
+- Nextflow install pinned to a GitHub release tag (no `curl | bash`).
+- Operator checklist: [docs/deployment/UNIKLINIK.md](docs/deployment/UNIKLINIK.md).
+
 - Locus (curated on-prem RAG): `locus_chunks` table, `LOCUS_ENABLED`, `GET/POST /api/v1/locus/*`, demo seed script — see [docs/LOCUS-MODULE.md](docs/LOCUS-MODULE.md).
 
 ## [1.0.0] - 2026-03-01

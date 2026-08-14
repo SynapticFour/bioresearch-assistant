@@ -114,9 +114,16 @@ async def test_get_drs_object_nested_path_segment(async_client: AsyncClient) -> 
         (storage_path / "nested").mkdir(parents=True, exist_ok=True)
         nested_file = storage_path / "nested" / "blob.bin"
         nested_file.write_bytes(b"nested-bytes")
+        from app.services.drs_service import register_object_from_path
+
         with patch("app.api.v1.endpoints.drs.get_settings") as mock_ep:
             with patch("app.services.drs_service.get_settings", mock_ep):
                 mock_ep.return_value.drs_storage_path = str(storage_path)
+                mock_ep.return_value.drs_base_url = "http://localhost:8000/ga4gh/drs/v1"
+                register_object_from_path(
+                    "nested/blob.bin",
+                    current_user={"sub": "dev-user"},
+                )
                 obj_id = "nested/blob.bin"
                 resp = await async_client.get(f"/ga4gh/drs/v1/objects/{obj_id}")
         assert resp.status_code == 200

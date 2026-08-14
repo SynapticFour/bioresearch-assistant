@@ -1,5 +1,6 @@
 """Pseudonymization API endpoints (DSGVO)."""
 
+import hmac
 import logging
 import uuid
 from datetime import UTC, datetime
@@ -71,7 +72,9 @@ def require_restore_permission(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Restore is not configured (RESTORE_API_KEY not set)",
         )
-    if x_restore_api_key != settings.restore_api_key:
+    provided = x_restore_api_key or ""
+    expected = settings.restore_api_key
+    if len(provided) != len(expected) or not hmac.compare_digest(provided, expected):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid or missing X-Restore-API-Key",

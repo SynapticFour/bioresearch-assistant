@@ -45,6 +45,14 @@ For **clinical pilots involving patient-related data**, Synaptic Four’s postur
 2. **Commission a penetration test** (or equivalent independent security assessment) before production clinical use.
 3. Complete site-specific validation (DPIA, role model, encryption at rest for DB/volumes, backup/incident process) with your DPO / ISB.
 
+### 4. Session cookies and isolation
+
+OIDC sets an **httpOnly** session cookie. The SPA does not store access tokens in `localStorage`. Production refuses `ISOLATION_MODE=open`, unauthenticated local auth, CORS `*`, and the default database password. Operator checklist: [UNIKLINIK.md](../deployment/UNIKLINIK.md).
+
+### 5. Docker socket / Nextflow
+
+The default compose files do **not** mount `/var/run/docker.sock`. An optional overlay exists for lab/HPC only (`docker-compose.nextflow-dind.yml`) and is a host-escape path.
+
 BioResearch Assistant is **not recommended as a medical device** (FDA/MDR) without a separate regulatory programme.
 
 ---
@@ -56,6 +64,8 @@ BioResearch Assistant is **not recommended as a medical device** (FDA/MDR) witho
 | [COMPLIANCE.md](../COMPLIANCE.md) | Technical alignment with DSGVO, GA4GH, GAIA-X design (no certificates) |
 | [AUDIT-REPORT.md](../AUDIT-REPORT.md) | Internal technical assessment / residual risks |
 | [SECURITY.md](../../SECURITY.md) | Vulnerability reporting and engineering controls |
+| [THREAT_MODEL.md](../THREAT_MODEL.md) | Assets, adversaries, residual risks |
+| [UNIKLINIK.md](../deployment/UNIKLINIK.md) | Production start guards and clinic checklist |
 | [deployment/README.md](../deployment/README.md) | Deployment matrix (online / offline / air-gap) |
 
 **Security contact:** contact@synapticfour.com (no public GitHub issues for vulnerabilities)
