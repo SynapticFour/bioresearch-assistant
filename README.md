@@ -130,6 +130,8 @@ Hinweis Dev-Frontend: bei lokalem Vite-Start typischerweise `http://localhost:51
 Ein-Klick-Alternative (nach Klonen):
 
 ```bash
+pip install -r backend/requirements.txt
+make prove       # Backend-Tests, kein Docker
 make up          # unattended install oder start
 make down        # stoppen, Daten behalten
 make destroy     # stoppen + Volumes entfernen

@@ -7,6 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+### Added
+
+- **`make prove`** — backend pytest without Docker and without the coverage gate (that remains CI).
+
 ### Security (Uniklinik-Bar)
 
 - Production start refuses unauthenticated local auth, `ISOLATION_MODE=open`, CORS `*`, missing OIDC, and default DB password `bioresearch`.

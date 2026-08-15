@@ -12,7 +12,14 @@ Clinician-scientists, lab groups, Uniklinik research units who want one on-prem 
 
 ## Standalone
 
-See the root [README](../README.md) install path (`docker compose` / backend + frontend). Proof: backend pytest coverage gate in CI.
+```bash
+git clone https://github.com/SynapticFour/bioresearch-assistant.git && cd bioresearch-assistant
+pip install -r backend/requirements.txt
+make prove       # backend pytest, no Docker (coverage gate is CI)
+make up          # compose stack
+```
+
+See the root [README](../README.md) for the installer. CI keeps the 72 % coverage gate.
 
 ## Optional composition
 
