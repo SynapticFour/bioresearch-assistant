@@ -53,6 +53,7 @@ async def test_health_returns_healthy_status(health_client):
     assert "version" in data
     assert "features" in data
     assert data["features"]["embeddings"] is False
+    assert data["ga4gh_backend"] == {"drs": "local", "wes": "local"}
 
 
 @pytest.mark.asyncio

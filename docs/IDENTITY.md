@@ -1,8 +1,8 @@
 # Who BioResearch Assistant is for
 
-BioResearch Assistant (BRA) is a **researcher workbench**: Phenopackets, literature, BLAST, notebooks, its **own** GA4GH WES/DRS HTTP surface.
+BioResearch Assistant (BRA) is a **researcher workbench**: Phenopackets, literature, BLAST, notebooks. It is a complete product **without Ferrum**. For labs that have no archive, it exposes its **own** GA4GH WES/DRS HTTP surface.
 
-It is a complete product without Ferrum. It does not import Ferrum crates and is not a thin wrapper around the suite.
+When Ferrum is present, BRA **consumes** Ferrum DRS/WES as a GA4GH client. Set `FERRUM_DRS_URL` and/or `FERRUM_WES_URL` (include the `/ga4gh/drs/v1` and `/ga4gh/wes/v1` prefixes). BRA then proxies those HTTP surfaces to Ferrum and `/api/v1/health` reports `ga4gh_backend.drs|wes: ferrum`. Leave the URLs unset for BRA's **own** local DRS/WES. Do not run BRA’s local DRS as a second institutional archive beside Ferrum.
 
 ## Audience
 
@@ -26,7 +26,7 @@ See the root [README](../README.md) for the installer. CI keeps the 72 % coverag
 | Join | What you gain | Contract |
 |------|----------------|----------|
 | Solum | Phenopacket id bound to a clinical subject | `docs/SOLUM-SUBJECT-BRIDGE.md` — full `SubjectLinkBody` |
-| Ferrum | Shared `solum_subject` on DRS objects | Convention only; no Ferrum import |
+| Ferrum | Use Ferrum as the institutional DRS/WES | `FERRUM_DRS_URL` / `FERRUM_WES_URL` (optional `FERRUM_BEARER_TOKEN`). Health: `ga4gh_backend`. `solum_subject` convention still joins Phenopackets to Ferrum objects |
 | HELIOS | Signed evidence of a pipeline BRA kicked off | Operator exports artefacts; BRA does not embed HELIOS |
 
 When Solum Track B (CDR) is off, subject-link upsert returns 503 from Solum. BRA surfaces that as a failed upsert and still returns the payload.

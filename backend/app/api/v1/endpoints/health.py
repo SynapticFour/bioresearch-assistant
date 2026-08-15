@@ -142,6 +142,10 @@ async def health_check() -> dict[str, Any]:
         "features": features,
         "deployment": (settings.deployment or "").lower(),
         "data_sovereignty": data_sovereignty,
+        "ga4gh_backend": {
+            "drs": "ferrum" if settings.ferrum_drs_url else "local",
+            "wes": "ferrum" if settings.ferrum_wes_url else "local",
+        },
     }
 
 

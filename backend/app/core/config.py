@@ -62,6 +62,23 @@ class Settings(BaseSettings):
         validation_alias="SOLUM_SUBJECT_CAPABILITY",
     )
 
+    # Ferrum institutional DRS/WES (optional). Empty = BRA's local GA4GH surface.
+    ferrum_drs_url: str | None = Field(
+        default=None,
+        description="Ferrum DRS base including /ga4gh/drs/v1; when set, BRA proxies DRS to Ferrum",
+        validation_alias="FERRUM_DRS_URL",
+    )
+    ferrum_wes_url: str | None = Field(
+        default=None,
+        description="Ferrum WES base including /ga4gh/wes/v1; when set, BRA proxies WES to Ferrum",
+        validation_alias="FERRUM_WES_URL",
+    )
+    ferrum_bearer_token: str | None = Field(
+        default=None,
+        description="Optional bearer for Ferrum DRS/WES (Passport or operator token)",
+        validation_alias="FERRUM_BEARER_TOKEN",
+    )
+
     # API
     api_v1_prefix: str = Field(default="/api/v1", description="API v1 URL prefix")
 
@@ -402,6 +419,14 @@ class Settings(BaseSettings):
         if isinstance(v, str):
             return [h.strip().lower() for h in v.split(",") if h.strip()]
         return [str(h).strip().lower() for h in v if str(h).strip()]
+
+    @field_validator("ferrum_drs_url", "ferrum_wes_url", "ferrum_bearer_token", mode="before")
+    @classmethod
+    def empty_optional_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        stripped = str(v).strip()
+        return stripped or None
 
     @field_validator("cors_origins", mode="before")
     @classmethod

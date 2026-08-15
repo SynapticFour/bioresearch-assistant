@@ -18,6 +18,7 @@ from app.api.v1.endpoints import wes as wes_ep
 from app.api.v1.router import api_router
 from app.core.config import get_settings
 from app.core.limiter import limiter
+from app.services.ferrum_backend import maybe_proxy_ferrum
 
 # Configure logging before other imports that may log
 logging.basicConfig(
@@ -137,6 +138,16 @@ def create_application() -> FastAPI:
                 "img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'"
             )
         return response
+
+    @app.middleware("http")
+    async def ferrum_ga4gh_backend(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        proxied = await maybe_proxy_ferrum(request)
+        if proxied is not None:
+            return proxied
+        return await call_next(request)
 
     @app.exception_handler(Exception)
     async def global_exception_handler(
