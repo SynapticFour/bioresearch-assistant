@@ -148,7 +148,7 @@ CRISPR-Cas9 Anwendungen in der Krebstherapie.
 - Kann Metformin mit CRISPR-Therapien kombiniert werden?
 
 ---
-*Erstellt als Demo-Datensatz — BioResearch Assistant v1.0.0*
+*Erstellt als Demo-Datensatz — BioResearch Assistant v0.2.0*
 """
 
 # ── Demo DRS Files ───────────────────────────────────

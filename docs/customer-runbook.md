@@ -9,7 +9,7 @@ Kurzanleitung für IT-Betrieb und Forschungs-IT. Technische Details: [GitHub Rel
 - Linux-Server mit **Docker** und **Docker Compose v2**
 - Freie Ports: **8000** (API), **3000** (Weboberfläche), **11434** (Ollama, intern)
 - Ca. **24 GB RAM** empfohlen (Ollama + Backend)
-- `.env` mit **`BRA_VERSION`** (Release-Tag, z. B. `v1.3.0`) — **Pflicht**; `./install.sh --prod` bricht ohne diese Variable ab (kein `:latest`).
+- `.env` mit **`BRA_VERSION`** (Release-Tag, z. B. `v0.2.0`) — **Pflicht**; `./install.sh --prod` bricht ohne diese Variable ab (kein `:latest`).
 
 ---
 

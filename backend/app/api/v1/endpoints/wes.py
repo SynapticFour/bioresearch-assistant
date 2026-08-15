@@ -67,7 +67,7 @@ def _service_info() -> ServiceInfo:
             name="Synaptic Four",
             url="https://www.synapticfour.com",
         ),
-        version="1.3.0",
+        version="0.2.0",
         description="GA4GH WES v1.1 for Nextflow workflows (on-premise).",
         contactUrl="https://www.synapticfour.com",
         documentationUrl="https://ga4gh.github.io/workflow-execution-service-schemas/",

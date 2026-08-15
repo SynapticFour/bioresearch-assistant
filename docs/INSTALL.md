@@ -89,7 +89,7 @@ OLLAMA_MODEL=mistral   # z.B. mistral, llama3.2:3b, gemma3:4b, qwen2.5:7b, deeps
 # GPU-Server mit OpenAI-kompatiblem Endpoint (SGLang): siehe docs/TOOLS-SETUP.md — Abschnitt „Lokales Inference“
 
 # Version
-APP_VERSION=1.3.0
+APP_VERSION=0.2.0
 ```
 
 ## DSGVO Hinweis

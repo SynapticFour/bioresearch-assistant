@@ -1,6 +1,6 @@
 # BioResearch Assistant — Developer Guide
 
-**Version 1.0.0 | Synaptic Four**
+**Version 0.2.0 | Synaptic Four**
 
 ---
 
@@ -1010,7 +1010,7 @@ Alle relevanten Umgebungsvariablen (`.env`) — aus `backend/app/core/config.py`
 | Variable | Beschreibung | Beispiel |
 |----------|--------------|----------|
 | **Application** | | |
-| APP_VERSION | Anzeigeversion (Health, UI) | `1.4.2` |
+| APP_VERSION | Anzeigeversion (Health, UI) | `0.2.0` |
 | DEBUG | Debug-Modus | `false` |
 | ENVIRONMENT | Umgebungsname | `development` |
 | DEPLOYMENT | Ziel (z. B. railway für Demo-Limits) | `` oder `railway` |
@@ -1089,4 +1089,4 @@ Weitere Details: [INSTALL.md](INSTALL.md), [SECURITY.md](../SECURITY.md).
 
 ---
 
-*Letzte Aktualisierung: 2026-04-15, Version 1.4.2*
+*Letzte Aktualisierung: 2026-08-15, Version 0.2.0*

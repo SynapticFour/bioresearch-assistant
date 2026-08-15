@@ -25,10 +25,10 @@ MAJOR.MINOR.PATCH
 
 | Endpunkt | Status | Stabil seit |
 |----------|--------|-------------|
-| /api/v1/literature/* | Stable | v1.0.0 |
-| /api/v1/pseudonymize/* | Stable | v1.0.0 |
-| /api/v1/library/* | Stable | v1.1.0 |
-| /api/v1/phenopackets/* | Stable | v1.2.0 |
-| /ga4gh/wes/v1/* | Stable | v1.0.0 |
-| /ga4gh/drs/v1/* | Stable | v1.0.0 |
-| /api/v1/auth/* | Stable | v1.2.0 |
+| /api/v1/literature/* | Stable | v0.1.0 |
+| /api/v1/pseudonymize/* | Stable | v0.1.0 |
+| /api/v1/library/* | Stable | v0.2.0 |
+| /api/v1/phenopackets/* | Stable | v0.2.0 |
+| /ga4gh/wes/v1/* | Stable | v0.1.0 |
+| /ga4gh/drs/v1/* | Stable | v0.1.0 |
+| /api/v1/auth/* | Stable | v0.2.0 |

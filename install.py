@@ -34,6 +34,9 @@ from pathlib import Path
 
 
 # ── Farben für Terminal Output ────────────────────────
+APP_VERSION = "0.2.0"
+
+
 class Colors:
     GREEN = "\033[92m"
     YELLOW = "\033[93m"
@@ -69,7 +72,7 @@ def header():
         f"""
 {Colors.BOLD}{Colors.BLUE}
 ╔═══════════════════════════════════════════════════╗
-║   BioResearch Assistant — Installer v1.0.0        ║
+║   BioResearch Assistant — Installer v{APP_VERSION}        ║
 ║   Synaptic Four                                   ║
 ║   Proudly developed by individuals on the         ║
 ║   autism spectrum in Germany                      ║
@@ -405,7 +408,7 @@ def configure(
         secrets.token_hex(32),
     )
 
-    config["app_version"] = "1.0.0"
+    config["app_version"] = APP_VERSION
     config["institution"] = ask("Name der Institution", "Meine Institution")
 
     # Ports
@@ -715,7 +718,7 @@ def generate_docker_compose(config: dict, install_dir: Path):
     )
 
     compose = f"""# BioResearch Assistant — Docker Compose (Vollinstallation)
-# Generiert von install.py v1.0.0
+# Generiert von install.py v{APP_VERSION}
 
 services:
 
@@ -1092,7 +1095,7 @@ def create_management_scripts(config: dict, install_dir: Path):
     scripts = {
         "start.sh": f"""#!/bin/bash
 cd "{install_dir_str}"
-echo "🚀 Starte BioResearch Assistant v1.0.0..."
+echo "🚀 Starte BioResearch Assistant v{APP_VERSION}..."
 python3 install.py start
 echo ""
 echo "   Frontend:  http://localhost:{fp}"
@@ -1157,7 +1160,7 @@ curl -s http://localhost:{bp}/api/v1/health | python3 -m json.tool 2>/dev/null |
 
     (install_dir / "start.bat").write_text(
         f'@echo off\ncd /d "{install_dir_str}"\n'
-        f"echo Starte BioResearch Assistant v1.0.0...\n"
+        f"echo Starte BioResearch Assistant v{APP_VERSION}...\n"
         f"docker compose -f docker-compose.full.yml up -d\n"
         f"echo.\necho Frontend: http://localhost:{fp}\n"
         f"echo Backend:  http://localhost:{bp}\npause\n"
@@ -1195,7 +1198,7 @@ def print_summary(config: dict, install_dir: Path):
 {Colors.BOLD}{Colors.GREEN}
 ╔═══════════════════════════════════════════════════╗
 ║        Installation erfolgreich! 🎉               ║
-║        BioResearch Assistant v1.0.0               ║
+║        BioResearch Assistant v{APP_VERSION}               ║
 ╚═══════════════════════════════════════════════════╝
 {Colors.RESET}
 {Colors.BOLD}URLs:{Colors.RESET}
@@ -1428,7 +1431,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="BioResearch Assistant Installer v1.0.0"
+        description=f"BioResearch Assistant Installer v{APP_VERSION}"
     )
     parser.add_argument(
         "command",

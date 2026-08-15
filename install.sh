@@ -11,7 +11,7 @@ load_env() {
 require_bra_version() {
   if [ -z "${BRA_VERSION:-}" ]; then
     echo "ERROR: BRA_VERSION ist nicht gesetzt. Bitte .env konfigurieren."
-    echo "       Beispiel: cp .env.example .env  und  BRA_VERSION=v1.3.0 setzen"
+    echo "       Beispiel: cp .env.example .env  und  BRA_VERSION=v0.2.0 setzen"
     exit 1
   fi
 }

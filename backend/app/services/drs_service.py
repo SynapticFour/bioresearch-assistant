@@ -173,7 +173,7 @@ def get_service_info(
             name="Synaptic Four",
             url="https://www.synapticfour.com",
         ),
-        version="1.3.0",
+        version="0.2.0",
         description="GA4GH DRS v1.3 for on-premise data objects (file-backed).",
         drs=DrsServiceStats(
             maxBulkRequestLength=1,

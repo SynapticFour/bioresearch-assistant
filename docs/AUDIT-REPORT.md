@@ -1,7 +1,7 @@
 # Code Quality & Security Audit Report
 
 **Projekt:** BioResearch Assistant
-**Version:** 1.3.0
+**Version:** 0.2.0
 **Datum:** August 2026
 **Erstellt von:** Synaptic Four
 **Methode:** Automatisierte Analyse + manuelle Review
@@ -29,7 +29,7 @@ oder rechtliche Bewertung.
 Forschungsumgebungen geeignet, mit klar dokumentierten Einschränkungen
 und ohne Anspruch auf formale Zertifizierung oder Rechtskonformität.
 
-### Features (Auswahl v1.0.0)
+### Features (Auswahl v0.2.0)
 
 | Feature | Bewertung | Kurzbeschreibung |
 |---------|-----------|------------------|
@@ -349,4 +349,4 @@ GitHub: https://github.com/SynapticFour/bioresearch-assistant
 ---
 
 *Dieser Report wird mit jedem Release aktualisiert.*
-*Letzte Aktualisierung: März 2026, v1.0.0*
+*Letzte Aktualisierung: August 2026, v0.2.0*

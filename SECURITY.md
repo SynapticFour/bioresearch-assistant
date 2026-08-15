@@ -65,7 +65,7 @@ E-Mail: contact@synapticfour.com
 | A09 Logging | FAIR-Export/Zenodo nur user_id/title (kein Token, keine PII) geloggt. RAG: user_id, question_length, papers_used — keine Frage im Log (PII-Risiko). |
 | A10 SSRF | Zenodo: nur feste Hosts (zenodo.org, sandbox.zenodo.org); BLAST `-db` Allowlist; keine user-kontrollierten Workflow-Pfade. |
 
-### RAG Prompt-Injection Schutz (v1.0.0)
+### RAG Prompt-Injection Schutz (v0.1.0)
 
 Alle Nutzereingaben, die ans LLM weitergegeben werden (Fragen, Notebook-Inhalte, Abstracts), werden auf Prompt-Injection-Patterns geprüft und gefiltert. Erkannte Muster werden durch `[FILTERED]` ersetzt und ein Log-Warning ausgegeben; die Anfrage wird nicht blockiert.
 

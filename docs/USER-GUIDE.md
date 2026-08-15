@@ -1,6 +1,6 @@
 # BioResearch Assistant — Benutzerhandbuch
 
-**Version 1.0.0 | Synaptic Four | März 2026**
+**Version 0.2.0 | Synaptic Four | August 2026**
 
 > 💻 Für API-Zugriff und Konfiguration siehe [Developer Guide](DEVELOPER-GUIDE.md).
 
@@ -226,7 +226,7 @@ Beim Upload einer **VCF-Datei** extrahiert das System automatisch Metadaten aus 
 
 Diese Metadaten können für die Katalogisierung und Dokumentation genutzt werden.
 
-⚠️ **Was es NICHT macht:**  
+⚠️ **Was es NICHT macht:**
 Das System verknüpft **VCF-Varianten NICHT automatisch mit PubMed-Artikeln**. Für Literatursuche zu Varianten oder Genen: Gen-Name bzw. Suchbegriffe **manuell** in die **Literatursuche** (Seite „Literatur“) eingeben.
 
 ### Schritt-für-Schritt (UI)
@@ -301,7 +301,7 @@ ATGAAAGCTTGGGCTAGCTAGCTAG
 ```
 
 - **DNA:** Nucleotid-Zeichen (IUPAC).
-- **Protein:** Aminosäuren (IUPAC).  
+- **Protein:** Aminosäuren (IUPAC).
 Das System erkennt den Typ in der Regel automatisch.
 
 ### Datenbank auswählen
@@ -351,14 +351,14 @@ In der BLAST-UI die **Datenbank** wählen (z. B. nt, nr oder eine andere einge
 - Überschriften: `#`, `##`, `###`
 - Fett: `**text**`, Kursiv: `*text*`
 - Listen: `-` oder `1.`
-- Links: `[text](url)`  
+- Links: `[text](url)`
 Verknüpfungen zu Papers/DRS/Phenopackets werden in der App über die **„Link“**-Funktion gespeichert, nicht als reine Markdown-Links.
 
 ### KI-Assistent
 
 Der KI-Assistent kann **zwei Dinge** tun:
 
-**Zusammenfassung (summary):**  
+**Zusammenfassung (summary):**
 Fasst den **Inhalt deines Notizbuchs** in 2–3 Sätzen zusammen. Nützlich, wenn du nach einer Pause wieder einsteigen willst oder einen Kollegen einbriefen möchtest.
 
 **Schritte:**
@@ -368,7 +368,7 @@ Fasst den **Inhalt deines Notizbuchs** in 2–3 Sätzen zusammen. Nützlich, wen
 4. Warten (~10–30 s je nach LLM-Modell)
 5. Die Zusammenfassung erscheint unter dem Editor (und wird im Notizbuch gespeichert)
 
-**Nächste Schritte (next_steps):**  
+**Nächste Schritte (next_steps):**
 Das LLM liest deinen **Notizinhalt** und schlägt basierend darauf **nächste Forschungsschritte** vor — z. B. welche Experimente sinnvoll wären oder welche Fragen noch offen sind.
 
 Wenn **Papers verknüpft** sind, liest der KI-Assistent deren **Abstracts automatisch** als zusätzlichen Kontext.
@@ -461,7 +461,7 @@ Die PubMed-Suche funktioniert wie eine klassische Datenbanksuche:
 - PubMed sucht nach exakten Wortübereinstimmungen (inkl. MeSH-Begriffe)
 - "BRCA1 Therapie" findet Papers die genau diese Wörter enthalten
 
-**Vorteil:** Präzise, nachvollziehbar, vollständig  
+**Vorteil:** Präzise, nachvollziehbar, vollständig
 **Nachteil:** Synonyme und verwandte Konzepte werden nur gefunden wenn PubMed sie intern mappt
 
 ---
@@ -603,7 +603,7 @@ Empfehlung: Mit 1.0 starten, dann anpassen.
 
 | Feature | Version | Status |
 |---------|---------|--------|
-| RAG — Frag deine Bibliothek | v1.0.0 | ✅ Enthalten |
+| RAG — Frag deine Bibliothek | v0.1.0 | ✅ Enthalten |
 | Locus (RAG + Domänen-Indizes, siehe [LOCUS-MODULE.md](LOCUS-MODULE.md)) | laufend | ✅ / optional Abo |
 | Hybrid Search (Vektor + Keyword) | v1.1.0 | Geplant |
 | Team Collaboration im ELN | v1.1.0 | Geplant |
@@ -640,7 +640,7 @@ Ja. Wenn keine OIDC-Anmeldung konfiguriert ist, kannst du die Anwendung ohne Log
 
 - [INSTALL.md](INSTALL.md) — Installation
 - [docs/COMPLIANCE.md](COMPLIANCE.md) — Compliance (DSGVO, NIS2, FAIR, …)
-- [SECURITY.md](../SECURITY.md) — Sicherheit, Meldung von Lücken  
+- [SECURITY.md](../SECURITY.md) — Sicherheit, Meldung von Lücken
 - **Synaptic Four:** contact@synapticfour.com · https://www.synapticfour.com
 
-*Letzte Aktualisierung: März 2026, Version 1.0.0*
+*Letzte Aktualisierung: August 2026, Version 0.2.0*

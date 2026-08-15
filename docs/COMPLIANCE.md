@@ -2,7 +2,7 @@
 
 ## BioResearch Assistant — Synaptic Four
 
-### Stand: August 2026 | Version: 1.3.0
+### Stand: August 2026 | Version: 0.2.0
 
 > **Wichtiger Hinweis (kein Rechtsrat):**
 > Dieses Dokument beschreibt technische und organisatorische Maßnahmen,

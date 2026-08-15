@@ -7,6 +7,10 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-15
+
+Pre-1.0 release. The March 2026 initial tag was published as v1.0.0 by mistake.
+
 ### Added
 
 - **`make prove`** — backend pytest without Docker and without the coverage gate (that remains CI).
@@ -31,7 +35,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 - GitHub Actions checkout/setup-python/setup-node v7, cache v6.
 - Dependabot disabled again (unreviewed majors). Operator patching: `pip-audit` / `npm audit` in CI. Residual transformer 4.x advisories documented in [docs/SBOM.md](docs/SBOM.md).
 
-## [1.0.0] - 2026-03-01
+## [0.1.0] - 2026-03-01
 
 Initiales Release von BioResearch Assistant.
 Vollständige KI-gestützte Forschungsplattform
