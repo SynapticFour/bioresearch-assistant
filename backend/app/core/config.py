@@ -51,6 +51,16 @@ class Settings(BaseSettings):
         description="When Solum URL+token set, POST subject-link on demand",
         validation_alias="SOLUM_SUBJECT_BRIDGE_UPSERT",
     )
+    solum_subject_purpose: str = Field(
+        default="research",
+        description="Default Solum purpose for subject-link upserts",
+        validation_alias="SOLUM_SUBJECT_PURPOSE",
+    )
+    solum_subject_capability: str = Field(
+        default="solum:cdr:write",
+        description="Default Solum capability (comma-separated) for subject-link writes",
+        validation_alias="SOLUM_SUBJECT_CAPABILITY",
+    )
 
     # API
     api_v1_prefix: str = Field(default="/api/v1", description="API v1 URL prefix")

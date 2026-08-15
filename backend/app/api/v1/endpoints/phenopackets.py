@@ -404,6 +404,14 @@ class SolumSubjectLinkRequest(BaseModel):
     )
     ferrum_drs_id: str | None = None
     ehr_id: str | None = None
+    purpose: str | None = Field(
+        default=None,
+        description="Solum purpose string; default SOLUM_SUBJECT_PURPOSE (research)",
+    )
+    capability: list[str] | None = Field(
+        default=None,
+        description="Solum capabilities; default [solum:cdr:write]",
+    )
     upsert: bool | None = Field(
         default=None,
         description="POST to Solum when URL+token configured; default from settings",
@@ -440,9 +448,23 @@ async def phenopacket_solum_subject_link(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Phenopacket not found",
         )
+    settings = get_settings()
+    actor = str(current_user.get("sub") or current_user.get("email") or "").strip()
+    if not actor:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Authenticated user has no subject id for Solum actor",
+        )
+    purpose = (body.purpose or settings.solum_subject_purpose).strip()
+    caps = body.capability or [
+        c.strip() for c in settings.solum_subject_capability.split(",") if c.strip()
+    ]
     try:
         payload = build_subject_link_payload(
             phenopacket_id=pseudonym_id,
+            actor=actor,
+            purpose=purpose,
+            capability=caps,
             solum_subject_id=body.solum_subject_id,
             ferrum_drs_id=body.ferrum_drs_id,
             ehr_id=body.ehr_id,
@@ -450,7 +472,6 @@ async def phenopacket_solum_subject_link(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
 
-    settings = get_settings()
     do_upsert = body.upsert if body.upsert is not None else settings.solum_subject_bridge_upsert
     if do_upsert and settings.solum_base_url and settings.solum_sidecar_token:
         status_code, solum_body = await upsert_subject_link(
