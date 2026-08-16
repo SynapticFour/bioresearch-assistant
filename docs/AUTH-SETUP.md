@@ -8,7 +8,9 @@ mit GA4GH Passport Spec v1.2.
 
 ## Session (httpOnly Cookie)
 
-Der OIDC-Callback tauscht den Authorization Code serverseitig und setzt das Cookie `bra_access_token` (httpOnly, SameSite=Lax, Secure außerhalb von Dev). Die SPA speichert **keine** Access Tokens in `localStorage`. Logout: `POST /api/v1/auth/logout`.
+Der OIDC-Callback tauscht den Authorization Code serverseitig und setzt das Cookie `bra_access_token` (httpOnly, SameSite=Lax, Secure außerhalb von Dev). Die SPA speichert **keine** Access Tokens in `localStorage`. Logout: `POST /api/v1/auth/logout` gibt `{ "idp_logout_url": "..." }` zurück; die SPA leitet den Browser zum IdP `end_session_endpoint` (RP-initiated Logout) oder nach `/login`.
+
+`OIDC_REDIRECT_URI` und `FRONTEND_BASE_URL` müssen **same-origin** zur SPA sein (Reverse-Proxy). Sonst speichert der Browser das Cookie nicht für die UI.
 
 `OIDC_REDIRECT_URI` und `FRONTEND_BASE_URL` müssen **same-origin** zur SPA sein (Reverse-Proxy). Sonst speichert der Browser das Cookie nicht für die UI.
 
@@ -135,7 +137,10 @@ Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azu
    OIDC_REDIRECT_URI=https://bioresearch.ukhd.de/api/v1/auth/callback
    FRONTEND_BASE_URL=https://bioresearch.ukhd.de
    MICROSOFT_TENANT_ID=TENANT-ID
+   OIDC_PROFILE=entra
    ```
+
+   Entra stellt **keine** GA4GH Passports aus. BRA mappt `groups` und `tid` für Team-Isolation und fordert **kein** `ga4gh_passport_v1` am Login. Passport-Visas kommen nur, wenn ein Broker (ga4gh-infra / LS Login) vorgeschaltet ist.
 
 5. **API-Berechtigungen:**
    Azure AD → App-Registrierungen → BioResearch Assistant → API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph → openid, email, profile
@@ -164,3 +169,16 @@ Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md)
 ### GA4GH Passports an Unikliniken
 
 Für kontrollierte Datensätze (DKFZ, EGA, …) stellt der **AAI-Broker** (ga4gh-infra oder ELIXIR) die Visas aus. BRA prüft die ID-Token-Signatur **und** die nested Visa-JWTs. Die **Durchsetzung auf Bytes** (DRS/WES) liegt bei Ferrum, wenn BRA als Client (`FERRUM_DRS_URL` / `FERRUM_WES_URL`) den Bearer weiterreicht.
+
+## IdP-Profil (`OIDC_PROFILE`)
+
+Operator-Claims-Map: `auto` (Default, aus `OIDC_ISSUER`) | `keycloak` | `entra` | `ls-login` | `broker`. Dateien unter `backend/app/idp_profiles/`. BRA **stellt keine Passports aus** (`issues_passports: false` in `GET /api/v1/auth/status`).
+
+| Profil | Typischer Issuer | Login-Scope | Groups-Claim |
+|--------|------------------|-------------|--------------|
+| keycloak | `.../realms/...` | inkl. `ga4gh_passport_v1` | `groups` |
+| entra | `login.microsoftonline.com` | `openid email profile` (kein Passport) | `groups` |
+| ls-login | ELIXIR / Life Science Login | inkl. `ga4gh_passport_v1` | `eduperson_entitlement` |
+| broker | ga4gh-infra AAI | inkl. `ga4gh_passport_v1` | `groups` |
+
+SAML nur über Keycloak als Brücke — Compose-Beispiel: [docker-compose.keycloak-saml.yml](../docker-compose.keycloak-saml.yml), Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md).

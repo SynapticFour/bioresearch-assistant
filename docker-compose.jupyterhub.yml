@@ -1,0 +1,22 @@
+# Optional JupyterHub sidecar for BRA (same tenant as /api/v1/notebooks).
+#
+# Not JupyterHub-in-Ferrum. BLAST/WES stay BRA HTTP APIs.
+# DATABASE_URL is intentionally omitted — kernels must not see BRA DB credentials.
+#
+# Start: docker compose -f docker-compose.yml -f docker-compose.jupyterhub.yml --profile jupyterhub up -d
+# Crypt key: openssl rand -hex 32
+
+services:
+  jupyterhub:
+    image: quay.io/jupyterhub/jupyterhub:5.2.1
+    profiles: ["jupyterhub"]
+    ports:
+      - "8001:8000"
+    environment:
+      JUPYTERHUB_CRYPT_KEY: ${JUPYTERHUB_CRYPT_KEY:-}
+    volumes:
+      - jupyterhub_data:/srv/jupyterhub
+    command: ["jupyterhub", "--ip", "0.0.0.0", "--port", "8000"]
+
+volumes:
+  jupyterhub_data:

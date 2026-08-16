@@ -26,7 +26,7 @@ class Notebook(Base):
     Attributes:
         id: UUID primary key.
         title: Notebook title.
-        content: Markdown content.
+        content: Markdown or nbformat v4 JSON (see format).
         tags: List of tags (JSON array).
         user_id: Owner (isolation).
         team_id: Team scope (isolation).
@@ -48,6 +48,9 @@ class Notebook(Base):
     )
     title: Mapped[str] = mapped_column(String(512), nullable=False, default="")
     content: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    content_format: Mapped[str] = mapped_column(
+        "format", String(16), nullable=False, default="markdown"
+    )
     tags: Mapped[list[str]] = mapped_column(_json_type, nullable=False, default=list)
     user_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     team_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)

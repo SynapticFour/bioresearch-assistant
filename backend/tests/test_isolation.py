@@ -145,6 +145,32 @@ async def test_extract_team_id_from_ga4gh_passport() -> None:
 
 
 @pytest.mark.asyncio
+async def test_extract_team_id_from_idp_groups() -> None:
+    """Team ID prefers IdP groups (Entra / Keycloak) over email domain."""
+    from app.core.isolation import _extract_team_id
+
+    user = {
+        "sub": "entra-user",
+        "email": "c@ukhd.de",
+        "groups": ["UKHD-Forschung"],
+        "groups_prefix": "group:",
+    }
+    assert _extract_team_id(user) == "group:UKHD-Forschung"
+
+
+@pytest.mark.asyncio
+async def test_extract_team_id_from_prefixed_groups() -> None:
+    from app.core.isolation import _extract_team_id
+
+    user = {
+        "sub": "kc-user",
+        "groups": ["group:lab-a"],
+        "groups_prefix": "group:",
+    }
+    assert _extract_team_id(user) == "group:lab-a"
+
+
+@pytest.mark.asyncio
 async def test_auth_me_includes_isolation_info(async_client: AsyncClient) -> None:
     """GET /auth/me returns isolation_mode, team_id and scope."""
     resp = await async_client.get("/api/v1/auth/me")

@@ -1,0 +1,9 @@
+# Microsoft Entra ID / Azure AD. No ga4gh_passport_v1 — Entra is not a Passport issuer.
+# BRA still does not mint visas from groups.
+name = "entra"
+issuer_contains = "login.microsoftonline.com"
+groups_claim = "groups"
+groups_prefix = "group:"
+organization_claim = "tid"
+email_claim = "preferred_username"
+login_scope = "openid email profile"

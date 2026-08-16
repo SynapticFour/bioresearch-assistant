@@ -13,6 +13,7 @@ import jwt
 from jwt import PyJWK
 from jwt.exceptions import InvalidTokenError
 
+from app.core.claims_map import apply_profile_claims, detect_profile
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -190,6 +191,7 @@ class AuthService:
         JWKS verify).
         """
         claims = await self.verify_token(token)
+        profile = detect_profile(self.settings.oidc_issuer, self.settings.oidc_profile)
 
         passports = claims.get("ga4gh_passport_v1", [])
         if not isinstance(passports, list):
@@ -210,13 +212,18 @@ class AuthService:
         elif isinstance(embedded, list):
             verified.extend(v for v in embedded if isinstance(v, dict))
 
+        mapped = apply_profile_claims(claims, profile)
+        email = mapped.get("email") or claims.get("email")
         return {
             "sub": claims.get("sub"),
-            "email": claims.get("email"),
+            "email": email,
             "name": claims.get("name"),
             "passports": passports,
             "visas": verified,
             "roles": extract_roles(claims),
-            "organization": claims.get("organization") or claims.get("org"),
+            "organization": mapped.get("organization"),
+            "groups": mapped.get("groups") or [],
+            "groups_prefix": profile.groups_prefix,
+            "idp_profile": profile.name,
             "realm_access": claims.get("realm_access"),
         }

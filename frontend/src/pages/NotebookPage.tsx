@@ -1,10 +1,11 @@
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Download, FileCode, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { renderMarkdownSafe } from "@/lib/markdown";
 import { notebooks as notebooksApi } from "@/api/endpoints";
 import type { NotebookItem } from "@/api/endpoints";
+import { IpynbEditor } from "@/components/notebook/IpynbEditor";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/contexts/ToastContext";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,13 @@ export default function NotebookPage() {
   const selected = notebooks.find((n) => n.id === selectedId) ?? null;
 
   const createMutation = useMutation({
-    mutationFn: () => notebooksApi.create({ title: "Neues Notizbuch", content: "", tags: [] }),
+    mutationFn: (format: "markdown" | "ipynb") =>
+      notebooksApi.create({
+        title: format === "ipynb" ? "Neues Compute-Notebook" : "Neues Notizbuch",
+        content: "",
+        tags: [],
+        format,
+      }),
     onSuccess: (nb) => {
       queryClient.invalidateQueries({ queryKey: ["notebooks"] });
       setSelectedId(nb.id);
@@ -57,11 +64,21 @@ export default function NotebookPage() {
             <Button
               size="icon"
               variant="outline"
-              onClick={() => createMutation.mutate()}
+              onClick={() => createMutation.mutate("markdown")}
               disabled={createMutation.isPending}
               aria-label="Neues Notizbuch"
             >
               {createMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            </Button>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={() => createMutation.mutate("ipynb")}
+              disabled={createMutation.isPending}
+              aria-label="Neues Compute-Notebook"
+              title="JupyterLite-class (Pyodide im Browser)"
+            >
+              <FileCode className="h-4 w-4" />
             </Button>
           </div>
           <input
@@ -92,6 +109,9 @@ export default function NotebookPage() {
                     )}
                   >
                     <span className="truncate block">{nb.title || "Ohne Titel"}</span>
+                    {nb.format === "ipynb" && (
+                      <span className="text-[10px] uppercase tracking-wide opacity-80">ipynb</span>
+                    )}
                   </button>
                 </li>
               ))}
@@ -213,6 +233,7 @@ function NotebookEditor({
             {saveStatus === "saving" && "Speichert..."}
             {saveStatus === "saved" && "Gespeichert ✓"}
           </span>
+          {(notebook.format || "markdown") !== "ipynb" && (
           <Button
             type="button"
             variant="ghost"
@@ -221,6 +242,7 @@ function NotebookEditor({
           >
             {showPreview ? "Editor" : "Vorschau"}
           </Button>
+          )}
           <Button
             type="button"
             variant="ghost"
@@ -250,11 +272,13 @@ function NotebookEditor({
         </div>
       </div>
       <div className="flex-1 overflow-hidden p-3">
-        {showPreview ? (
+        {showPreview && (notebook.format || "markdown") !== "ipynb" ? (
           <div
             className="prose prose-sm max-w-none overflow-y-auto rounded border border-slate-100 bg-slate-50/50 p-3"
             dangerouslySetInnerHTML={{ __html: html }}
           />
+        ) : (notebook.format || "markdown") === "ipynb" ? (
+          <IpynbEditor content={content} onChange={setContent} />
         ) : (
           <textarea
             value={content}

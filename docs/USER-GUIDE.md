@@ -344,7 +344,16 @@ In der BLAST-UI die **Datenbank** wählen (z. B. nt, nr oder eine andere einge
 
 ### Was macht es?
 
-**Elektronisches Laborbuch** in Markdown: Notizen, Verknüpfungen zu Papers (PMID), DRS-Objekten und Phenopackets (Pseudonym-ID). **KI-Assistent** erzeugt Zusammenfassung und/oder „Nächste Schritte“. Auto-Save (nach kurzer Pause), Export als Markdown oder PDF (wenn reportlab installiert).
+**Elektronisches Laborbuch:** Markdown-ELN **oder** JupyterLite-class Compute-Notebook (`.ipynb`, nbformat v4) mit **Pyodide im Browser**. Verknüpfungen zu Papers (PMID), DRS-Objekten und Phenopackets. **KI-Assistent** erzeugt Zusammenfassung und/oder „Nächste Schritte“. Auto-Save, Export als Markdown oder PDF (wenn reportlab installiert).
+
+Es gibt **keinen JupyterHub in Ferrum**. Optionaler JupyterHub-Sidecar nur in BRA (`docker-compose.jupyterhub.yml`, gleiches Tenant-Scope wie `/api/v1/notebooks`). Der Browser-Kernel und der Hub bekommen **keine** `DATABASE_URL`. BLAST/WES bleiben BRA-APIs — keine Connection-Strings in Zellen.
+
+### Compute-Notebook (ipynb)
+
+1. **Notebook** öffnen → Button mit Datei-Icon (**Neues Compute-Notebook**).
+2. Starter-Notebook lädt ein Phenopacket-JSON-Beispiel.
+3. **Run** an einer Code-Zelle: Python läuft lokal im Browser (Pyodide). Offline: `VITE_PYODIDE_INDEX_URL` auf einen internen Mirror setzen.
+4. Colab wird nicht unterstützt.
 
 ### Markdown-Syntax (kurz)
 
@@ -377,7 +386,7 @@ Wenn **Papers verknüpft** sind, liest der KI-Assistent deren **Abstracts automa
 
 ### Schritt-für-Schritt (UI)
 
-1. **„Notebook“** in der Navigation öffnen → **„Neues Notizbuch“** klicken.
+1. **„Notebook“** in der Navigation öffnen → **Plus** für Markdown oder **Datei-Icon** für ein Compute-Notebook (ipynb).
 2. **Titel** und **Inhalt** in Markdown eingeben; Auto-Save speichert nach kurzer Pause.
 3. **Verknüpfen:** Über **„Link hinzufügen“** (oder ähnlich) Paper (PMID), DRS (Objekt-ID) oder Phenopacket (Pseudonym-ID) verknüpfen.
 4. **KI-Assistent:** Auf **„KI Assistent“** klicken, Modus **„Zusammenfassung“**, **„Nächste Schritte“** oder **„Beides“** wählen und warten; Ergebnis erscheint unter dem Editor.

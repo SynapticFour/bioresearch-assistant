@@ -11,10 +11,11 @@ import time
 from urllib.parse import urlencode
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.core.auth import get_auth_service, get_current_user
+from app.core.claims_map import detect_profile
 from app.core.config import get_settings
 from app.core.isolation import extract_team_id, get_scope_filter
 from app.core.limiter import limiter
@@ -24,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+_ID_TOKEN_COOKIE = "bra_id_token"
 _OAUTH_STATE_COOKIE = "bra_oauth_state"
 _OAUTH_VERIFIER_COOKIE = "bra_oauth_verifier"
 _OAUTH_STATE_MAX_AGE = 600
@@ -103,11 +105,17 @@ async def login(
         oidc_config = resp.json()
     state = _sign_oauth_state(provider)
     verifier, challenge = _pkce_pair()
+    profile = detect_profile(settings.oidc_issuer, settings.oidc_profile)
+    if provider == "microsoft":
+        profile = detect_profile(
+            f"https://login.microsoftonline.com/{settings.microsoft_tenant_id}/v2.0",
+            "entra",
+        )
     params = {
         "response_type": "code",
         "client_id": settings.oidc_client_id,
         "redirect_uri": settings.oidc_redirect_uri,
-        "scope": "openid email profile ga4gh_passport_v1",
+        "scope": profile.login_scope,
         "state": state,
         "code_challenge": challenge,
         "code_challenge_method": "S256",
@@ -190,17 +198,47 @@ async def callback(
         "path": "/",
     }
     redirect.set_cookie(key=settings.session_cookie_name, value=str(access_token), **cookie_kw)
+    id_token = tokens.get("id_token")
+    if id_token:
+        redirect.set_cookie(key=_ID_TOKEN_COOKIE, value=str(id_token), **cookie_kw)
     redirect.delete_cookie(_OAUTH_STATE_COOKIE, path="/")
     redirect.delete_cookie(_OAUTH_VERIFIER_COOKIE, path="/")
     return redirect
 
 
 @router.post("/logout")
-async def logout() -> Response:
-    """Clear the httpOnly session cookie."""
+async def logout(request: Request) -> JSONResponse:
+    """Clear session cookies. When the IdP advertises end_session_endpoint, return it.
+
+    The SPA should redirect the browser there (RP-initiated logout), then land on
+    FRONTEND_BASE_URL/login. BRA is not a Passport issuer; this is OIDC logout only.
+    """
     settings = get_settings()
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    idp_logout_url: str | None = None
+    if settings.auth_enabled:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    f"{settings.oidc_issuer.rstrip('/')}/.well-known/openid-configuration"
+                )
+                resp.raise_for_status()
+                end_session = resp.json().get("end_session_endpoint")
+            if end_session:
+                frontend = (settings.frontend_base_url or "http://localhost:5173").rstrip("/")
+                params: dict[str, str] = {
+                    "client_id": settings.oidc_client_id,
+                    "post_logout_redirect_uri": f"{frontend}/login",
+                }
+                id_token = request.cookies.get(_ID_TOKEN_COOKIE)
+                if id_token:
+                    params["id_token_hint"] = id_token
+                idp_logout_url = f"{end_session}?{urlencode(params)}"
+        except Exception:
+            logger.warning("OIDC discovery for logout failed; cookie-only logout", exc_info=True)
+    body = {"idp_logout_url": idp_logout_url}
+    response = JSONResponse(content=body)
     response.delete_cookie(settings.session_cookie_name, path="/")
+    response.delete_cookie(_ID_TOKEN_COOKIE, path="/")
     response.delete_cookie(_OAUTH_STATE_COOKIE, path="/")
     response.delete_cookie(_OAUTH_VERIFIER_COOKIE, path="/")
     return response
@@ -232,8 +270,10 @@ async def auth_status() -> dict:
         "supported_providers": [
             "ga4gh-infra AAI broker",
             "Keycloak",
-            "ELIXIR AAI",
+            "ELIXIR AAI / LS Login",
             "Google",
-            "Microsoft",
+            "Microsoft Entra",
         ],
+        "oidc_profile": settings.oidc_profile,
+        "issues_passports": False,
     }

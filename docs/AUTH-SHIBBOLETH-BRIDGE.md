@@ -107,7 +107,10 @@ OIDC_ISSUER=https://keycloak.ihre-institution.de/realms/bioresearch
 OIDC_CLIENT_ID=bioresearch-assistant
 OIDC_CLIENT_SECRET=<client-secret-aus-keycloak>
 OIDC_REDIRECT_URI=https://bioresearch.ihre-institution.de/api/v1/auth/callback
+OIDC_PROFILE=keycloak
 ```
+
+Lokales Keycloak zum Ausprobieren: `docker compose -f docker-compose.keycloak-saml.yml up -d`.
 
 - **OIDC_ISSUER:** Keycloak Realm-URL (mit `/realms/<realm-name>`).
 - **OIDC_REDIRECT_URI:** muss exakt mit der in Keycloak eingetragenen Redirect-URI übereinstimmen.

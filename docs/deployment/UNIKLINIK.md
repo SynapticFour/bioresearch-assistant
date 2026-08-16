@@ -34,6 +34,7 @@ DEPSEUDO_ACCESS=owner
 OIDC_ISSUER=https://idp.uniklinik.example/realms/hospital
 OIDC_CLIENT_ID=bioresearch
 OIDC_CLIENT_SECRET=...
+OIDC_PROFILE=auto          # auto | keycloak | entra | ls-login | broker
 # Same-origin wie die SPA (Reverse-Proxy), sonst setzt der Browser das Session-Cookie nicht.
 OIDC_REDIRECT_URI=https://bra.uniklinik.example/api/v1/auth/callback
 FRONTEND_BASE_URL=https://bra.uniklinik.example
@@ -54,7 +55,9 @@ Details Auth: [AUTH-SETUP.md](../AUTH-SETUP.md). Isolation: [ISOLATION-MODES.md]
 
 ## 3. Session und Frontend
 
-Nach OIDC setzt das Backend ein **httpOnly**-Cookie (`bra_access_token`, SameSite=Lax). Tokens liegen nicht in `localStorage`. Die SPA prüft die Sitzung und leitet ohne Cookie auf `/login`. Logout: `POST /api/v1/auth/logout`.
+Nach OIDC setzt das Backend ein **httpOnly**-Cookie (`bra_access_token`, SameSite=Lax). Tokens liegen nicht in `localStorage`. Die SPA prüft die Sitzung und leitet ohne Cookie auf `/login`. Logout: `POST /api/v1/auth/logout` → SPA folgt `idp_logout_url` (RP-initiated) oder `/login`. BRA stellt **keine** GA4GH Passports aus.
+
+Compute-Notebooks (Pyodide) und optionaler JupyterHub-Sidecar erhalten **keine** Datenbank-Credentials. BLAST/WES nur über BRA-APIs.
 
 Markdown in Notebook/RAG wird vor dem Rendern mit DOMPurify bereinigt.
 
@@ -66,6 +69,8 @@ Markdown in Notebook/RAG wird vor dem Rendern mit DOMPurify bereinigt.
 |-------|---------|
 | Docker-Socket für Nextflow | Nicht in `docker-compose.full.yml`. Nur Overlay `docker-compose.nextflow-dind.yml` nach Threat-Model-Freigabe (Host-Escape). |
 | HelixTest-TRS-Stubs | Nur `WES_HELIXTEST_STUBS=1` in Conformance-CI, nicht in Klinik-Produktion. |
+| JupyterHub in Ferrum | Nein. Optional nur BRA-Sidecar (`docker-compose.jupyterhub.yml`). |
+| Colab | Nicht unterstützt. JupyterLite-class in der SPA. |
 | BLAST `-db` | Allowlist (z. B. `nt`, `swissprot`); keine freien Pfade. |
 | FAIR-Score / GAIA-X | Heuristik bzw. Design-Alignment. API: `gaia_x_ready: false`, `gaia_x_certified: false`. |
 | DRS at-rest | Anwendungsseitig unverschlüsselt; Volume-Verschlüsselung ist Betreiberpflicht. |

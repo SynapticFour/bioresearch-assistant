@@ -20,8 +20,9 @@ async def test_auth_status_dev_mode(async_client: AsyncClient) -> None:
     assert data["mode"] == "development"
     assert data["ga4gh_passport_support"] is True
     assert "Keycloak" in data["supported_providers"]
-    assert "ELIXIR AAI" in data["supported_providers"]
+    assert "ELIXIR AAI" in " ".join(data["supported_providers"])
     assert "ga4gh-infra AAI broker" in data["supported_providers"]
+    assert data["issues_passports"] is False
 
 
 @pytest.mark.asyncio

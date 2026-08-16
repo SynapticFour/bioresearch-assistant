@@ -15,6 +15,8 @@ export interface AuthStatusResponse {
   oidc_issuer?: string | null;
   ga4gh_passport_support: boolean;
   supported_providers: string[];
+  oidc_profile?: string;
+  issues_passports?: boolean;
 }
 
 export interface AuthUser {
@@ -46,13 +48,18 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
+    let idpLogoutUrl: string | null = null;
     try {
-      await fetch(`${API_URL}/api/v1/auth/logout`, {
+      const res = await fetch(`${API_URL}/api/v1/auth/logout`, {
         ...fetchOpts,
         method: "POST",
       });
+      if (res.ok) {
+        const body = (await res.json()) as { idp_logout_url?: string | null };
+        idpLogoutUrl = body.idp_logout_url ?? null;
+      }
     } finally {
-      window.location.href = "/login";
+      window.location.href = idpLogoutUrl || "/login";
     }
   },
 

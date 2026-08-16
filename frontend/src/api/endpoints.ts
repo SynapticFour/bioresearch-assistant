@@ -647,6 +647,7 @@ export interface NotebookItem {
   id: string;
   title: string;
   content: string;
+  format?: "markdown" | "ipynb" | string;
   tags: string[];
   linked_pmids: string[];
   linked_drs_ids: string[];
@@ -688,13 +689,19 @@ export const notebooks = {
     );
     return data;
   },
-  async create(payload: { title?: string; content?: string; tags?: string[] }): Promise<NotebookItem> {
+  async create(payload: {
+    title?: string;
+    content?: string;
+    tags?: string[];
+    format?: "markdown" | "ipynb" | string;
+  }): Promise<NotebookItem> {
     const { data } = await apiClient.post<NotebookItem>(
       `${API_V1}/notebooks`,
       {
         title: payload.title ?? "Neues Notizbuch",
         content: payload.content ?? "",
         tags: payload.tags ?? [],
+        format: payload.format ?? "markdown",
       },
       { headers: { "Content-Type": "application/json" } }
     );
@@ -702,7 +709,7 @@ export const notebooks = {
   },
   async update(
     id: string,
-    payload: { title?: string; content?: string; tags?: string[] }
+    payload: { title?: string; content?: string; tags?: string[]; format?: string }
   ): Promise<NotebookItem> {
     const { data } = await apiClient.put<NotebookItem>(
       `${API_V1}/notebooks/${encodeURIComponent(id)}`,

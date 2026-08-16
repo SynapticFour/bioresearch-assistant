@@ -113,14 +113,26 @@ def _extract_team_id(current_user: dict[str, Any]) -> str:
     """Extract team ID from user claims.
 
     Priority:
-    1. GA4GH Passport AffiliationAndRole
-    2. OIDC organization claim (Azure AD, Keycloak)
-    3. Email-Domain (e.g. ukhd.de → domain:ukhd.de)
-    4. Fallback: user sub
+    1. GA4GH Passport AffiliationAndRole (consumed visa, not issued here)
+    2. IdP groups from the operator claims-map (Keycloak / Entra / LS Login)
+    3. OIDC organization claim (Azure AD tid, Keycloak organization)
+    4. Email domain (e.g. ukhd.de → domain:ukhd.de)
+    5. Fallback: user sub
     """
     for visa in current_user.get("visas") or []:
         if isinstance(visa, dict) and visa.get("type") == "AffiliationAndRole":
             return f"org:{visa.get('value', '')}"
+
+    groups = current_user.get("groups")
+    if isinstance(groups, list) and groups:
+        first = str(groups[0]).strip()
+        if first:
+            prefix = str(current_user.get("groups_prefix") or "group:")
+            if first.startswith(prefix):
+                return first
+            return f"{prefix}{first}"
+    if isinstance(groups, str) and groups.strip():
+        return f"group:{groups.strip()}"
 
     if org := current_user.get("organization"):
         return f"org:{org}"

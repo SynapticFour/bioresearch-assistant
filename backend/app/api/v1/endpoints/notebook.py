@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.ipynb import starter_ipynb_json, validate_ipynb
 from app.core.isolation import apply_scope, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.notebook import Notebook
@@ -36,6 +37,10 @@ class NotebookCreate(BaseModel):
         description="Markdown content (max 500KB)",
     )
     tags: list[str] = Field(default_factory=list, description="Tags")
+    format: str = Field(
+        default="markdown",
+        description="markdown | ipynb (nbformat v4; Pyodide in the SPA)",
+    )
 
 
 class NotebookUpdate(BaseModel):
@@ -44,6 +49,7 @@ class NotebookUpdate(BaseModel):
     title: str | None = Field(default=None, max_length=512)
     content: str | None = Field(default=None, max_length=500_000)
     tags: list[str] | None = Field(default=None)
+    format: str | None = Field(default=None, description="markdown | ipynb")
 
 
 class NotebookLinkRequest(BaseModel):
@@ -62,6 +68,21 @@ class AIAssistRequest(BaseModel):
     )
 
 
+def _normalize_format(raw: str | None) -> str:
+    fmt = (raw or "markdown").strip().lower()
+    if fmt in ("ipynb", "jupyter", "jupyterlite"):
+        return "ipynb"
+    return "markdown"
+
+
+def _prepare_content(fmt: str, content: str) -> str:
+    if fmt == "ipynb":
+        body = (content or "").strip() or starter_ipynb_json()
+        validate_ipynb(body)
+        return body
+    return content or ""
+
+
 def _notebook_to_dict(n: Notebook) -> dict:
     """Map Notebook model to response dict."""
     return {
@@ -78,6 +99,7 @@ def _notebook_to_dict(n: Notebook) -> dict:
         else [],
         "ai_summary": n.ai_summary,
         "ai_next_steps": n.ai_next_steps,
+        "format": n.content_format or "markdown",
         "created_at": n.created_at.isoformat() if n.created_at else None,
         "updated_at": n.updated_at.isoformat() if n.updated_at else None,
     }
@@ -134,9 +156,15 @@ async def create_notebook(
         len(body.tags or []),
     )
     scope_vals = get_scope_values(current_user)
+    fmt = _normalize_format(body.format)
+    try:
+        content = _prepare_content(fmt, body.content or "")
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
     nb = Notebook(
         title=(body.title or "").strip() or "Neues Notizbuch",
-        content=body.content or "",
+        content=content,
+        content_format=fmt,
         tags=body.tags or [],
         user_id=scope_vals.get("user_id"),
         team_id=scope_vals.get("team_id"),
@@ -186,6 +214,20 @@ async def update_notebook(
     if body.title is not None:
         nb.title = (body.title or "").strip() or nb.title
     if body.content is not None:
+        nb.content = body.content
+    if body.format is not None:
+        fmt = _normalize_format(body.format)
+        nb.content_format = fmt
+        try:
+            raw = body.content if body.content is not None else nb.content
+            nb.content = _prepare_content(fmt, raw)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    elif body.content is not None and (nb.content_format or "markdown") == "ipynb":
+        try:
+            validate_ipynb(body.content)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
         nb.content = body.content
     if body.tags is not None:
         nb.tags = body.tags

@@ -1,0 +1,25 @@
+# Keycloak as OIDC broker in front of institutional Shibboleth (SAML).
+# BRA talks OIDC only. SAML never terminates on BRA.
+#
+# Start (dev): docker compose -f docker-compose.keycloak-saml.yml up -d
+# Then follow docs/AUTH-SHIBBOLETH-BRIDGE.md: realm, client, SAML IdP, attribute map.
+#
+# BRA .env:
+#   OIDC_ISSUER=http://localhost:8080/realms/bioresearch
+#   OIDC_CLIENT_ID=bioresearch-assistant
+#   OIDC_PROFILE=keycloak
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    command: ["start-dev"]
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - keycloak_saml_data:/opt/keycloak/data
+
+volumes:
+  keycloak_saml_data:

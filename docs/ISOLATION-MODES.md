@@ -40,11 +40,13 @@ Empfohlen für:
 
 **Team-Erkennung (automatisch, Priorität):**
 
-1. GA4GH Passport AffiliationAndRole Visa
-2. OIDC organization claim (Azure AD, Keycloak)
-3. Email-Domain: alle `@ukhd.de` = ein Team
+1. GA4GH Passport AffiliationAndRole Visa (konsumiert, nicht von BRA ausgestellt)
+2. IdP-Gruppen aus dem Operator-Claims-Map (`OIDC_PROFILE`: Keycloak `groups`, Entra `groups`, LS Login `eduperson_entitlement`)
+3. OIDC organization claim (Azure AD `tid`, Keycloak `organization`)
+4. Email-Domain: alle `@ukhd.de` = ein Team
+5. Fallback: `user:<sub>`
 
-Beispiel: Alle `@dkfz.de` Forscher teilen eine gemeinsame Paper-Bibliothek.
+Beispiel: Entra-Gruppe `UKHD-Forschung` → `team_id=group:UKHD-Forschung`. Alle `@dkfz.de` ohne Gruppen-Claim teilen `domain:dkfz.de`.
 
 ### Open-Modus (`ISOLATION_MODE=open`)
 
@@ -93,21 +95,15 @@ ISOLATION_MODE=open
 
 ## Team-Erkennung anpassen
 
-Falls die automatische Email-Domain-Erkennung nicht ausreicht, können Teams explizit über Keycloak oder Azure AD Groups konfiguriert werden.
+Gruppen kommen aus dem IdP-Token, gemappt in `backend/app/core/claims_map.py`. Kein Passport-Minting aus Gruppen.
 
-**Keycloak:**
+**Keycloak:** Gruppe z. B. `bioresearch-team-a` anlegen, Nutzer zuweisen, Mapper „Group Membership“ → Claim `groups`. `OIDC_PROFILE=keycloak` (oder `auto`).
 
-- Gruppe z. B. `bioresearch-team-a` erstellen
-- Nutzer zuweisen
-- Group Claim im Token aktivieren: Mappers → Group Membership → `groups`
+**Microsoft Entra:** Gruppentoken in der App-Registrierung aktivieren (optional Security Groups). `OIDC_PROFILE=entra`. Claim `groups` (GUIDs oder Namen je nach Token-Konfiguration).
 
-In `backend/app/core/isolation.py` in `_extract_team_id()` kann ergänzt werden:
+**LS Login / ELIXIR:** `OIDC_PROFILE=ls-login` mappt `eduperson_entitlement`.
 
-```python
-# Keycloak Groups
-if groups := current_user.get("groups"):
-    return f"group:{groups[0]}"
-```
+In `ISOLATION_MODE=team` wird die erste Gruppe zu `team_id` (`group:<name>`). Passport-Affiliation sticht Gruppen.
 
 ## Migration bestehender Daten
 

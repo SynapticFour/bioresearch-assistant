@@ -232,6 +232,14 @@ class Settings(BaseSettings):
         default="common",
         description="Microsoft Entra ID / Azure AD tenant ID (e.g. for institution-specific login)",
     )
+    oidc_profile: str = Field(
+        default="auto",
+        description=(
+            "IdP claims-map: auto | keycloak | entra | ls-login | broker. "
+            "auto picks from OIDC_ISSUER. BRA never issues Passports."
+        ),
+        validation_alias="OIDC_PROFILE",
+    )
 
     # FAIR Export: optional Zenodo upload
     zenodo_token: str | None = Field(

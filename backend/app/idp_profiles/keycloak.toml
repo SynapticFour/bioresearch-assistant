@@ -1,0 +1,8 @@
+# Institutional Keycloak (OIDC). BRA consumes tokens; it does not issue Passports.
+name = "keycloak"
+issuer_contains = "/realms/"
+groups_claim = "groups"
+groups_prefix = "group:"
+organization_claim = "organization"
+email_claim = "email"
+login_scope = "openid email profile ga4gh_passport_v1"
