@@ -3,8 +3,8 @@
 # WHO UPDATES: when Ferrum / Solum / ga4gh-infra tags move.
 # WHO READS: operators; subject-bridge pin is also config/ci/solum-revision.txt.
 
-FERRUM_REF=v0.3.0
-FERRUM_SHA=6444469ac488af9dd6f62f584b99be87ff2d7180
+FERRUM_REF=v0.3.1
+FERRUM_SHA=f28f27800f1d92c6a76670c760d9beb444c368d6
 SOLUM_REF=v0.1.0
 SOLUM_SHA=b68a941ff1cc9a2406f25b27fed8f12368ebbf1b
 GA4GH_INFRA_REF=ga4gh-infra-v0.2.3
