@@ -122,7 +122,64 @@ async def test_passport_extraction() -> None:
         result = await service.extract_ga4gh_passports("mock-token")
         assert result["sub"] == "user-123"
         assert len(result["passports"]) == 2
-        assert result["visas"]["type"] == "ResearcherStatus"
+        assert result["visas"][0]["type"] == "ResearcherStatus"
+
+
+@pytest.mark.asyncio
+async def test_nested_visa_jwt_is_verified() -> None:
+    """ga4gh_passport_v1 visa JWTs are signature-checked, not copied as strings."""
+    from app.services.auth_service import AuthService
+
+    service = AuthService()
+    visa_obj = {
+        "type": "AffiliationAndRole",
+        "value": "faculty@ukhd.de",
+    }
+    with (
+        patch.object(
+            service,
+            "verify_token",
+            new_callable=AsyncMock,
+            return_value={
+                "sub": "user-123",
+                "ga4gh_passport_v1": ["aaa.bbb.ccc"],
+            },
+        ),
+        patch.object(
+            service,
+            "verify_visa_jwt",
+            new_callable=AsyncMock,
+            return_value=visa_obj,
+        ),
+    ):
+        result = await service.extract_ga4gh_passports("mock-token")
+        assert result["visas"] == [visa_obj]
+
+
+@pytest.mark.asyncio
+async def test_nested_visa_jwt_dropped_on_verify_failure() -> None:
+    from app.services.auth_service import AuthService
+
+    service = AuthService()
+    with (
+        patch.object(
+            service,
+            "verify_token",
+            new_callable=AsyncMock,
+            return_value={
+                "sub": "user-123",
+                "ga4gh_passport_v1": ["not-a.jwt.token"],
+            },
+        ),
+        patch.object(
+            service,
+            "verify_visa_jwt",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
+        result = await service.extract_ga4gh_passports("mock-token")
+        assert result["visas"] == []
 
 
 # ─── Protected Endpoint Tests ──

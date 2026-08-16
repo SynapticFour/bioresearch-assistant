@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+- Nested GA4GH visa JWTs (`ga4gh_passport_v1`) are signature-verified (broker JWKS, then visa `iss`). Failed visas are dropped. Dataset bytes stay Ferrum’s job when `FERRUM_*` URLs are set.
+
 ## [0.2.0] - 2026-08-15
 
 Pre-1.0 release. The March 2026 initial tag was published as v1.0.0 by mistake.

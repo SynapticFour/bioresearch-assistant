@@ -173,7 +173,7 @@ Schritte nötig. Mögliche nächste Schritte (aus Sicht der Betreiber):
 | WES (Workflow Execution Service) | v1.1 | ✅ |
 | DRS (Data Repository Service) | v1.4 | ✅ |
 | Phenopackets | v2.0 | ✅ |
-| GA4GH Passports (AAI) | v1.0 | Claim extract (optional); visa JWT verify is Ferrum |
+| GA4GH Passports (AAI) | v1.0 | ID-token JWKS + nested visa JWT verify; dataset bytes are Ferrum |
 
 ### 4.2 Framework for Responsible Sharing
 

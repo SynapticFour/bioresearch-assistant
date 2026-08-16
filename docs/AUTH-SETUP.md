@@ -96,9 +96,9 @@ Ohne `OIDC_ISSUER` + `OIDC_CLIENT_ID` und mit explizitem `DEPLOYMENT=local|devel
 
 ## GA4GH Passport Visas
 
-BRA **consumes** `ga4gh_passport_v1` / `ga4gh_visa_v1` from the JWKS-verified OIDC ID token. It does **not** decode or verify nested visa JWTs (that is Ferrum when `FERRUM_DRS_URL` / `FERRUM_WES_URL` are set, plus the AAI broker). `AffiliationAndRole` dicts in `ga4gh_visa_v1` may set team isolation. Passport-gated **bytes** are Ferrum’s job: BRA forwards `Authorization` unless `FERRUM_BEARER_TOKEN` overrides it.
+BRA **consumes** `ga4gh_passport_v1` / `ga4gh_visa_v1` from the JWKS-verified OIDC ID token **and verifies nested visa JWTs** (broker JWKS, then visa `iss` OpenID discovery — the same split Ferrum uses). It does **not** issue Passports. `AffiliationAndRole` dicts may set team isolation. Passport-gated **bytes** remain Ferrum’s job: BRA forwards `Authorization` unless `FERRUM_BEARER_TOKEN` overrides it.
 
-Claim types you may see (not independently re-verified here):
+Claim types (visa JWT signature verified; dataset grants still enforced on DRS/WES by Ferrum):
 
 - ResearcherStatus — researcher assertion from the broker
 - AffiliationAndRole — institutional affiliation (team isolation)
@@ -163,4 +163,4 @@ Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md)
 
 ### GA4GH Passports an Unikliniken
 
-Für kontrollierte Datensätze (DKFZ, EGA, …) stellt der **AAI-Broker** (ga4gh-infra oder ELIXIR) die Visas aus. BRA liest die Claims aus dem ID-Token. Die **Durchsetzung** auf DRS/WES liegt bei Ferrum, wenn BRA als Client (`FERRUM_DRS_URL` / `FERRUM_WES_URL`) den Bearer weiterreicht. Nested Visa-JWTs prüft BRA nicht selbst.
+Für kontrollierte Datensätze (DKFZ, EGA, …) stellt der **AAI-Broker** (ga4gh-infra oder ELIXIR) die Visas aus. BRA prüft die ID-Token-Signatur **und** die nested Visa-JWTs. Die **Durchsetzung auf Bytes** (DRS/WES) liegt bei Ferrum, wenn BRA als Client (`FERRUM_DRS_URL` / `FERRUM_WES_URL`) den Bearer weiterreicht.
