@@ -27,6 +27,10 @@ This repository follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
 
 Customers must set **`BRA_VERSION`** in `.env` — `./install.sh --prod` refuses to start without it.
 
+## Release train (portfolio)
+
+When **Ferrum** or **Solum** is tagged: bump [VERSIONS.lock](VERSIONS.lock) and `config/ci/solum-revision.txt` the same week. Showcase pins **tags that exist on origin/main**. See [Ferrum PORTFOLIO.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/PORTFOLIO.md).
+
 ## Backport policy
 
 Security fixes should be backported to actively maintained release lines where feasible.

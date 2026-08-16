@@ -203,3 +203,5 @@ Kommerzielle Nutzung: contact@synapticfour.com
 Kontakt: [contact@synapticfour.com](mailto:contact@synapticfour.com)
 
 ---
+
+**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · BUSL-1.1 (paid; free for non-commercial research)
