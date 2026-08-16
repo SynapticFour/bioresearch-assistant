@@ -32,7 +32,7 @@ E-Mail: contact@synapticfour.com
 - OpenID Connect / OAuth2
 - JWT (RS256/ES256) via JWKS, Issuer-Prüfung wenn `OIDC_ISSUER` gesetzt
 - Session: httpOnly Cookie, kein Token in localStorage
-- GA4GH Passport v1.2
+- GA4GH Passport v1.2: ID-token claims after JWKS verify; nested visa JWTs are Ferrum’s job
 - Produktion startet nicht ohne OIDC / mit `DEPLOYMENT=local` / `ISOLATION_MODE=open`
 
 ### Datenschutz

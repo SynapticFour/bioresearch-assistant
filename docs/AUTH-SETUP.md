@@ -95,10 +95,14 @@ Jeder De-Pseudonymisierungs-Zugriff wird im Audit Log protokolliert (operation_t
 Ohne `OIDC_ISSUER` + `OIDC_CLIENT_ID` und mit explizitem `DEPLOYMENT=local|development|test` gibt es einen Dev-User. **In Produktion startet der Prozess dann nicht** (`assert_runtime_hardened`). Leeres `DEPLOYMENT` gilt als Produktion (fail-closed).
 
 ## GA4GH Passport Visas
-Das System versteht folgende Visa-Typen:
-- ResearcherStatus — Forscher-Verifikation
-- AffiliationAndRole — Institutionszugehörigkeit
-- ControlledAccessGrants — Zugang zu kontrollierten Daten
+
+BRA **consumes** `ga4gh_passport_v1` / `ga4gh_visa_v1` from the JWKS-verified OIDC ID token. It does **not** decode or verify nested visa JWTs (that is Ferrum when `FERRUM_DRS_URL` / `FERRUM_WES_URL` are set, plus the AAI broker). `AffiliationAndRole` dicts in `ga4gh_visa_v1` may set team isolation. Passport-gated **bytes** are Ferrum’s job: BRA forwards `Authorization` unless `FERRUM_BEARER_TOKEN` overrides it.
+
+Claim types you may see (not independently re-verified here):
+
+- ResearcherStatus — researcher assertion from the broker
+- AffiliationAndRole — institutional affiliation (team isolation)
+- ControlledAccessGrants — dataset grants — **enforced on DRS/WES by Ferrum**, not by BRA
 
 ---
 
@@ -159,8 +163,4 @@ Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md)
 
 ### GA4GH Passports an Unikliniken
 
-Für Zugang zu kontrollierten Datensätzen (z.B. DKFZ-Daten, EGA-Daten) prüft das System automatisch **GA4GH Passport Visas**:
-
-- **ResearcherStatus** → verifizierter Forscher
-- **AffiliationAndRole** → UKHD-Mitarbeiter
-- **ControlledAccessGrants** → Zugang zu spezifischen Daten
+Für kontrollierte Datensätze (DKFZ, EGA, …) stellt der **AAI-Broker** (ga4gh-infra oder ELIXIR) die Visas aus. BRA liest die Claims aus dem ID-Token. Die **Durchsetzung** auf DRS/WES liegt bei Ferrum, wenn BRA als Client (`FERRUM_DRS_URL` / `FERRUM_WES_URL`) den Bearer weiterreicht. Nested Visa-JWTs prüft BRA nicht selbst.

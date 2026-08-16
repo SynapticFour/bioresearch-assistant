@@ -28,7 +28,7 @@ See the root [README](../README.md) for the installer. CI keeps the 72 % coverag
 | Join | What you gain | Contract |
 |------|----------------|----------|
 | Ferrum | Use Ferrum as the institutional DRS/WES | `FERRUM_DRS_URL` / `FERRUM_WES_URL` (optional `FERRUM_BEARER_TOKEN`). Health: `ga4gh_backend`. `solum_subject` convention still joins Phenopackets to Ferrum objects |
-| ga4gh-infra | Same Passport visa Ferrum sees | Point `OIDC_ISSUER` at the broker. BRA **consumes** `ga4gh_passport_v1` from the ID token (does not issue Passports). When Ferrum URLs are set, the incoming `Authorization` header is forwarded unless `FERRUM_BEARER_TOKEN` overrides it |
+| ga4gh-infra | Same Passport *claims* the broker issued | Point `OIDC_ISSUER` at the broker. BRA copies `ga4gh_passport_v1` from the ID token (does not issue Passports, does not verify nested visa JWTs). When Ferrum URLs are set, `Authorization` is forwarded unless `FERRUM_BEARER_TOKEN` overrides it |
 | Solum | Phenopacket id bound to a clinical subject | `docs/SOLUM-SUBJECT-BRIDGE.md` — full `SubjectLinkBody`. Pin: `config/ci/solum-revision.txt` |
 | HELIOS | Signed evidence of a pipeline BRA kicked off | Operator exports artefacts; BRA does not embed HELIOS |
 
