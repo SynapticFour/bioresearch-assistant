@@ -1,0 +1,5 @@
+# Solum git pin for the subject-bridge contract (ADR-0003).
+# Tag v0.1.0 → b68a941ff1cc9a2406f25b27fed8f12368ebbf1b
+# Bump in a dedicated PR when Solum's SubjectLinkBody changes.
+v0.1.0
+b68a941ff1cc9a2406f25b27fed8f12368ebbf1b

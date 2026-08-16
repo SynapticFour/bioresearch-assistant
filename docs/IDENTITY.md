@@ -2,7 +2,9 @@
 
 BioResearch Assistant (BRA) is a **researcher workbench**: Phenopackets, literature, BLAST, notebooks. It is a complete product **without Ferrum**. For labs that have no archive, it exposes its **own** GA4GH WES/DRS HTTP surface.
 
-When Ferrum is present, BRA **consumes** Ferrum DRS/WES as a GA4GH client. Set `FERRUM_DRS_URL` and/or `FERRUM_WES_URL` (include the `/ga4gh/drs/v1` and `/ga4gh/wes/v1` prefixes). BRA then proxies those HTTP surfaces to Ferrum and `/api/v1/health` reports `ga4gh_backend.drs|wes: ferrum`. Leave the URLs unset for BRA's **own** local DRS/WES. Do not run BRA’s local DRS as a second institutional archive beside Ferrum.
+When Ferrum is present, BRA **consumes** Ferrum DRS/WES as a GA4GH client. Set `FERRUM_DRS_URL` and/or `FERRUM_WES_URL` (include the `/ga4gh/drs/v1` and `/ga4gh/wes/v1` prefixes). BRA then proxies those HTTP surfaces to Ferrum and `/api/v1/health` reports `ga4gh_backend.drs|wes: ferrum`. Leave the URLs unset for BRA's **own** local DRS/WES.
+
+**One institute, one DRS.** With Ferrum URLs set, `GET /ga4gh/drs/v1/service-info` (and WES service-info) is Ferrum's document — not `org.ga4gh.bioresearch.*`. BRA is the workbench client. Do not run BRA’s local DRS as a second institutional archive beside Ferrum.
 
 ## Audience
 
@@ -25,8 +27,9 @@ See the root [README](../README.md) for the installer. CI keeps the 72 % coverag
 
 | Join | What you gain | Contract |
 |------|----------------|----------|
-| Solum | Phenopacket id bound to a clinical subject | `docs/SOLUM-SUBJECT-BRIDGE.md` — full `SubjectLinkBody` |
 | Ferrum | Use Ferrum as the institutional DRS/WES | `FERRUM_DRS_URL` / `FERRUM_WES_URL` (optional `FERRUM_BEARER_TOKEN`). Health: `ga4gh_backend`. `solum_subject` convention still joins Phenopackets to Ferrum objects |
+| ga4gh-infra | Same Passport visa Ferrum sees | Point `OIDC_ISSUER` at the broker. BRA **consumes** `ga4gh_passport_v1` from the ID token (does not issue Passports). When Ferrum URLs are set, the incoming `Authorization` header is forwarded unless `FERRUM_BEARER_TOKEN` overrides it |
+| Solum | Phenopacket id bound to a clinical subject | `docs/SOLUM-SUBJECT-BRIDGE.md` — full `SubjectLinkBody`. Pin: `config/ci/solum-revision.txt` |
 | HELIOS | Signed evidence of a pipeline BRA kicked off | Operator exports artefacts; BRA does not embed HELIOS |
 
 When Solum Track B (CDR) is off, subject-link upsert returns 503 from Solum. BRA surfaces that as a failed upsert and still returns the payload.

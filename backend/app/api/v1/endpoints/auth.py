@@ -230,6 +230,7 @@ async def auth_status() -> dict:
         "mode": "production" if settings.auth_enabled else "development",
         "ga4gh_passport_support": True,
         "supported_providers": [
+            "ga4gh-infra AAI broker",
             "Keycloak",
             "ELIXIR AAI",
             "Google",

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from app.services.solum_subject_bridge import build_subject_link_payload
@@ -61,3 +63,24 @@ def test_build_subject_link_rejects_missing_actor_or_purpose() -> None:
             actor="researcher/dev-user",
             purpose="  ",
         )
+
+
+def test_subject_link_contract_keys_match_solum_adr0003() -> None:
+    """Freeze SubjectLinkBody keys against the Solum pin in config/ci/solum-revision.txt."""
+    pin = Path(__file__).resolve().parents[2] / "config" / "ci" / "solum-revision.txt"
+    text = pin.read_text(encoding="utf-8")
+    assert "v0.1.0" in text
+    payload = build_subject_link_payload(
+        phenopacket_id="ppkt-001",
+        actor="researcher/dev-user",
+        purpose="research",
+        ferrum_drs_id="drs.example/obj-1",
+    )
+    assert set(payload) >= {
+        "actor",
+        "capability",
+        "purpose",
+        "solum_subject_id",
+        "phenopacket_id",
+        "ferrum_drs_id",
+    }

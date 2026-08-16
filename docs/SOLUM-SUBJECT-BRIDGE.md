@@ -1,7 +1,7 @@
 # BioResearch Assistant ↔ Solum subject bridge
 
 **Status:** 2026-08-15 · contract aligned with Solum `SubjectLinkBody`
-**Contract:** Solum [ADR 0003](https://github.com/SynapticFour/Solum/blob/main/docs/adr/0003-subject-bridge.md)
+**Contract:** Solum [ADR 0003](https://github.com/SynapticFour/Solum/blob/main/docs/adr/0003-subject-bridge.md) · pin `config/ci/solum-revision.txt` (tag **v0.1.0**).
 
 BRA is **not** a Ferrum wrapper. This join is optional: Phenopacket id → Solum clinical subject. Ferrum DRS objects that carry `solum_subject` can share the same string.
 
