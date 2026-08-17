@@ -219,7 +219,7 @@ ISO‑27001‑Zertifizierung liegt **nicht** vor:
 - A.12 Betriebssicherheit: Docker, Backups ✅
 - A.14 Systementwicklung: OWASP Review ✅
 - A.16 Incident Management: Error Logging ✅
-- A.18 Compliance: DSGVO, GA4GH ✅
+- A.18 Compliance: technical controls that can support a GDPR/GA4GH programme — **not** a certificate
 
 ### 5.3 HIPAA (USA)
 

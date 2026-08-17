@@ -63,7 +63,7 @@ Vertragssituation und den Verantwortlichen beim Betreiber ab.
 - Logging & Audit:
   - Pseudonymisierung, De‑Pseudonymisierung, FAIR‑Export.
 
-Weitere Details: `SECURITY.md` und `AUDIT-REPORT.md`.
+Weitere Details: `SECURITY.md` und `THREAT_MODEL.md`.
 
 ---
 
@@ -78,4 +78,3 @@ Vor Go‑Live sollten Betreiber*innen u. a. prüfen:
 
 Die Verantwortung für Rechtskonformität und Informationssicherheit
 liegt immer bei den verantwortlichen Stellen des jeweiligen Einsatzes.
-

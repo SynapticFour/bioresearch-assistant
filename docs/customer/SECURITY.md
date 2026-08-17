@@ -62,7 +62,6 @@ BioResearch Assistant is **not recommended as a medical device** (FDA/MDR) witho
 | Document | Purpose |
 |----------|---------|
 | [COMPLIANCE.md](../COMPLIANCE.md) | Technical alignment with DSGVO, GA4GH, GAIA-X design (no certificates) |
-| [AUDIT-REPORT.md](../AUDIT-REPORT.md) | Internal technical assessment / residual risks |
 | [SECURITY.md](../../SECURITY.md) | Vulnerability reporting and engineering controls |
 | [THREAT_MODEL.md](../THREAT_MODEL.md) | Assets, adversaries, residual risks |
 | [UNIKLINIK.md](../deployment/UNIKLINIK.md) | Production start guards and clinic checklist |
