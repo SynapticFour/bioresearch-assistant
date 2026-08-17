@@ -6,8 +6,8 @@ Für datenschutzfreundliche Nutzung konzipiert (technisch, kein Rechtsrat) · On
 
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
 [![GA4GH Standards](https://img.shields.io/badge/GA4GH-Standards-blue.svg)](https://ga4gh.org)
-[![GAIA-X design alignment](https://img.shields.io/badge/GAIA--X-design%20alignment-blue.svg)](docs/GAIA-X-ALIGNMENT.md)
-[![Datenschutz](https://img.shields.io/badge/Datenschutz-DSGVO%20orientiert-green.svg)](docs/COMPLIANCE.md)
+[![GAIA-X](https://img.shields.io/badge/GAIA--X-not%20certified-lightgrey.svg)](docs/GAIA-X-ALIGNMENT.md)
+[![Datenschutz](https://img.shields.io/badge/DSGVO-technical%20controls%20only-lightgrey.svg)](docs/COMPLIANCE.md)
 
 **Security reviewers:** [docs/THREAT_MODEL.md](docs/THREAT_MODEL.md) · **Who this is for:** [docs/IDENTITY.md](docs/IDENTITY.md)
 
@@ -196,12 +196,10 @@ Details: `docs/INSTALL.md`.
 
 ## Lizenz
 
-BUSL 1.1 — Business Source License
-Kostenlos für Forschung und Evaluation.
-Kommerzielle Nutzung: contact@synapticfour.com
+BUSL 1.1 — Business Source License. Change Date is **four years from each version**, not a calendar date (the old `2030-03-01` line tracked the mistaken v1.0.0 tag). Tags: [VERSIONING.md](docs/VERSIONING.md). Written BRA license: [COMMERCIAL.md](docs/COMMERCIAL.md). No combo SKU with Ferrum/Solum.
 
 Kontakt: [contact@synapticfour.com](mailto:contact@synapticfour.com)
 
 ---
 
-**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · BUSL-1.1 (paid; free for non-commercial research). Written license (per product, no combo SKU): [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md).
+**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · BUSL-1.1 (paid; free for non-commercial research). Written license (BRA, no combo SKU): [docs/COMMERCIAL.md](docs/COMMERCIAL.md).

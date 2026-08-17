@@ -103,7 +103,7 @@ jobs:
       OIDC_CLIENT_ID: helixtest-audience
       OIDC_CLIENT_SECRET: ""
       ANTHROPIC_API_KEY: ""
-      HELIXTEST_REF: fbfe207f8961d5e8909b9173c07a7e001c24f2ad
+      HELIXTEST_REF: 4a10e126c21960471f439f26d23180058422b507
 
     steps:
       - uses: actions/checkout@v7
