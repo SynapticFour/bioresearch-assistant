@@ -204,4 +204,4 @@ Kontakt: [contact@synapticfour.com](mailto:contact@synapticfour.com)
 
 ---
 
-**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · BUSL-1.1 (paid; free for non-commercial research)
+**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com) · BUSL-1.1 (paid; free for non-commercial research). Written license (per product, no combo SKU): [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md).

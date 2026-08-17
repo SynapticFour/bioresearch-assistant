@@ -23,6 +23,8 @@ make up          # compose stack
 
 See the root [README](../README.md) for the installer. CI keeps the 72 % coverage gate.
 
+Written commercial license (BRA is its own product, not a Ferrum add-on, no combo SKU): [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md).
+
 ## Optional composition
 
 | Join | What you gain | Contract |

@@ -23,7 +23,7 @@ Production use for commercial advantage or managed third-party service operation
 
 **Institutional Synaptic Research AI** engagements (faculty / multi-faculty intelligence infrastructure) use a different tier table in private `synapticfour-business/offerings/synaptic-research-ai/pricing.md` — do not mix SKUs.
 
-Contact: `contact@synapticfour.com`
+Contact: `contact@synapticfour.com`. How to request a **written** license, and that there is **no combo SKU**: [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md). The table above is **indicative only** — not a signed grant and not a price list you can invoice against.
 
 ## Important scope note
 

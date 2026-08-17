@@ -7,6 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+- Commercial path: [BUSINESS-MODEL.md](docs/BUSINESS-MODEL.md) points at Ferrum [COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md). BRA stays a separate license; no combo SKU.
 - Nested GA4GH visa JWTs (`ga4gh_passport_v1`) are signature-verified (broker JWKS, then visa `iss`). Failed visas are dropped. Dataset bytes stay Ferrum’s job when `FERRUM_*` URLs are set.
 - JupyterLite-class compute notebooks (nbformat v4 / Pyodide in the SPA). Optional JupyterHub sidecar without `DATABASE_URL`. No JupyterHub in Ferrum, no Colab.
 - Institute IdP profiles (`OIDC_PROFILE`: Keycloak, Entra, LS Login, broker): groups isolation, RP-initiated logout, Entra without Passport scope. BRA does not issue Passports.
