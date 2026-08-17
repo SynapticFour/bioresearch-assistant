@@ -69,10 +69,11 @@ BioResearch Assistant zeigt in der UI einen Hinweis wenn Anthropic API aktiv ist
 ### 1.4 Auftragsverarbeitung (Art. 28 DSGVO)
 
 Wenn BioResearch Assistant für Dritte betrieben wird, **kann** ein
-Auftragsverarbeitungsvertrag (AVV) erforderlich sein. Ob dies im
+Auftragsverarbeitungsvertrag (AVV / DPA) erforderlich sein. Ob dies im
 Einzelfall zutrifft, hängt von Rollenverteilung und Einsatzszenario ab.
-Ein AVV-Template in `docs/AVV-TEMPLATE.md` dient lediglich als
-Startpunkt und ersetzt keine anwaltliche Prüfung.
+Ein Vertragstext liegt **nicht** in diesem öffentlichen Repository
+(es gibt kein `docs/AVV-TEMPLATE.md`). Anfrage: **contact@synapticfour.com**.
+Das ersetzt keine anwaltliche Prüfung.
 
 ### 1.5 Verzeichnis der Verarbeitungstätigkeiten
 
@@ -330,7 +331,7 @@ individuelle Beratung:
 
 | Version | Geplant | Feature |
 |---------|---------|---------|
-| 1.4.x | 2026 Q1 | AVV-Template fertigstellen |
+| — | on request | DPA/AVV via contact@synapticfour.com (kein Template in diesem Repo) |
 | 1.5.0 | 2026 Q2 | GAIA-X Level 1 Credential |
 | 1.5.0 | 2026 Q2 | DUO-Codes in Phenopackets |
 | 1.6.0 | 2026 Q3 | BSI C5 Self-Assessment |

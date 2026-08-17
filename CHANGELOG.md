@@ -7,6 +7,15 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+- Docs: supported versions in [SECURITY.md](SECURITY.md) are **0.2.x** (v1.0.0 remains a published mistake tag). DPA/AVV is on request — there is no `docs/AVV-TEMPLATE.md` in this tree.
+- HelixTest patch `0001-default-bearer-for-confidential-drs-wes.patch` regenerated against suite SHA `4a10e12` (`HELIXTEST_DEFAULT_BEARER` on `get_builder` / `post_json`).
+- Release workflow writes notes to `release-notes.md` and uses `body_path` (git log bodies can contain `EOF` and broke `GITHUB_OUTPUT`).
+
+## [0.2.1] - 2026-08-17
+
+Suite join tag (Ferrum HTTP proxy + visa-verify + HelixTest pin). Git tag `v0.2.1`.
+
+- Optional Ferrum DRS/WES HTTP proxy (`maybe_proxy_ferrum`) when `FERRUM_*` URLs are set. Tag **v0.2.0** does not include this.
 - Commercial path: [COMMERCIAL.md](docs/COMMERCIAL.md). BRA stays a separate license; no combo SKU.
 - HelixTest pin **`4a10e126c219`** (suite canonical SHA; tag label v0.1.2).
 - BUSL Change Date: four years from each version (no longer `2030-03-01`).

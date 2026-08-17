@@ -106,7 +106,6 @@ jobs:
           cat SHA256SUMS.txt
 
       - name: Generate changelog snippet
-        id: changelog
         run: |
           PREVIOUS_TAG=$(git tag --sort=-version:refname | sed -n '2p')
           CURRENT_TAG="${BRA_RELEASE_VERSION}"
@@ -119,19 +118,15 @@ jobs:
             else
               git log --pretty=format:"- %s (%h)" | head -50
             fi
+            echo ""
           } > release-notes.md
-          {
-            echo "body<<EOF"
-            cat release-notes.md
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ env.BRA_RELEASE_VERSION }}
           name: BioResearch Assistant ${{ env.BRA_RELEASE_VERSION }}
-          body: ${{ steps.changelog.outputs.body }}
+          body_path: release-notes.md
           draft: false
           fail_on_unmatched_files: false
           files: |

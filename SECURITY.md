@@ -4,8 +4,9 @@
 
 | Version | Support |
 |---------|---------|
-| 1.0.x   | ✅ Aktiv |
-| < 1.0   | ❌ Kein Support |
+| 0.2.x   | Aktiv (suite join: **v0.2.1**) |
+| 0.1.x   | Kein Support |
+| v1.0.0  | Nicht unterstützen — published mistake tag, see [docs/VERSIONING.md](docs/VERSIONING.md) |
 
 ## Sicherheitslücken melden
 
