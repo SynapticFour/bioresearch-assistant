@@ -1,4 +1,4 @@
-# Canonical install lockfiles are requirements.txt and requirements.lock
+# Canonical hashed lock: requirements.lock (uv pip compile --generate-hashes).
 # (uv pip compile --generate-hashes). This Poetry lock is an unused stub.
 [project]
 name = "bioresearch-assistant-backend"

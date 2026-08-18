@@ -16,7 +16,7 @@ Clinician-scientists, lab groups, Uniklinik research units who want one on-prem 
 
 ```bash
 git clone https://github.com/SynapticFour/bioresearch-assistant.git && cd bioresearch-assistant
-pip install -r backend/requirements.txt
+pip install -r backend/requirements.lock
 make prove       # backend pytest, no Docker (coverage gate is CI)
 make up          # compose stack
 ```

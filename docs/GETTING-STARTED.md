@@ -5,7 +5,7 @@
 ## Zero-risk proof (no Docker)
 
 ```bash
-pip install -r backend/requirements.txt
+pip install -r backend/requirements.lock
 make prove
 ```
 

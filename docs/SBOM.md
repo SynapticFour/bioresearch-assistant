@@ -61,7 +61,7 @@ On every push/PR:
 ```bash
 # backend
 pip install pip-audit
-pip-audit -r backend/requirements.txt
+pip-audit -r backend/requirements.lock
 
 # frontend (production, high+)
 cd frontend && npm ci && npm audit --omit=dev --audit-level=high
@@ -71,7 +71,7 @@ See `.github/workflows/ci.yml` job `supply-chain`.
 
 ## Known vulnerabilities
 
-Dated 2026-08-15 (`pip-audit -r backend/requirements.txt`, `npm audit --omit=dev --audit-level=high`):
+Dated 2026-08-15 (`pip-audit -r backend/requirements.lock`, `npm audit --omit=dev --audit-level=high`):
 
 | Finding | Status |
 |---------|--------|

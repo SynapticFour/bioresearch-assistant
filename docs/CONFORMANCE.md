@@ -143,7 +143,7 @@ cd /pfad/zu/bioresearch-assistant
 
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r backend/requirements.lock
 ```
 
 ### Schritt 2: (Optional) Backend starten
