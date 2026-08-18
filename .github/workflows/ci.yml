@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --retries 5 --timeout 120 -r backend/requirements.lock
+          pip install --retries 5 --timeout 120 --require-hashes --no-deps -r backend/requirements.lock
 
       - name: Run tests with coverage
         working-directory: backend
@@ -128,9 +128,11 @@ jobs:
       - name: pip-audit (backend requirements)
         run: |
           python -m pip install --upgrade pip pip-audit
+          # Lock is hashed; pip-audit still resolves extras (Linux torch → cuda-toolkit)
+          # unless --no-deps. Named-file audit stays on the hashed lock contents.
           # sentence-transformers 2.x pins transformers 4.x. PYSEC-2025-217 has no
           # upstream fix; 2288/2289/2290 require transformers 5.x (major, not taken).
-          pip-audit -r backend/requirements.lock \
+          pip-audit -r backend/requirements.lock --no-deps \
             --ignore-vuln PYSEC-2025-217 \
             --ignore-vuln PYSEC-2026-2288 \
             --ignore-vuln PYSEC-2026-2289 \

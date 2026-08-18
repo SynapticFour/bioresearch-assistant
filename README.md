@@ -15,7 +15,7 @@ These public repositories are maintained by the same organisation and are design
 ## Quick start
 
 ```bash
-pip install -r backend/requirements.lock
+pip install --require-hashes --no-deps -r backend/requirements.lock
 make prove    # backend pytest, no Docker
 make up       # unattended install or start
 ```
