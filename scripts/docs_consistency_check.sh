@@ -91,7 +91,7 @@ check_present "BACKEND_IMAGE|FRONTEND_IMAGE" "${ROOT_DIR}/docs/deployment" "Depl
 
 # Tooling wording consistency for backend deps in docs.
 check_absent "poetry install" "${ROOT_DIR}/docs" "No conflicting poetry install instructions in docs"
-check_present "pip install --require-hashes --no-deps -r backend/requirements.lock" "${ROOT_DIR}/docs" "pip hashed-lock install instruction present"
+check_present "pip install --require-hashes --no-deps --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.lock" "${ROOT_DIR}/docs" "pip hashed-lock install instruction present"
 
 if [[ "${FAILED}" -eq 1 ]]; then
   echo "Docs consistency checks failed."

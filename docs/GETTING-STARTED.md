@@ -5,7 +5,7 @@
 ## Zero-risk proof (no Docker)
 
 ```bash
-pip install --require-hashes --no-deps -r backend/requirements.lock
+pip install --require-hashes --no-deps --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.lock
 make prove
 ```
 

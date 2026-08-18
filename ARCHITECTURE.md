@@ -63,4 +63,4 @@ These remain open on purpose. Revisit when the product needs the extra architect
 | Default tests to `ISOLATION_MODE=user` | HTTP tests share one `dev-user`; `conftest` sets `user`. Isolation coverage lives in `test_isolation.py` and `test_hospital_hardening.py`. |
 | DRS catalog index (replace `rglob`) | List is now paginated; a DB-backed catalog is larger scope. |
 | FAIR `accessible`/`interoperable` hardcoded True | Scoring heuristic, not a security bug. ZIP build now uses a spooled temp file. |
-| Hashed install lock | `backend/requirements.lock` (`uv pip compile --generate-hashes`). Install with `--require-hashes --no-deps` so Linux extras (torch CUDA) not listed in the lock cannot be pulled. `poetry.lock` / `uv.lock` are not used. |
+| Hashed install lock | `backend/requirements.lock` (`uv pip compile --generate-hashes --universal`). Install with `--require-hashes --no-deps` and the PyTorch CPU extra index so Linux CI does not pull CUDA. `poetry.lock` / `uv.lock` are not used. |

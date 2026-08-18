@@ -31,7 +31,7 @@ cd bioresearch-assistant
 cp .env.example .env
 python3 -m venv .venv
 source .venv/bin/activate  # Windows: .venv\Scripts\activate
-pip install --require-hashes --no-deps -r backend/requirements.lock
+pip install --require-hashes --no-deps --extra-index-url https://download.pytorch.org/whl/cpu -r backend/requirements.lock
 cd frontend && npm install && cd ..
 ```
 

@@ -14,7 +14,9 @@ RUN curl -fsSL "https://github.com/nextflow-io/nextflow/releases/download/v${NEX
     chmod +x /usr/local/bin/nextflow
 
 COPY requirements.lock .
-RUN pip install --no-cache-dir --require-hashes --no-deps -r requirements.lock
+RUN pip install --no-cache-dir --require-hashes --no-deps \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    -r requirements.lock
 # Pre-download embedding model (~420MB, multilingual DE/EN/50+)
 RUN python -c "\
 from sentence_transformers import SentenceTransformer; \

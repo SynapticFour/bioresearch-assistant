@@ -1,5 +1,6 @@
 # BioResearch Assistant — Backend Dependencies
 # Python 3.11+
+--extra-index-url https://download.pytorch.org/whl/cpu
 
 # Web
 fastapi>=0.109.0,<1.0
@@ -46,6 +47,9 @@ anthropic>=0.39.0,<1.0
 
 # Embeddings (local)
 sentence-transformers>=2.2.0,<3.0
+# Linux CI/Docker: CPU torch (no CUDA toolkit). Other platforms: default PyPI wheel.
+torch==2.13.0 ; sys_platform != "linux"
+torch==2.13.0+cpu ; sys_platform == "linux"
 
 # Bioinformatik (BLAST XML parsing)
 biopython>=1.81,<2.0
