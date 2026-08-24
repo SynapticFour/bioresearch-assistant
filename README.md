@@ -34,3 +34,5 @@ DRS and WES in the feature list are **BRA’s own local surfaces**, or an extern
 ## License
 
 Business Source License 1.1 — see [LICENSE](LICENSE). Change Date is four years from each version, not a calendar date.
+
+**Synaptic Four** · [contact@synapticfour.com](mailto:contact@synapticfour.com) · [synapticfour.com](https://synapticfour.com)
