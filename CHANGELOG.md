@@ -17,7 +17,7 @@ Suite join tag (Ferrum HTTP proxy + visa-verify + HelixTest pin). Git tag `v0.2.
 
 - Optional Ferrum DRS/WES HTTP proxy (`maybe_proxy_ferrum`) when `FERRUM_*` URLs are set. Tag **v0.2.0** does not include this.
 - Commercial path: [COMMERCIAL.md](docs/COMMERCIAL.md). BRA stays a separate license; no combo SKU.
-- HelixTest pin **`4a10e126c219`** (suite canonical SHA; tag label v0.1.2).
+- HelixTest pin **v0.1.3** (`1832c04`).
 - BUSL Change Date: four years from each version (no longer `2030-03-01`).
 - README badges: GAIA-X / DSGVO are **not certified**.
 - Nested GA4GH visa JWTs (`ga4gh_passport_v1`) are signature-verified (broker JWKS, then visa `iss`). Failed visas are dropped. Dataset bytes stay Ferrum’s job when `FERRUM_*` URLs are set.
