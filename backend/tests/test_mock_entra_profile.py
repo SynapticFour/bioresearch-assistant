@@ -43,15 +43,15 @@ def test_apply_entra_groups_and_tid() -> None:
     mapped = apply_profile_claims(
         {
             "sub": "entra-user",
-            "preferred_username": "forscher@ukhd.de",
-            "tid": "tenant-ukhd",
-            "groups": ["UKHD-Forschung", "BRA-Users"],
+            "preferred_username": "researcher@institute.example",
+            "tid": "tenant-institute",
+            "groups": ["research-group", "BRA-Users"],
         },
         profile,
     )
-    assert mapped["email"] == "forscher@ukhd.de"
-    assert mapped["organization"] == "tenant-ukhd"
-    assert mapped["groups"] == ["UKHD-Forschung", "BRA-Users"]
+    assert mapped["email"] == "researcher@institute.example"
+    assert mapped["organization"] == "tenant-institute"
+    assert mapped["groups"] == ["research-group", "BRA-Users"]
     assert mapped["idp_profile"] == "entra"
 
 
@@ -70,9 +70,9 @@ async def test_extract_passports_attaches_entra_groups_without_minting() -> None
     service = AuthService()
     claims = {
         "sub": "entra-user",
-        "preferred_username": "forscher@ukhd.de",
-        "tid": "tenant-ukhd",
-        "groups": ["UKHD-Forschung"],
+        "preferred_username": "researcher@institute.example",
+        "tid": "tenant-institute",
+        "groups": ["research-group"],
         "name": "Dr. Schmidt",
     }
     with (
@@ -80,12 +80,12 @@ async def test_extract_passports_attaches_entra_groups_without_minting() -> None
         patch.object(service, "verify_token", new_callable=AsyncMock, return_value=claims),
     ):
         result = await service.extract_ga4gh_passports("mock-token")
-    assert result["groups"] == ["UKHD-Forschung"]
+    assert result["groups"] == ["research-group"]
     assert result["idp_profile"] == "entra"
     assert result["visas"] == []
     assert result["passports"] == []
-    assert result["email"] == "forscher@ukhd.de"
-    assert result["organization"] == "tenant-ukhd"
+    assert result["email"] == "researcher@institute.example"
+    assert result["organization"] == "tenant-institute"
 
 
 @pytest.mark.asyncio
@@ -118,7 +118,7 @@ async def test_logout_builds_rp_initiated_url() -> None:
         auth_enabled=True,
         oidc_issuer="https://login.microsoftonline.com/t/v2.0",
         oidc_client_id="bra-client",
-        frontend_base_url="https://bra.ukhd.example",
+        frontend_base_url="https://bra.institute.example",
         session_cookie_name="bra_access_token",
         allows_unauthenticated_dev=False,
     )

@@ -28,7 +28,7 @@ Empfohlen für:
 - Verschiedene Ärzte/Forscher einer Institution
 - Wenn Patientendaten pro Person isoliert sein müssen
 
-Beispiel: Zwei Ärzte am UKHD sehen jeweils nur ihre eigenen pseudonymisierten Patienten.
+Beispiel: Zwei Ärzt:innen derselben Institution sehen jeweils nur ihre eigenen pseudonymisierten Patient:innen.
 
 ### Team-Modus (`ISOLATION_MODE=team`)
 
@@ -43,10 +43,10 @@ Empfohlen für:
 1. GA4GH Passport AffiliationAndRole Visa (konsumiert, nicht von BRA ausgestellt)
 2. IdP-Gruppen aus dem Operator-Claims-Map (`OIDC_PROFILE`: Keycloak `groups`, Entra `groups`, LS Login `eduperson_entitlement`)
 3. OIDC organization claim (Azure AD `tid`, Keycloak `organization`)
-4. Email-Domain: alle `@ukhd.de` = ein Team
+4. Email-Domain: alle `@institute.example` = ein Team
 5. Fallback: `user:<sub>`
 
-Beispiel: Entra-Gruppe `UKHD-Forschung` → `team_id=group:UKHD-Forschung`. Alle `@dkfz.de` ohne Gruppen-Claim teilen `domain:dkfz.de`.
+Beispiel: Entra-Gruppe `research-group` → `team_id=group:research-group`. Alle `@institute.example` ohne Gruppen-Claim teilen `domain:institute.example`.
 
 ### Open-Modus (`ISOLATION_MODE=open`)
 
@@ -78,7 +78,7 @@ ISOLATION_MODE=team
 # Teams automatisch via DFN-AAI Email-Domain erkannt
 ```
 
-### Azure / Uniklinik (z. B. UKHD)
+### Azure / Universitätsklinik (Entra ID)
 
 In `.env`:
 
@@ -124,9 +124,9 @@ python backend/scripts/migrate_isolation.py \
 ```json
 {
   "sub": "user-123",
-  "email": "forscher@ukhd.de",
+  "email": "researcher@institute.example",
   "isolation_mode": "team",
-  "team_id": "domain:ukhd.de",
-  "scope": {"team_id": "domain:ukhd.de"}
+  "team_id": "domain:institute.example",
+  "scope": {"team_id": "domain:institute.example"}
 }
 ```

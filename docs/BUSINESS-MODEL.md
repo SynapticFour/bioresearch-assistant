@@ -12,18 +12,9 @@ BioResearch Assistant is licensed under **BUSL-1.1** (see [`../LICENSE`](../LICE
 
 Production use for commercial advantage or managed third-party service operation requires a commercial agreement with Synaptic Four.
 
-**Public indicative SKU** (synapticfour.com `/software`, aligned 2026-08 · org plan E5):
+Indicative prices are **not published in this repository**. Email [contact@synapticfour.com](mailto:contact@synapticfour.com) for a written quote. Nothing on this page is a price list or a signed grant.
 
-| Component | Indicative |
-|-----------|------------|
-| Pilot (first customer) | Free or symbolic |
-| Licence (from second customer) | €3,500–4,000 / year all-in |
-| Onboarding | €2,500 one-time |
-| Optional accompaniment | €600 / month |
-
-**Institutional Synaptic Research AI** engagements (faculty / multi-faculty intelligence infrastructure) use a different tier table in private `synapticfour-business/offerings/synaptic-research-ai/pricing.md` — do not mix SKUs.
-
-Contact: `contact@synapticfour.com`. How to request a **written** license, and that there is **no combo SKU**: [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md). The table above is **indicative only** — not a signed grant and not a price list you can invoice against.
+BRA is licensed **separately** from Ferrum and Solum. There is no combo SKU. How to request a written license: [COMMERCIAL.md](COMMERCIAL.md) and [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md).
 
 ## Important scope note
 

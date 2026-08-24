@@ -41,7 +41,7 @@ async def test_get_me_with_valid_token(async_client: AsyncClient) -> None:
     """GET /auth/me mit gültigem Token (mock)."""
     mock_user = {
         "sub": "user-123",
-        "email": "forscher@ukhd.de",
+        "email": "researcher@institute.example",
         "name": "Dr. Schmidt",
         "roles": ["researcher"],
         "passports": [],
@@ -104,7 +104,7 @@ async def test_passport_extraction() -> None:
     service = AuthService()
     mock_claims = {
         "sub": "user-123",
-        "email": "forscher@ukhd.de",
+        "email": "researcher@institute.example",
         "name": "Dr. Schmidt",
         "ga4gh_passport_v1": ["visa1", "visa2"],
         "ga4gh_visa_v1": {
@@ -134,7 +134,7 @@ async def test_nested_visa_jwt_is_verified() -> None:
     service = AuthService()
     visa_obj = {
         "type": "AffiliationAndRole",
-        "value": "faculty@ukhd.de",
+        "value": "faculty@institute.example",
     }
     with (
         patch.object(

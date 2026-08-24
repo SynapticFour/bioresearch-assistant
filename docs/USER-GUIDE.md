@@ -617,7 +617,7 @@ Empfehlung: Mit 1.0 starten, dann anpassen.
 | Hybrid Search (Vektor + Keyword) | v1.1.0 | Geplant |
 | Team Collaboration im ELN | v1.1.0 | Geplant |
 | VCF → Literatursuche Button | v1.1.0 | Geplant |
-| Crypt4GH, ISO 27001 | v2.0.0 | Geplant |
+| Crypt4GH-Anbindung | v2.0.0 | Geplant |
 
 ---
 

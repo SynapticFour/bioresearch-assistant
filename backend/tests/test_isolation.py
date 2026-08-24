@@ -22,16 +22,16 @@ USER_B = {
     "passports": [],
     "visas": [],
 }
-USER_C_UKHD = {
+USER_C_INST = {
     "sub": "user-c",
-    "email": "c@ukhd.de",
+    "email": "c@institute.example",
     "roles": [],
     "passports": [],
     "visas": [],
 }
-USER_D_UKHD = {
+USER_D_INST = {
     "sub": "user-d",
-    "email": "d@ukhd.de",
+    "email": "d@institute.example",
     "roles": [],
     "passports": [],
     "visas": [],
@@ -48,7 +48,7 @@ PAPER_A = {
 
 PAPER_TEAM = {
     "pmid": "isolation-test-002",
-    "title": "Team Paper UKHD",
+    "title": "Team Paper Institute",
     "abstract": "Abstract Team",
     "authors": ["User C"],
     "year": "2024",
@@ -65,11 +65,11 @@ async def _override_user_b() -> dict:
 
 
 async def _override_user_c() -> dict:
-    return USER_C_UKHD
+    return USER_C_INST
 
 
 async def _override_user_d() -> dict:
-    return USER_D_UKHD
+    return USER_D_INST
 
 
 @pytest.mark.asyncio
@@ -90,8 +90,8 @@ async def test_scope_filter_team_mode() -> None:
 
     with patch("app.core.isolation.get_settings") as m:
         m.return_value.isolation_mode = "team"
-        scope = get_scope_filter(USER_C_UKHD)
-    assert scope == {"team_id": "domain:ukhd.de"}
+        scope = get_scope_filter(USER_C_INST)
+    assert scope == {"team_id": "domain:institute.example"}
 
 
 @pytest.mark.asyncio
@@ -121,8 +121,8 @@ async def test_extract_team_id_from_email() -> None:
     """Team ID is extracted from email domain."""
     from app.core.isolation import _extract_team_id
 
-    team_id = _extract_team_id(USER_C_UKHD)
-    assert team_id == "domain:ukhd.de"
+    team_id = _extract_team_id(USER_C_INST)
+    assert team_id == "domain:institute.example"
 
 
 @pytest.mark.asyncio
@@ -132,16 +132,16 @@ async def test_extract_team_id_from_ga4gh_passport() -> None:
 
     user_with_passport = {
         "sub": "user-passport",
-        "email": "forscher@ukhd.de",
+        "email": "researcher@institute.example",
         "visas": [
             {
                 "type": "AffiliationAndRole",
-                "value": "faculty@ukhd.de",
+                "value": "faculty@institute.example",
             }
         ],
     }
     team_id = _extract_team_id(user_with_passport)
-    assert team_id == "org:faculty@ukhd.de"
+    assert team_id == "org:faculty@institute.example"
 
 
 @pytest.mark.asyncio
@@ -151,11 +151,11 @@ async def test_extract_team_id_from_idp_groups() -> None:
 
     user = {
         "sub": "entra-user",
-        "email": "c@ukhd.de",
-        "groups": ["UKHD-Forschung"],
+        "email": "c@institute.example",
+        "groups": ["research-group"],
         "groups_prefix": "group:",
     }
-    assert _extract_team_id(user) == "group:UKHD-Forschung"
+    assert _extract_team_id(user) == "group:research-group"
 
 
 @pytest.mark.asyncio
@@ -226,7 +226,7 @@ async def test_user_isolation_hides_other_papers(async_client: AsyncClient) -> N
 
 @pytest.mark.asyncio
 async def test_team_isolation_shares_within_domain(async_client: AsyncClient) -> None:
-    """In team mode, all @ukhd.de see the same papers."""
+    """In team mode, all @institute.example see the same papers."""
     app.dependency_overrides[get_current_user] = _override_user_c
     try:
         with patch("app.core.isolation.get_settings") as m:
@@ -242,14 +242,14 @@ async def test_team_isolation_shares_within_domain(async_client: AsyncClient) ->
             resp = await async_client.get("/api/v1/library/papers")
         assert resp.status_code == 200
         titles = [p["title"] for p in resp.json()]
-        assert "Team Paper UKHD" in titles
+        assert "Team Paper Institute" in titles
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 
 
 @pytest.mark.asyncio
 async def test_team_isolation_hides_from_other_domain(async_client: AsyncClient) -> None:
-    """In team mode, test.de does not see ukhd.de papers."""
+    """In team mode, test.de does not see institute.example papers."""
     app.dependency_overrides[get_current_user] = _override_user_c
     try:
         with patch("app.core.isolation.get_settings") as m:
@@ -265,7 +265,7 @@ async def test_team_isolation_hides_from_other_domain(async_client: AsyncClient)
             resp = await async_client.get("/api/v1/library/papers")
         assert resp.status_code == 200
         titles = [p["title"] for p in resp.json()]
-        assert "Team Paper UKHD" not in titles
+        assert "Team Paper Institute" not in titles
     finally:
         app.dependency_overrides.pop(get_current_user, None)
 

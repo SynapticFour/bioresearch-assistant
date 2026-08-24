@@ -329,13 +329,7 @@ individuelle Beratung:
 
 ## 8. Roadmap Compliance
 
-| Version | Geplant | Feature |
-|---------|---------|---------|
-| — | on request | DPA/AVV via contact@synapticfour.com (kein Template in diesem Repo) |
-| 1.5.0 | 2026 Q2 | GAIA-X Level 1 Credential |
-| 1.5.0 | 2026 Q2 | DUO-Codes in Phenopackets |
-| 1.6.0 | 2026 Q3 | BSI C5 Self-Assessment |
-| 2.0.0 | 2026 Q4 | ISO 27001 Zertifizierung |
+BRA ist **nicht** ISO-27001-, BSI-C5- oder GAIA-X-zertifiziert. Es gibt **keinen** öffentlichen Zertifizierungszeitplan in diesem Repository. DPA/AVV on request via contact@synapticfour.com (kein Template in diesem Repo).
 
 ---
 
@@ -349,11 +343,11 @@ Das NIS2-Umsetzungsgesetz (NIS2UmsuCG) ist am 6. Dezember 2025 in Kraft getreten
 
 | Kundentyp | NIS2 betroffen? | Begründung |
 |-----------|-----------------|------------|
-| Unikliniken (Charité, UKHD...) | ✅ Ja | Gesundheitssektor, Größe |
-| Große Pharma/CROs (>50 MA) | ✅ Ja | Gesundheitssektor |
-| Universitäten/Forschungsgruppen | ⚠️ Wahrscheinlich nein | Bildungseinrichtungen ausgenommen |
-| Kleine CROs (<50 MA, <10M€) | ✅ Nein | Unter Größenschwelle |
-| de.NBI / Helmholtz | ⚠️ Prüfen | Abhängig von Einordnung |
+| Universitätskliniken (Gesundheitssektor, Größe) | oft ja | Sektor + Schwellen |
+| Große Pharma/CROs (>50 MA) | oft ja | Gesundheitssektor |
+| Universitäten/Forschungsgruppen | oft nein | Bildungseinrichtungen häufig ausgenommen — selbst prüfen |
+| Kleine CROs (<50 MA, <10M€) | oft nein | Unter Größenschwelle |
+| Nationale Forschungsinfrastrukturen | prüfen | Abhängig von Einordnung |
 
 ### Gilt NIS2 für Synaptic Four?
 
@@ -370,34 +364,33 @@ Kunden die selbst unter NIS2 fallen, werden von ihren Softwarelieferanten (Suppl
 
 BioResearch Assistant erfüllt diese Anforderungen bereits weitgehend.
 
-### NIS2 und ISO 27001
+### NIS2 und Zertifizierungen
 
-Unternehmen mit ISO 27001 erfüllen ca. 70–80% der NIS2-Anforderungen. BioResearch Assistant Roadmap:
+ISO 27001 kann einen Teil der NIS2-Anforderungen abdecken. **BRA ist nicht ISO-27001-zertifiziert.** Es gibt keinen öffentlichen Zertifizierungsfahrplan.
 
-- 2026: BSI C5 Self-Assessment
-- 2026/27: ISO 27001 Zertifizierung
+### Was die Software technisch bereitstellt
 
-### Verkaufsargument
+Für Betreiber, die selbst unter NIS2 fallen, sind u. a. relevant:
 
-Für NIS2-betroffene Kunden ist BioResearch Assistant mit:
-
-- On-premise Deployment
-- Vollständigem Audit Log
-- OWASP-reviewed Codebase
+- Vulnerability Disclosure Policy
+- Patch-Prozess und Security Incident Response (siehe SECURITY.md)
 - Security Headers
-- Incident Reporting Unterstützung
+- SBOM (Software Bill of Materials)
+- On-premise-Deployment und Audit-Log
 
-…ein deutlich besseres Risikoprofil als Cloud-Alternativen mit US-Hosting.
+Das ist **keine** Zusicherung, dass ein Einsatz NIS2 erfüllt — die formale Verantwortung liegt beim Betreiber. Es ist auch **kein** Vergleich mit namentlichen Alternativen.
 
 ---
 
-## 9. Roadmap (Compliance-relevante Versionen)
+## 9. Roadmap (produktbezogen, kein Zertifizierungsversprechen)
 
-| Version | Geplant | Feature |
-|---------|---------|---------|
-| 1.1.0 | 2026 Q2 | Hybrid Search, ELN Collaboration |
-| 1.2.0 | 2026 Q3 | GAIA-X Level 1, DUO Codes |
-| 2.0.0 | 2027 Q1 | Crypt4GH, ISO 27001 |
+| Version | Status | Thema |
+|---------|--------|-------|
+| 1.1.0 | geplant | Hybrid Search, ELN Collaboration |
+| 1.2.0 | geplant | DUO-Codes in Phenopackets |
+| 2.0.0 | geplant | Crypt4GH-Anbindung |
+
+Zertifizierungen (ISO 27001, GAIA-X, BSI C5) sind **nicht** Teil dieser öffentlichen Roadmap.
 
 ---
 

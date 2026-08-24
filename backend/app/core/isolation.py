@@ -116,7 +116,7 @@ def _extract_team_id(current_user: dict[str, Any]) -> str:
     1. GA4GH Passport AffiliationAndRole (consumed visa, not issued here)
     2. IdP groups from the operator claims-map (Keycloak / Entra / LS Login)
     3. OIDC organization claim (Azure AD tid, Keycloak organization)
-    4. Email domain (e.g. ukhd.de → domain:ukhd.de)
+    4. Email domain (e.g. institute.example → domain:institute.example)
     5. Fallback: user sub
     """
     for visa in current_user.get("visas") or []:

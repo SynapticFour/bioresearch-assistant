@@ -108,9 +108,9 @@ Claim types (visa JWT signature verified; dataset grants still enforced on DRS/W
 
 ---
 
-## Beispiel: Universitätsklinikum Heidelberg
+## Beispiel: Microsoft Entra ID (typische Universitätsklinik)
 
-Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azure Active Directory (Azure AD)** als Identity Provider — wie die meisten deutschen Universitätskliniken.
+Viele deutsche Universitätskliniken nutzen **Microsoft Entra ID (Azure AD)** als Identity Provider.
 
 ### Integration mit Azure AD / Microsoft Entra ID
 
@@ -119,14 +119,14 @@ Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azu
 
    - **Name:** BioResearch Assistant
    - **Unterstützte Kontotypen:** „Nur Konten in diesem Organisationsverzeichnis“
-   - **Umleitungs-URI:** `https://bioresearch.ukhd.de/api/v1/auth/callback`
+   - **Umleitungs-URI:** `https://bra.institute.example/api/v1/auth/callback`
 
 2. **Nach der Registrierung:**
    - Application (client) ID kopieren → `OIDC_CLIENT_ID`
    - Zertifikate & Geheimnisse → Neuer geheimer Clientschlüssel → Wert kopieren → `OIDC_CLIENT_SECRET`
 
-3. **OIDC Issuer für UKHD:**
-   `OIDC_ISSUER=https://login.microsoftonline.com/{UKHD-TENANT-ID}/v2.0`
+3. **OIDC Issuer:**
+   `OIDC_ISSUER=https://login.microsoftonline.com/{TENANT-ID}/v2.0`
    Tenant ID: Azure AD → Übersicht → Mandanten-ID
 
 4. **In .env eintragen:**
@@ -134,8 +134,8 @@ Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azu
    OIDC_ISSUER=https://login.microsoftonline.com/TENANT-ID/v2.0
    OIDC_CLIENT_ID=APPLICATION-ID
    OIDC_CLIENT_SECRET=CLIENT-SECRET
-   OIDC_REDIRECT_URI=https://bioresearch.ukhd.de/api/v1/auth/callback
-   FRONTEND_BASE_URL=https://bioresearch.ukhd.de
+   OIDC_REDIRECT_URI=https://bra.institute.example/api/v1/auth/callback
+   FRONTEND_BASE_URL=https://bra.institute.example
    MICROSOFT_TENANT_ID=TENANT-ID
    OIDC_PROFILE=entra
    ```
@@ -145,15 +145,15 @@ Das Universitätsklinikum Heidelberg (UKHD) nutzt typischerweise **Microsoft Azu
 5. **API-Berechtigungen:**
    Azure AD → App-Registrierungen → BioResearch Assistant → API-Berechtigungen → Berechtigung hinzufügen → Microsoft Graph → openid, email, profile
 
-### Andere häufige Systeme an deutschen Unikliniken
+### Andere häufige IdP-Muster (keine Kundenliste)
 
-| Institution | Typischer Provider | Konfiguration |
-|-------------|--------------------|---------------|
-| Uniklinik Heidelberg | Azure AD | Wie oben |
-| Uniklinik München (LMU) | Shibboleth / DFN-AAI | [DFN-AAI Anleitung](deployment/DFN-CLOUD.md#authentifizierung-mit-dfn-aai) |
-| Charité Berlin | Azure AD | Wie oben |
-| Uniklinik Hamburg | Shibboleth | Keycloak + Shibboleth Bridge |
-| Deutsches Krebsforschungszentrum | ELIXIR AAI | [ELIXIR Anleitung](#2-elixir-aai-für-forschungsinstitute) |
+| Muster | Typischer Provider | Konfiguration |
+|--------|--------------------|---------------|
+| Entra-first Klinik | Azure AD / Entra ID | Wie oben |
+| DFN-AAI / Shibboleth | Shibboleth + OIDC-Brücke | [DFN-AAI Anleitung](deployment/DFN-CLOUD.md#authentifizierung-mit-dfn-aai) |
+| Forschungsverbund | ELIXIR AAI / LS Login | [ELIXIR Anleitung](#2-elixir-aai-für-forschungsinstitute) |
+
+Diese Tabellenzeilen sind **technische Muster**, keine Referenzkunden und keine Aussage, dass eine genannte Institution BRA einsetzt.
 
 ### Shibboleth (ältere Institutionen)
 
@@ -168,7 +168,7 @@ Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md)
 
 ### GA4GH Passports an Unikliniken
 
-Für kontrollierte Datensätze (DKFZ, EGA, …) stellt der **AAI-Broker** (ga4gh-infra oder ELIXIR) die Visas aus. BRA prüft die ID-Token-Signatur **und** die nested Visa-JWTs. Die **Durchsetzung auf Bytes** (DRS/WES) liegt bei Ferrum, wenn BRA als Client (`FERRUM_DRS_URL` / `FERRUM_WES_URL`) den Bearer weiterreicht.
+Für kontrollierte Datensätze (z. B. EGA) stellt der **AAI-Broker** (ga4gh-infra oder ELIXIR) die Visas aus. BRA prüft die ID-Token-Signatur **und** die nested Visa-JWTs. Die **Durchsetzung auf Bytes** (DRS/WES) liegt bei Ferrum, wenn BRA als Client (`FERRUM_DRS_URL` / `FERRUM_WES_URL`) den Bearer weiterreicht.
 
 ## IdP-Profil (`OIDC_PROFILE`)
 

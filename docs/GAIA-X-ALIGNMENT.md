@@ -48,12 +48,12 @@ BioResearch Assistant unterstützt ein konfigurierbares Isolation-System (`ISOLA
 
 GAIA-X Föderierbarkeit hat zwei Ebenen:
 
-**Ebene 1 — Intra-Instanz Isolation (✅ implementiert):**  
-Mehrere Nutzer/Teams teilen eine Installation mit strikter Datentrennung.  
+**Ebene 1 — Intra-Instanz Isolation (✅ implementiert):**
+Mehrere Nutzer/Teams teilen eine Installation mit strikter Datentrennung.
 → Unser `ISOLATION_MODE`-System.
 
-**Ebene 2 — Inter-Instanz Föderation (⏳ geplant):**  
-Mehrere separate Installationen (z. B. UKHD + DKFZ) können Daten kontrolliert austauschen mit:
+**Ebene 2 — Inter-Instanz Föderation (⏳ geplant):**
+Mehrere separate Installationen (zwei Institute, jeweils eigene Instanz) können Daten kontrolliert austauschen mit:
 
 - Gegenseitiger Authentifizierung via DFN-AAI
 - Einverständnis-basiertem Datenaustausch
@@ -66,7 +66,7 @@ Mehrere separate Installationen (z. B. UKHD + DKFZ) können Daten kontrolliert a
 - **Ebene 2:** ⏳ Vorbereitet durch:
   - GA4GH Passport Support
   - DRS für dateibasierte Föderierung
-  - OpenID Connect mit DFN-AAI  
+  - OpenID Connect mit DFN-AAI
   Vollständige Implementierung in Roadmap.
 
 ## Roadmap zur offiziellen Zertifizierung
