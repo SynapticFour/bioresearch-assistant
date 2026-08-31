@@ -116,8 +116,26 @@ def create_application() -> FastAPI:
             "Accept",
             "Origin",
             "X-Requested-With",
+            "X-BRA-LLM",
         ],
     )
+
+    @app.middleware("http")
+    async def bra_llm_choice(
+        request: Request,
+        call_next: Callable[[Request], Awaitable[Response]],
+    ) -> Response:
+        from app.core.llm_choice import (
+            LLM_CHOICE_HEADER,
+            apply_request_choice,
+            reset_request_choice,
+        )
+
+        token = apply_request_choice(request.headers.get(LLM_CHOICE_HEADER, ""))
+        try:
+            return await call_next(request)
+        finally:
+            reset_request_choice(token)
 
     @app.middleware("http")
     async def add_security_headers(

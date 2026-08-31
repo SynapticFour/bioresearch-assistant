@@ -78,9 +78,25 @@ class LLMService:
         self._anthropic_client: object | None = None
 
     def _backend(self) -> str:
-        from app.core.config import get_settings
+        from app.core.llm_choice import resolve_backend
 
-        return get_settings().resolved_llm_backend()
+        return resolve_backend()
+
+    def _active_claude_model(self) -> str:
+        from app.core.llm_choice import current_choice
+
+        choice = current_choice()
+        if choice is not None and choice.backend == "anthropic":
+            return choice.model
+        return self._claude_model
+
+    def _active_ollama_model(self) -> str:
+        from app.core.llm_choice import current_choice
+
+        choice = current_choice()
+        if choice is not None and choice.backend == "ollama":
+            return choice.model
+        return self._ollama_model
 
     async def close(self) -> None:
         if self._own_client:
@@ -103,7 +119,7 @@ class LLMService:
         client = self._anthropic_client
         try:
             message = await client.messages.create(
-                model=self._claude_model,
+                model=self._active_claude_model(),
                 max_tokens=4096,
                 system=system,
                 messages=[{"role": "user", "content": user}],
@@ -162,7 +178,7 @@ class LLMService:
         """Ollama chat with automatic retry on 500/OOM."""
         url = f"{self._ollama_base}/api/chat"
         payload = {
-            "model": self._ollama_model,
+            "model": self._active_ollama_model(),
             "stream": False,
             "messages": [
                 {"role": "system", "content": system},

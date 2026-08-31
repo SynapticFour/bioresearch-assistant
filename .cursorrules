@@ -28,8 +28,7 @@ Erkläre wichtige Entscheidungen kurz, aber schreibe immer vollständigen, produ
 - Verbindung immer über `DATABASE_URL` aus Environment Variable
 
 ### KI / LLM
-- Primär: **Anthropic Claude API** (claude-sonnet-4-6)
-- Fallback on-premise: **Ollama** mit mistral:7b oder llama3
+- On-prem default: **Ollama** (mistral / llama3). Keep `LLM_PROVIDER=ollama`. When `ANTHROPIC_API_KEY` is set, the header dropdown can send `X-BRA-LLM` to pick Claude Haiku / Sonnet / Opus per request. Do not change the process default for that.
 - Embeddings: **sentence-transformers** (all-MiniLM-L6-v2) — läuft lokal, kein API-Key nötig
 - NIE OpenAI als primäre Option — Datenschutz ist kritisch
 
@@ -94,12 +93,12 @@ async def search_papers(
     current_user: User = Depends(get_current_user),
 ) -> List[PaperSchema]:
     """Suche PubMed Papers und speichere Ergebnisse mit Embeddings.
-    
+
     Args:
         query: Suchanfrage mit Suchbegriff und Optionen
         db: Async Datenbank-Session
         current_user: Authentifizierter Nutzer
-        
+
     Returns:
         Liste von gefundenen Papers mit Zusammenfassungen
     """
@@ -140,7 +139,7 @@ Wenn du Architekturentscheidungen triffst: denke daran, dass Synaptic Four die L
 entwickelt und später an Forschungsinstitute verkaufen möchte.
 Einfachheit schlägt Komplexität — aber Qualität und Sicherheit haben Priorität.
 
-Führe nach jeder Code-Änderung automatisch "ruff check --fix" und 
+Führe nach jeder Code-Änderung automatisch "ruff check --fix" und
 "ruff format" aus bevor du fertig bist.
 
 ## Frontend (React)

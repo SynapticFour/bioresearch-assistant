@@ -1,4 +1,8 @@
 import axios from "axios";
+import {
+  getStoredLlmChoice,
+  LLM_CHOICE_HEADER,
+} from "@/lib/llmChoice";
 
 const baseURL =
   typeof import.meta.env.VITE_API_URL === "string" &&
@@ -13,6 +17,15 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+});
+
+apiClient.interceptors.request.use((config) => {
+  const choice = getStoredLlmChoice();
+  if (choice) {
+    config.headers = config.headers ?? {};
+    config.headers[LLM_CHOICE_HEADER] = choice;
+  }
+  return config;
 });
 
 apiClient.interceptors.response.use(

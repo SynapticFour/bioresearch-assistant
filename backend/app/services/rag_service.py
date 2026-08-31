@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.isolation import get_scope_filter
+from app.core.llm_choice import resolve_model_label
 from app.core.prompt_security import sanitize_for_llm
 from app.schemas.rag import RAGResponse, RAGSource
 from app.services.embedding_service import (
@@ -118,7 +119,7 @@ class RAGService:
             raise
 
         settings = get_settings()
-        model_used = settings.effective_llm_model_label()
+        model_used = resolve_model_label(settings)
 
         sources = [
             RAGSource(

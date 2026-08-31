@@ -54,6 +54,33 @@ async def test_health_returns_healthy_status(health_client):
     assert "features" in data
     assert data["features"]["embeddings"] is False
     assert data["ga4gh_backend"] == {"drs": "local", "wes": "local"}
+    assert "llm" in data
+    assert "options" in data["llm"]
+    assert data["llm"]["header"] == "X-BRA-LLM"
+
+
+@pytest.mark.asyncio
+async def test_health_accepts_llm_choice_header(health_client):
+    """Unknown X-BRA-LLM values are ignored; health still returns the catalog."""
+    with patch(
+        "app.api.v1.endpoints.health.check_features",
+        new_callable=AsyncMock,
+        return_value={
+            "embeddings": False,
+            "semantic_search": False,
+            "llm_summaries": False,
+            "locus_rag": False,
+            "spacy_ner": False,
+            "blast": False,
+            "nextflow": False,
+        },
+    ):
+        resp = await health_client.get(
+            "/api/v1/health",
+            headers={"X-BRA-LLM": "anthropic:not-a-model"},
+        )
+    assert resp.status_code == 200
+    assert resp.json()["llm"]["header"] == "X-BRA-LLM"
 
 
 @pytest.mark.asyncio

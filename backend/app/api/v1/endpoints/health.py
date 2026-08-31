@@ -118,6 +118,11 @@ async def _compute_features() -> dict[str, bool]:
     features["blast"] = shutil.which("blastn") is not None
     features["nextflow"] = shutil.which("nextflow") is not None
     features["locus_rag"] = bool(getattr(settings, "locus_enabled", False))
+
+    from app.core.llm_choice import anthropic_key_usable
+
+    if not features["llm_summaries"] and anthropic_key_usable(settings):
+        features["llm_summaries"] = True
     return features
 
 
@@ -130,7 +135,10 @@ async def health_check() -> dict[str, Any]:
     """
     settings = get_settings()
     features = await check_features()
-    data_sovereignty = "partial" if settings.resolved_llm_backend() == "anthropic" else "full"
+    from app.core.llm_choice import llm_catalog, resolve_backend
+
+    backend = resolve_backend(settings)
+    data_sovereignty = "partial" if backend == "anthropic" else "full"
     return {
         "status": "healthy",
         "version": settings.version,
@@ -142,6 +150,7 @@ async def health_check() -> dict[str, Any]:
         "features": features,
         "deployment": (settings.deployment or "").lower(),
         "data_sovereignty": data_sovereignty,
+        "llm": llm_catalog(settings),
         "ga4gh_backend": {
             "drs": "ferrum" if settings.ferrum_drs_url else "local",
             "wes": "ferrum" if settings.ferrum_wes_url else "local",

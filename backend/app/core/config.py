@@ -120,8 +120,8 @@ class Settings(BaseSettings):
         validation_alias="OLLAMA_URL",
     )
     llm_claude_model: str = Field(
-        default="claude-sonnet-4-6",
-        description="Claude model ID (e.g. claude-sonnet-4-6)",
+        default="claude-haiku-4-5",
+        description="Claude model ID (default Haiku for pay-per-use cost)",
     )
     ollama_model: str = Field(
         default="mistral:7b",

@@ -19,6 +19,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.isolation import apply_scope, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
+from app.core.llm_choice import resolve_model_label
 from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle, PubMedSearchResponse
 from app.schemas.rag import RAGRequest, RAGResponse
@@ -145,7 +146,7 @@ async def summarize_paper(
             language=language,
             title=(paper.title or "").strip() or None,
         )
-        summary_model = settings.effective_llm_model_label()
+        summary_model = resolve_model_label(settings)
         paper.summary = result.summary
         paper.summary_language = language
         paper.summary_model = summary_model

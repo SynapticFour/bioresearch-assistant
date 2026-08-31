@@ -32,6 +32,11 @@ export const translations = {
       offline: "Offline",
       error: "Fehler",
     },
+    llm: {
+      label: "Modell",
+      aria: "Reasoning-Modell",
+      serverDefault: "Standard",
+    },
   },
   en: {
     literature: {
@@ -65,6 +70,11 @@ export const translations = {
       online: "Online",
       offline: "Offline",
       error: "Error",
+    },
+    llm: {
+      label: "Model",
+      aria: "Reasoning model",
+      serverDefault: "Default",
     },
   },
 };

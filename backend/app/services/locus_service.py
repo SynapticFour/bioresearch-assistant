@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.llm_choice import resolve_model_label
 from app.core.prompt_security import sanitize_for_llm
 from app.models.locus_chunk import LocusChunk
 from app.schemas.locus import LocusRAGResponse, LocusSource
@@ -178,7 +179,7 @@ class LocusService:
             raise LLMServiceError(str(e)) from e
 
         settings = get_settings()
-        model_used = settings.effective_llm_model_label()
+        model_used = resolve_model_label(settings)
 
         src_list = [
             LocusSource(

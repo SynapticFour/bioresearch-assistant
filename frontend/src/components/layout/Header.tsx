@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import { AuthStatus } from "@/components/auth/AuthStatus";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { LlmChoiceSelect } from "@/components/ui/LlmChoiceSelect";
 import { Badge } from "@/components/ui/badge";
 
 function getRouteLabelKey(pathname: string): string {
@@ -68,6 +69,7 @@ export function Header({ onMenuClick, sidebarCollapsed }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <LlmChoiceSelect />
         <Badge
           variant="secondary"
           className="font-mono text-xs"
