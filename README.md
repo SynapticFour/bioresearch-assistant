@@ -1,6 +1,11 @@
 # BioResearch Assistant
 
+Freeze status (2026-09): [STATUS.md](STATUS.md).
+
+
 [![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
+
+GitHub may label this Other; SPDX is **BUSL-1.1**.
 [![GAIA-X](https://img.shields.io/badge/GAIA--X-not%20certified-lightgrey.svg)](docs/GAIA-X-ALIGNMENT.md)
 [![Datenschutz](https://img.shields.io/badge/DSGVO-technical%20controls%20only-lightgrey.svg)](docs/COMPLIANCE.md)
 
