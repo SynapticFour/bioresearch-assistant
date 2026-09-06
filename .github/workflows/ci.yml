@@ -131,13 +131,15 @@ jobs:
         run: |
           python -m pip install --upgrade pip pip-audit
           # sentence-transformers 2.x pins transformers 4.x. PYSEC-2025-217 has no
-          # upstream fix; 2288/2289/2290 require transformers 5.x (major, not taken).
+          # upstream fix; 2288/2289/2290 and CVE-2026-9856 require transformers 5.x
+          # (major, not taken). Revisit when upgrading sentence-transformers.
           pip-audit --extra-index-url https://download.pytorch.org/whl/cpu \
             -r backend/requirements.lock \
             --ignore-vuln PYSEC-2025-217 \
             --ignore-vuln PYSEC-2026-2288 \
             --ignore-vuln PYSEC-2026-2289 \
-            --ignore-vuln PYSEC-2026-2290
+            --ignore-vuln PYSEC-2026-2290 \
+            --ignore-vuln CVE-2026-9856
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:

@@ -78,7 +78,7 @@ Dated 2026-08-15 (`pip-audit -r backend/requirements.lock`, `npm audit --omit=de
 | cryptography PKCS#7 oracle (fixed in 50.0.0) | **Patched** — `cryptography>=50`; Presidio anonymizer pinned at 2.2.362 so the 2.2.364 `<49` cap does not block the fix. |
 | python-ecdsa Minerva (no planned fix) | **Removed** — JWT via PyJWT + cryptography. |
 | pytest <9.0.3 | **Patched** — `pytest>=9.0.3` with `pytest-asyncio>=1.3`. |
-| transformers 4.57.x (`PYSEC-2025-217`, `PYSEC-2026-2288/2289/2290`) | **Residual** — `sentence-transformers` 2.x cannot take transformers 5. CI ignores these IDs. The app loads a pinned public embedding model, not untrusted checkpoints. Revisit when upgrading sentence-transformers. |
+| transformers 4.57.x (`PYSEC-2025-217`, `PYSEC-2026-2288/2289/2290`, `CVE-2026-9856`) | **Residual** — `sentence-transformers` 2.x cannot take transformers 5. CI ignores these IDs. The app loads a pinned public embedding model, not untrusted checkpoints. Revisit when upgrading sentence-transformers. |
 | react-router-dom 6 moderate CVEs | **Residual** — v7 is a breaking upgrade, not taken. CI fails on production `high+` only. |
 
 Dependabot is **disabled** (file removed) so unreviewed majors are not auto-opened. Operators patch from CI supply-chain and the infra monthly hygiene log.
