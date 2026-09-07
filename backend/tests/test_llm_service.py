@@ -19,6 +19,8 @@ def mock_settings(mocker):
     settings.openai_api_base = ""
     settings.openai_model = ""
     settings.openai_api_key = None
+    settings.haiku_rpd = 25
+    settings.haiku_rpd_path = "llm_daily_rpd.json"
     settings.resolved_llm_backend = MagicMock(return_value="anthropic")
     mocker.patch("app.core.config.get_settings", return_value=settings)
     return settings
@@ -35,6 +37,8 @@ def mock_settings_no_key(mocker):
     settings.openai_api_base = ""
     settings.openai_model = ""
     settings.openai_api_key = None
+    settings.haiku_rpd = 25
+    settings.haiku_rpd_path = "llm_daily_rpd.json"
     settings.resolved_llm_backend = MagicMock(return_value="ollama")
     mocker.patch("app.core.config.get_settings", return_value=settings)
     return settings
@@ -244,3 +248,46 @@ async def test_generate_research_overview_empty_list_returns_empty_string(mock_s
     service = LLMService()
     result = await service.generate_research_overview([])
     assert result == ""
+
+
+@pytest.mark.asyncio
+async def test_haiku_rpd_blocks_call_after_cap(mock_anthropic_client, mock_settings):
+    """26th Haiku call is refused before Anthropic; no silent Sonnet/Opus fallback."""
+    from app.core.llm_budget import used_today
+    from app.services.llm_service import LlmQuotaExhausted
+
+    mock_settings.llm_claude_model = "claude-haiku-4-5"
+    mock_settings.haiku_rpd = 25
+    service = LLMService()
+    for _ in range(25):
+        text = await service._call_claude("sys", "user")
+        assert "BRCA1" in text
+    assert mock_anthropic_client.messages.create.await_count == 25
+    with pytest.raises(LlmQuotaExhausted, match="Tageslimit"):
+        await service._call_claude("sys", "user")
+    assert mock_anthropic_client.messages.create.await_count == 25
+    assert used_today("claude-haiku-4-5") == 25
+
+
+@pytest.mark.asyncio
+async def test_sonnet_is_not_metered_by_haiku_rpd(mock_anthropic_client, mock_settings):
+    mock_settings.llm_claude_model = "claude-sonnet-4-6"
+    mock_settings.haiku_rpd = 25
+    service = LLMService()
+    for _ in range(26):
+        await service._call_claude("sys", "user")
+    assert mock_anthropic_client.messages.create.await_count == 26
+
+
+@pytest.mark.asyncio
+async def test_failed_haiku_call_does_not_consume_quota(mock_anthropic_client, mock_settings):
+    from app.core.llm_budget import used_today
+    from app.services.llm_service import LLMServiceError
+
+    mock_settings.llm_claude_model = "claude-haiku-4-5"
+    mock_settings.haiku_rpd = 25
+    mock_anthropic_client.messages.create = AsyncMock(side_effect=RuntimeError("upstream down"))
+    service = LLMService()
+    with pytest.raises(LLMServiceError, match="Claude API failed"):
+        await service._call_claude("sys", "user")
+    assert used_today("claude-haiku-4-5") == 0

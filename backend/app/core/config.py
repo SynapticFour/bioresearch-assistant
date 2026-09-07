@@ -127,6 +127,20 @@ class Settings(BaseSettings):
         default="mistral:7b",
         description="Ollama model name for fallback",
     )
+    haiku_rpd: int = Field(
+        default=25,
+        ge=0,
+        description=(
+            "Daily Haiku request cap (UTC). Same default as SIE anthropic rpd=25. "
+            "0 disables Haiku in the catalog. Sonnet/Opus are not metered here."
+        ),
+        validation_alias="BRA_HAIKU_RPD",
+    )
+    haiku_rpd_path: str = Field(
+        default="llm_daily_rpd.json",
+        description="JSON ledger for Haiku daily counts (UTC day).",
+        validation_alias="BRA_HAIKU_RPD_PATH",
+    )
     openai_api_base: str | None = Field(
         default=None,
         description=(

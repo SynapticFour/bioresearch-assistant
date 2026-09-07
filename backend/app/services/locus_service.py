@@ -16,7 +16,7 @@ from app.services.embedding_service import (
     _preprocess_query,
     get_embedding_service,
 )
-from app.services.llm_service import LLMService, LLMServiceError, get_llm_service
+from app.services.llm_service import LLMService, get_llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -169,14 +169,11 @@ class LocusService:
         if not context.strip():
             raise ValueError("Kontext leer.")
 
-        try:
-            answer_text = await self._llm.rag_answer_locus(
-                question=question,
-                context=context,
-                language=language or "de",
-            )
-        except LLMServiceError as e:
-            raise LLMServiceError(str(e)) from e
+        answer_text = await self._llm.rag_answer_locus(
+            question=question,
+            context=context,
+            language=language or "de",
+        )
 
         settings = get_settings()
         model_used = resolve_model_label(settings)

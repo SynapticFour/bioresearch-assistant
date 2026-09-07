@@ -24,7 +24,7 @@ from app.models.paper import Paper
 from app.schemas.pubmed import PubMedArticle, PubMedSearchResponse
 from app.schemas.rag import RAGRequest, RAGResponse
 from app.services.embedding_service import EmbeddingServiceError, get_embedding_service
-from app.services.llm_service import LLMServiceError, get_llm_service
+from app.services.llm_service import LlmQuotaExhausted, LLMServiceError, get_llm_service
 from app.services.metadata_service import MetadataService
 from app.services.rag_service import RAGService
 
@@ -156,6 +156,12 @@ async def summarize_paper(
             "cached": False,
             "language": language,
         }
+    except LlmQuotaExhausted as e:
+        logger.warning("Summarize quota exhausted for pmid=%s: %s", body.pmid, e)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(e),
+        ) from e
     except LLMServiceError as e:
         logger.warning("Summarize failed for pmid=%s: %s", body.pmid, e)
         raise HTTPException(
@@ -325,6 +331,12 @@ async def rag_ask(
             ) from e
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        ) from e
+    except LlmQuotaExhausted as e:
+        logger.warning("RAG LLM quota exhausted: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=str(e),
         ) from e
     except LLMServiceError as e:

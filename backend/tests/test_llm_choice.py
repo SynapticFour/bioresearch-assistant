@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.core.llm_choice import (
     apply_request_choice,
     current_choice,
@@ -26,6 +28,7 @@ def _settings(
     s.openai_model = ""
     s.openai_api_base = None
     s.anthropic_api_key = key
+    s.haiku_rpd = 25
     s.resolved_llm_backend.return_value = provider
     if provider == "ollama":
         s.effective_llm_model_label.return_value = ollama
@@ -55,6 +58,41 @@ def test_parse_choice_allowlist():
     assert parse_choice("anthropic:claude-sonnet-5", settings).model == "claude-sonnet-5"
     assert parse_choice("anthropic:claude-not-a-model", settings) is None
     assert parse_choice("", settings) is None
+
+
+@pytest.mark.asyncio
+async def test_catalog_haiku_rpd_and_sonnet_uncapped():
+    from app.core.llm_budget import try_reserve
+
+    settings = _settings(key="sk-ant-" + "x" * 24)
+    catalog = llm_catalog(settings)
+    haiku = next(item for item in catalog["options"] if item["model"] == "claude-haiku-4-5")
+    sonnet = next(item for item in catalog["options"] if item["model"] == "claude-sonnet-5")
+    opus = next(item for item in catalog["options"] if item["model"] == "claude-opus-5")
+    assert haiku["rpd"] == 25
+    assert haiku["available"] is True
+    assert "rpd" not in sonnet
+    assert "rpd" not in opus
+    for _ in range(25):
+        assert await try_reserve("claude-haiku-4-5", 25)
+    catalog = llm_catalog(settings)
+    haiku = next(item for item in catalog["options"] if item["model"] == "claude-haiku-4-5")
+    sonnet = next(item for item in catalog["options"] if item["model"] == "claude-sonnet-5")
+    assert haiku["available"] is False
+    assert haiku["remaining"] == 0
+    assert sonnet["available"] is True
+    assert parse_choice("anthropic:claude-haiku-4-5", settings) is None
+    assert parse_choice("anthropic:claude-sonnet-5", settings).model == "claude-sonnet-5"
+
+
+def test_catalog_haiku_disabled_when_rpd_zero():
+    settings = _settings(key="sk-ant-" + "x" * 24)
+    settings.haiku_rpd = 0
+    catalog = llm_catalog(settings)
+    haiku = next(item for item in catalog["options"] if item["model"] == "claude-haiku-4-5")
+    assert haiku["available"] is False
+    assert parse_choice("anthropic:claude-haiku-4-5", settings) is None
+    assert parse_choice("anthropic:claude-sonnet-5", settings).model == "claude-sonnet-5"
 
 
 def test_request_choice_overrides_backend():

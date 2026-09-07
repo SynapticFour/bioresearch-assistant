@@ -13,7 +13,7 @@ from app.core.limiter import limiter
 from app.models.locus_chunk import LocusChunk
 from app.schemas.locus import LocusRAGRequest, LocusRAGResponse, LocusStatusResponse
 from app.services.embedding_service import EmbeddingServiceError
-from app.services.llm_service import LLMServiceError
+from app.services.llm_service import LlmQuotaExhausted, LLMServiceError
 from app.services.locus_service import LocusService
 
 logger = logging.getLogger(__name__)
@@ -88,6 +88,12 @@ async def locus_rag(
             ) from e
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(e),
+        ) from e
+    except LlmQuotaExhausted as e:
+        logger.warning("Locus RAG LLM quota exhausted: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=str(e),
         ) from e
     except LLMServiceError as e:

@@ -57,6 +57,7 @@ docker-compose.override.yml
 .ferrum-peek/
 
 # Generated artifacts and caches
+llm_daily_rpd.json
 .svelte-kit/
 .astro/
 coverage/

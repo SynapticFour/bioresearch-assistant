@@ -8,6 +8,9 @@ export interface LlmOption {
   label: string;
   sovereignty: string;
   available: boolean;
+  rpd?: number;
+  used?: number;
+  remaining?: number;
 }
 
 export interface LlmCatalog {
@@ -44,6 +47,19 @@ export function parseLlmCatalog(data: unknown): LlmCatalog | null {
     header: typeof raw.header === "string" ? raw.header : LLM_CHOICE_HEADER,
     options,
   };
+}
+
+/** Prefer the server default when it is still available; else local LLM, never Sonnet/Opus. */
+export function pickAvailableChoice(
+  options: LlmOption[],
+  defaultId: string
+): string {
+  if (options.some((item) => item.id === defaultId)) {
+    return defaultId;
+  }
+  const local = options.find((item) => item.sovereignty === "full");
+  if (local) return local.id;
+  return options[0]?.id ?? defaultId;
 }
 
 export function getStoredLlmChoice(): string | null {

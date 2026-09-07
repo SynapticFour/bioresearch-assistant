@@ -11,10 +11,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.config import Settings
+from app.core.llm_budget import rpd_limit_for_model, used_today
 
 LLM_CHOICE_HEADER = "X-BRA-LLM"
 
 # Cloud Claude options offered in the UI when a valid Anthropic key is present.
+# Haiku is metered (SIE analog: anthropic rpd=25 UTC). Sonnet/Opus are not.
 CLAUDE_REASONING_MODELS: tuple[tuple[str, str], ...] = (
     ("claude-haiku-4-5", "Claude Haiku"),
     ("claude-sonnet-5", "Claude Sonnet"),
@@ -58,6 +60,16 @@ def llm_catalog(settings: Settings | None = None) -> dict[str, Any]:
     options: list[dict[str, Any]] = []
     seen: set[str] = set()
 
+    def _available(backend: str, model: str) -> bool:
+        if backend != "anthropic":
+            return True
+        limit = rpd_limit_for_model(model, settings)
+        if limit is None:
+            return True
+        if limit == 0:
+            return False
+        return used_today(model) < limit
+
     def add(
         *,
         backend: str,
@@ -70,16 +82,22 @@ def llm_catalog(settings: Settings | None = None) -> dict[str, Any]:
         if option_id in seen or not model:
             return
         seen.add(option_id)
-        options.append(
-            {
-                "id": option_id,
-                "backend": backend,
-                "model": model,
-                "label": label,
-                "sovereignty": sovereignty,
-                "available": available,
-            }
-        )
+        item: dict[str, Any] = {
+            "id": option_id,
+            "backend": backend,
+            "model": model,
+            "label": label,
+            "sovereignty": sovereignty,
+            "available": available,
+        }
+        if backend == "anthropic":
+            limit = rpd_limit_for_model(model, settings)
+            if limit is not None:
+                used = used_today(model)
+                item["rpd"] = limit
+                item["used"] = used
+                item["remaining"] = max(0, limit - used)
+        options.append(item)
 
     backend_titles = {
         "ollama": "Ollama",
@@ -91,7 +109,7 @@ def llm_catalog(settings: Settings | None = None) -> dict[str, Any]:
         model=default_model,
         label=f"{backend_titles.get(default_backend, default_backend)} ({default_model})",
         sovereignty="partial" if default_backend == "anthropic" else "full",
-        available=True,
+        available=_available(default_backend, default_model),
     )
     add(
         backend="ollama",
@@ -107,7 +125,7 @@ def llm_catalog(settings: Settings | None = None) -> dict[str, Any]:
                 model=model_id,
                 label=f"{label} (Cloud)",
                 sovereignty="partial",
-                available=True,
+                available=_available("anthropic", model_id),
             )
     if default_backend == "openai_compatible" and (settings.openai_api_base or "").strip():
         add(

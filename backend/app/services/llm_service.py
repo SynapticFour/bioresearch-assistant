@@ -22,6 +22,12 @@ class LLMServiceError(Exception):
     pass
 
 
+class LlmQuotaExhausted(LLMServiceError):
+    """Daily model cap reached. Callers must not fall back to a more expensive Claude."""
+
+    pass
+
+
 def _extract_json_block(text: str) -> str:
     """Extract first JSON object or array from markdown code block or raw text.
 
@@ -114,17 +120,34 @@ class LLMService:
             from anthropic import AsyncAnthropic
         except ImportError as e:
             raise LLMServiceError("anthropic package not installed") from e
+
+        from app.core import llm_budget
+        from app.core.config import get_settings
+
+        model = self._active_claude_model()
+        limit = llm_budget.rpd_limit_for_model(model, get_settings())
+        reserved = False
+        if limit is not None:
+            if not await llm_budget.try_reserve(model, limit):
+                raise LlmQuotaExhausted(
+                    f"Tageslimit für Claude Haiku erreicht ({limit} Anfragen/Tag, UTC). "
+                    "Ollama oder ein anderes Modell wählen; BRA weicht nicht auf Sonnet/Opus aus."
+                )
+            reserved = True
+
         if self._anthropic_client is None:
             self._anthropic_client = AsyncAnthropic(api_key=self._api_key)
         client = self._anthropic_client
         try:
             message = await client.messages.create(
-                model=self._active_claude_model(),
+                model=model,
                 max_tokens=4096,
                 system=system,
                 messages=[{"role": "user", "content": user}],
             )
         except Exception as e:
+            if reserved:
+                await llm_budget.release(model)
             logger.warning("Claude API error: %s", e)
             raise LLMServiceError(f"Claude API failed: {e}") from e
         if not message.content:

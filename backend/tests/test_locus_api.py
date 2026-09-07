@@ -12,7 +12,7 @@ from app.core.database import get_db
 from app.main import app
 from app.models.locus_chunk import LocusChunk
 from app.schemas.locus import LocusRAGResponse
-from app.services.llm_service import LLMServiceError
+from app.services.llm_service import LlmQuotaExhausted, LLMServiceError
 from app.services.locus_service import LocusService
 
 
@@ -187,6 +187,38 @@ async def test_locus_rag_502_llm_error(db_session, mock_current_user):
         app.dependency_overrides.clear()
     assert r.status_code == 502
     assert "LLM" in r.json()["detail"] or "llm" in r.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_locus_rag_429_quota_exhausted(db_session, mock_current_user):
+    from app.core.auth import get_current_user
+
+    async def _db() -> AsyncGenerator[Any, None]:
+        yield db_session
+
+    app.dependency_overrides[get_db] = _db
+    app.dependency_overrides[get_current_user] = lambda: mock_current_user
+    try:
+        with (
+            patch("app.api.v1.endpoints.locus.get_settings") as gs,
+            patch("app.api.v1.endpoints.locus.LocusService") as Svc,
+        ):
+            gs.return_value.locus_enabled = True
+            Svc.return_value.answer = AsyncMock(
+                side_effect=LlmQuotaExhausted(
+                    "Tageslimit für Claude Haiku erreicht (25 Anfragen/Tag, UTC)."
+                )
+            )
+            transport = ASGITransport(app=app)
+            async with AsyncClient(transport=transport, base_url="http://test") as c:
+                r = await c.post(
+                    "/api/v1/locus/rag",
+                    json={"question": "Pathogenic vs VUS in general?"},
+                )
+    finally:
+        app.dependency_overrides.clear()
+    assert r.status_code == 429
+    assert "Tageslimit" in r.json()["detail"]
 
 
 @pytest.mark.asyncio

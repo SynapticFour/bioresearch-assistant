@@ -3,6 +3,7 @@ import { useHealth } from "@/hooks/useHealth";
 import {
   getStoredLlmChoice,
   parseLlmCatalog,
+  pickAvailableChoice,
   setStoredLlmChoice,
   type LlmOption,
 } from "@/lib/llmChoice";
@@ -28,12 +29,19 @@ export function useLlmChoice(): {
     if (!options.length || !defaultId) return;
     const stored = getStoredLlmChoice();
     const valid = Boolean(stored && options.some((item) => item.id === stored));
-    if (!valid) {
-      setStoredLlmChoice(null);
-      setChoiceIdState(defaultId);
+    if (valid) {
+      setChoiceIdState(stored as string);
       return;
     }
-    setChoiceIdState(stored as string);
+    const next = pickAvailableChoice(options, defaultId);
+    // Persist a non-default fallback so X-BRA-LLM is sent; otherwise the
+    // process default (exhausted Haiku) would still be called.
+    if (next !== defaultId) {
+      setStoredLlmChoice(next);
+    } else {
+      setStoredLlmChoice(null);
+    }
+    setChoiceIdState(next);
   }, [defaultId, options]);
 
   const setChoiceId = useCallback(

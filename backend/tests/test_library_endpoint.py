@@ -198,6 +198,38 @@ async def test_summarize_paper_llm_error_502(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_summarize_paper_quota_exhausted_429(async_client: AsyncClient) -> None:
+    """POST /library/summarize returns 429 when the Haiku daily cap is hit."""
+    from app.services.llm_service import LlmQuotaExhausted
+
+    await async_client.post(
+        "/api/v1/library/papers",
+        json={
+            "pmid": "llm-quota-1",
+            "title": "T",
+            "abstract": "Some abstract for LLM.",
+            "authors": [],
+            "year": 2024,
+            "journal": "J",
+        },
+    )
+    with patch("app.api.v1.endpoints.library.get_llm_service") as MockLLM:
+        mock_llm = MagicMock()
+        mock_llm.summarize_paper = AsyncMock(
+            side_effect=LlmQuotaExhausted(
+                "Tageslimit für Claude Haiku erreicht (25 Anfragen/Tag, UTC)."
+            )
+        )
+        MockLLM.return_value = mock_llm
+        resp = await async_client.post(
+            "/api/v1/library/summarize",
+            json={"pmid": "llm-quota-1", "language": "de"},
+        )
+    assert resp.status_code == 429
+    assert "Tageslimit" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_summarize_paper_not_found_404(async_client: AsyncClient) -> None:
     """POST /library/summarize with unknown PMID returns 404."""
     resp = await async_client.post(

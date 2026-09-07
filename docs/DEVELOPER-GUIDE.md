@@ -1025,6 +1025,8 @@ Alle relevanten Umgebungsvariablen (`.env`) — aus `backend/app/core/config.py`
 | ANTHROPIC_API_KEY | Claude API key. When set, `/health` `llm.options` includes Haiku/Sonnet/Opus and the UI dropdown may send `X-BRA-LLM`. | `sk-ant-...` oder leer |
 | OLLAMA_URL | Ollama-URL (Fallback) | `http://localhost:11434` |
 | LLM_CLAUDE_MODEL | Default Claude model if `LLM_PROVIDER` is anthropic/auto (UI can still pick others) | `claude-haiku-4-5` |
+| BRA_HAIKU_RPD | Daily Haiku request cap (UTC). Same default as SIE `anthropic.rpd=25`. `0` hides Haiku. Sonnet/Opus are not metered. Enforced before the Anthropic call; no fallback to Sonnet/Opus. | `25` |
+| BRA_HAIKU_RPD_PATH | JSON ledger for Haiku daily counts (per process; prod `entrypoint.sh` is a single uvicorn worker). | `llm_daily_rpd.json` |
 | OLLAMA_MODEL | Ollama-Modell | `mistral:7b` |
 | OPENAI_BASE_URL | OpenAI-kompatible API (inkl. `/v1`), z. B. SGLang | `http://localhost:30000/v1` |
 | OPENAI_MODEL | Modell-ID beim OpenAI-kompatiblen Server | z. B. Hugging-Face-Pfad |

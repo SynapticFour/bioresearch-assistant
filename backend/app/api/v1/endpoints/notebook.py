@@ -17,7 +17,7 @@ from app.core.isolation import apply_scope, get_scope_filter, get_scope_values
 from app.core.limiter import limiter
 from app.models.notebook import Notebook
 from app.models.paper import Paper
-from app.services.llm_service import LLMServiceError, get_llm_service
+from app.services.llm_service import LlmQuotaExhausted, LLMServiceError, get_llm_service
 
 logger = logging.getLogger(__name__)
 
@@ -297,6 +297,11 @@ async def notebook_ai_assist(
             mode=mode,
             linked_context=linked_context,
         )
+    except LlmQuotaExhausted as e:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(e),
+        ) from e
     except LLMServiceError as e:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

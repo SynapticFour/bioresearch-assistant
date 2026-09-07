@@ -33,7 +33,16 @@ os.environ.setdefault("ENVIRONMENT", "test")
 
 from app.core.auth import get_current_user
 from app.core.database import Base, get_db, get_engine_instance
+from app.core.llm_budget import configure_budget_file
 from app.main import app
+
+
+@pytest.fixture(autouse=True)
+def isolate_llm_budget(tmp_path):
+    """Haiku RPD ledger stays in the test tmp dir (no cwd file, no cross-test counts)."""
+    configure_budget_file(tmp_path / "llm_daily_rpd.json")
+    yield
+    configure_budget_file(None)
 
 
 # ── Event loop (session-scoped for async fixtures) ─────────────────────────
