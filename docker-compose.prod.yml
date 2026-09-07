@@ -55,7 +55,7 @@ services:
           cpus: '0.5'
 
   ollama:
-    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.5.13}
+    image: ollama/ollama:${OLLAMA_IMAGE_TAG:-0.33.3}
     platform: ${DOCKER_PLATFORM:-linux/amd64}
     volumes:
       - ollama_data:/root/.ollama

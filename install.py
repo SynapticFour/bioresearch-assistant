@@ -673,7 +673,7 @@ def generate_docker_compose(config: dict, install_dir: Path):
         if config.get("reuse_ollama"):
             optional_services += f"""
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.33.3@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2
     ports:
       - "{config["ollama_port"]}:11434"
     volumes:
@@ -684,7 +684,7 @@ def generate_docker_compose(config: dict, install_dir: Path):
         else:
             optional_services += f"""
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.33.3@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2
     ports:
       - "{config["ollama_port"]}:11434"
     volumes:
@@ -699,7 +699,7 @@ def generate_docker_compose(config: dict, install_dir: Path):
     if config.get("install_blast"):
         optional_services += """
   blast:
-    image: ncbi/blast:2.15.0
+    image: ncbi/blast:2.17.0@sha256:81f118d2e4f7e11494d27fdbb99c9430423105afff50c4ae158db41d58a3fc57
     platform: linux/amd64
     volumes:
       - blast_data:/blast/db

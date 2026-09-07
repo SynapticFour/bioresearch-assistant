@@ -21,8 +21,8 @@ Im Projektroot:
 chmod +x scripts/export_offline_bundle.sh
 ./scripts/export_offline_bundle.sh \
   --output-dir ./offline-bundle \
-  --backend-image ghcr.io/synapticfour/bioresearch-assistant-backend:latest \
-  --frontend-image ghcr.io/synapticfour/bioresearch-assistant-frontend:latest \
+  --backend-image ghcr.io/synapticfour/bioresearch-assistant-backend:v0.2.1 \
+  --frontend-image ghcr.io/synapticfour/bioresearch-assistant-frontend:v0.2.1 \
   --ollama-models "mistral,qwen2.5:7b" \
   --export-ollama-volume
 ```
@@ -81,4 +81,3 @@ Empfohlener Ablauf:
 Rollback:
 - Vorheriges Bundle archiviert halten.
 - Bei Problemen altes Bundle mit `import_offline_bundle.sh` erneut importieren.
-

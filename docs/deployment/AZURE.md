@@ -44,8 +44,8 @@ Images werden automatisch bei Push auf `main` nach GHCR gebaut. Für ACR manuell
 
 ```bash
 az acr login --name bioresearchregistry
-docker tag ghcr.io/synapticfour/bioresearch-assistant-backend:latest bioresearchregistry.azurecr.io/backend:latest
-docker push bioresearchregistry.azurecr.io/backend:latest
+docker tag ghcr.io/synapticfour/bioresearch-assistant-backend:v0.2.1 bioresearchregistry.azurecr.io/backend:v0.2.1
+docker push bioresearchregistry.azurecr.io/backend:v0.2.1
 ```
 
 ### 4. PostgreSQL mit pgvector

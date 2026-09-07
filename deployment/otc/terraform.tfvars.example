@@ -13,7 +13,6 @@ repo_url    = "https://github.com/SynapticFour/bioresearch-assistant.git"
 repo_ref    = "main"
 install_dir = "/opt/bioresearch"
 
-backend_image  = "ghcr.io/synapticfour/bioresearch-assistant-backend:latest"
-frontend_image = "ghcr.io/synapticfour/bioresearch-assistant-frontend:latest"
+backend_image  = "ghcr.io/synapticfour/bioresearch-assistant-backend:v0.2.1"
+frontend_image = "ghcr.io/synapticfour/bioresearch-assistant-frontend:v0.2.1"
 docker_platform = "linux/amd64"
-

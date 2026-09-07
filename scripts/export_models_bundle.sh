@@ -4,7 +4,7 @@ set -euo pipefail
 
 OUTPUT_DIR="."
 VERSION="${BRA_VERSION:?set BRA_VERSION}"
-OLLAMA_IMAGE="ollama/ollama:${OLLAMA_IMAGE_TAG:-0.5.13}"
+OLLAMA_IMAGE="ollama/ollama:${OLLAMA_IMAGE_TAG:-0.33.3}"
 OLLAMA_MODELS="${OLLAMA_MODELS:-mistral}"
 OLLAMA_VOLUME="bra_models_export_$$"
 

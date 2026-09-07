@@ -6,7 +6,7 @@ VERSION="${BRA_VERSION:?set BRA_VERSION}"
 BACKEND_IMAGE="ghcr.io/synapticfour/bioresearch-assistant-backend:${VERSION}"
 FRONTEND_IMAGE="ghcr.io/synapticfour/bioresearch-assistant-frontend:${VERSION}"
 POSTGRES_IMAGE="pgvector/pgvector:pg16"
-OLLAMA_IMAGE="ollama/ollama:${OLLAMA_IMAGE_TAG:-0.5.13}"
+OLLAMA_IMAGE="ollama/ollama:${OLLAMA_IMAGE_TAG:-0.33.3}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

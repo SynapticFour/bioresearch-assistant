@@ -35,7 +35,8 @@ services:
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   ollama:
-    image: ollama/ollama:latest
+    # GitHub ollama/ollama v0.33.3 (2026-09-03); Docker Hub 0.33.3
+    image: ollama/ollama:0.33.3@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2
     ports:
       - "11434:11434"
     volumes:
@@ -47,7 +48,8 @@ services:
   # Start: docker compose --profile inference up -d inference
   # Backend .env: LLM_PROVIDER=openai_compatible, OPENAI_BASE_URL=http://inference:30000/v1, OPENAI_MODEL=<same as INFERENCE_MODEL>
   inference:
-    image: lmsysorg/sglang:latest
+    # GitHub sgl-project/sglang v0.5.19; Docker Hub lmsysorg/sglang:v0.5.19
+    image: lmsysorg/sglang:v0.5.19@sha256:d6e7288627be8b02be88e4bba38e73f6d50e2826869f753c13a4c4385ab3eda9
     profiles:
       - inference
     ipc: host

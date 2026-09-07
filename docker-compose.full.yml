@@ -53,7 +53,8 @@ services:
     restart: unless-stopped
 
   ollama:
-    image: ollama/ollama:latest
+    # GitHub ollama/ollama v0.33.3 (2026-09-03); Docker Hub 0.33.3
+    image: ollama/ollama:0.33.3@sha256:32931b46719f673c05fdbaa81ccb26da18ea4a1c57590a754874ab28ba269eb2
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
@@ -61,7 +62,8 @@ services:
     restart: unless-stopped
 
   blast:
-    image: ncbi/blast:latest
+    # BLAST+ 2.17.0 (NCBI release 2025-07-22); Docker Hub ncbi/blast:2.17.0
+    image: ncbi/blast:2.17.0@sha256:81f118d2e4f7e11494d27fdbb99c9430423105afff50c4ae158db41d58a3fc57
     volumes:
       - blast_data:/blast/db
     restart: unless-stopped

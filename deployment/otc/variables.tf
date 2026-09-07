@@ -67,13 +67,13 @@ variable "install_dir" {
 variable "backend_image" {
   description = "Backend image used by compose"
   type        = string
-  default     = "ghcr.io/synapticfour/bioresearch-assistant-backend:latest"
+  default     = "ghcr.io/synapticfour/bioresearch-assistant-backend:v0.2.1"
 }
 
 variable "frontend_image" {
   description = "Frontend image used by compose"
   type        = string
-  default     = "ghcr.io/synapticfour/bioresearch-assistant-frontend:latest"
+  default     = "ghcr.io/synapticfour/bioresearch-assistant-frontend:v0.2.1"
 }
 
 variable "docker_platform" {
@@ -81,4 +81,3 @@ variable "docker_platform" {
   type        = string
   default     = "linux/amd64"
 }
-
