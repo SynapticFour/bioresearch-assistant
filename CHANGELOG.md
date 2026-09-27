@@ -7,6 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+- Optional module `modules/variant_interpretation/`: juxtaposes a Locus RAG source list with Ferrum DRS/WES technical metadata only when `LOCUS_ENABLED` and both `FERRUM_DRS_URL` and `FERRUM_WES_URL` are set. Otherwise it stays inactive and does not raise. No recommendation, no diagnosis, no new data source.
 - Docs: supported versions in [SECURITY.md](SECURITY.md) are **0.2.x** (v1.0.0 remains a published mistake tag). DPA/AVV is on request — there is no `docs/AVV-TEMPLATE.md` in this tree.
 - HelixTest patch `0001-default-bearer-for-confidential-drs-wes.patch` regenerated against suite SHA `4a10e12` (`HELIXTEST_DEFAULT_BEARER` on `get_builder` / `post_json`).
 - Release workflow writes notes to `release-notes.md` and uses `body_path` (git log bodies can contain `EOF` and broke `GITHUB_OUTPUT`).
