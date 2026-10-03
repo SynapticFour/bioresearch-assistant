@@ -7,7 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
-Proposed tag `v0.2.2`. Not created.
+## [0.2.2] - 2026-10-03
 
 - **Service registry lookup** — `SERVICE_REGISTRY_URL` resolves DRS (`drsservice`) and WES. A missing `stale` field is fresh. Several fresh rows are an error unless a service id or organization is set. An empty host allowlist does not restrict ordinary hosts and is unsafe for a public deployment. Loopback, link-local, and cloud metadata stay blocked unless that host is listed. The service URL must use the registry URL's scheme. A failed lookup with a static `FERRUM_*_URL` is logged as a static fallback.
 - Production Compose starts Ollama only with `--profile ollama`. `LLM_PROVIDER=anthropic` or `openai_compatible` boots without that container. `/api/v1/health` stays `healthy` when the model server is absent.
@@ -17,6 +17,13 @@ Proposed tag `v0.2.2`. Not created.
 - Docs: supported versions in [SECURITY.md](SECURITY.md) are **0.2.x** (v1.0.0 remains a published mistake tag). DPA/AVV is on request — there is no `docs/AVV-TEMPLATE.md` in this tree.
 - HelixTest patch `0001-default-bearer-for-confidential-drs-wes.patch` regenerated against suite SHA `4a10e12` (`HELIXTEST_DEFAULT_BEARER` on `get_builder` / `post_json`).
 - Release workflow writes notes to `release-notes.md` and uses `body_path` (git log bodies can contain `EOF` and broke `GITHUB_OUTPUT`).
+- `make verify-release` is the local gate before a tag. Push to `main` and pull requests run the secret scan and dependency review. Product CI, conformance, CodeQL, image builds, and deploys are `workflow_dispatch`. A `v*.*.*` tag runs the Release workflow (offline bundle). The models bundle stays a manual dispatch.
+
+### Security
+
+- **urllib3 2.8.0** — PYSEC-2026-4175 (HTTPS proxy TLS configuration ignored or overridden), PYSEC-2026-4176 (chunked deflate streaming can loop), PYSEC-2026-4177 (unbounded chunk-size line). `requirements.txt` already allowed `>=2.5.0,<3`. The lock pin moved from 2.7.0.
+- **axios 1.20.0 and DOMPurify 3.4.16** — production `npm audit` reported high-severity axios issues through 1.19.0 and a DOMPurify hook issue in 3.4.13–3.4.15. The lock now has the patched releases inside the existing ranges. `react-router` 6.30.6 still has two moderate advisories whose non-breaking fix is not published; the 7.18.4 upgrade is a major and is not in this tag. `npm audit --omit=dev --audit-level=high` is the release gate.
+- **Not upgraded in this tag.** `transformers` 4.57.6 still has PYSEC-2026-3929 (`save_pretrained` path traversal, fix 5.10.0) and PYSEC-2026-4174 (custom generation code downloaded before trust consent; pip-audit listed no fix). `sentence-transformers` 2.7.0 still has PYSEC-2026-4164 (local model load bypasses `trust_remote_code`, fix 5.6.0). Those fixes are 5.x majors. `make verify-release` ignores those three ids and the older transformers ids already recorded on this line. spaCy `de-core-news-sm` and `en-core-web-sm` are not on PyPI, so pip-audit skips them.
 
 ## [0.2.1] - 2026-08-17
 
