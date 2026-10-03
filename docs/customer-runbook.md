@@ -8,7 +8,8 @@ Kurzanleitung für IT-Betrieb und Forschungs-IT. Technische Details: [GitHub Rel
 
 - Linux-Server mit **Docker** und **Docker Compose v2**
 - Freie Ports: **8000** (API), **3000** (Weboberfläche), **11434** (Ollama, intern)
-- Ca. **24 GB RAM** empfohlen (Ollama + Backend)
+- RAM is an estimate, not a measurement from this tree: about **24 GB** when Ollama and the backend run together (Compose caps Ollama at 16 GB and the backend at 4 GB). Postgres and the frontend are extra. A backend RSS after image start was not measured.
+- Ollama is the Compose profile `ollama`. `docker compose -f docker-compose.prod.yml up` does not start it. `LLM_PROVIDER=anthropic` or `openai_compatible` boots the API without that container. `./install.sh --prod` adds `--profile ollama` unless `LLM_PROVIDER` is one of those two. `GET /api/v1/health` stays `healthy` when the model server is absent; `features.llm_summaries` is then false unless an Anthropic key is usable.
 - `.env` mit **`BRA_VERSION`** (Release-Tag, z. B. `v0.2.1`) — **Pflicht**; `./install.sh --prod` bricht ohne diese Variable ab (kein `:latest`).
 
 ---

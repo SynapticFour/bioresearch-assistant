@@ -30,6 +30,7 @@ Diese Seite ist der Einstiegspunkt fuer alle Installationswege.
 ## Hinweise zur Plattform
 
 - `docker-compose.prod.yml` nutzt `DOCKER_PLATFORM` (Default `linux/amd64`).
+- Ollama startet nur mit `--profile ollama`. `LLM_PROVIDER=anthropic` oder `openai_compatible` lässt das Profil weg. Die DFN/OTC-Workflows setzen das Profil, damit ein Deploy ohne gesetztes `LLM_PROVIDER` Ollama weiter mitstartet.
 - Fuer ARM-Systeme (z. B. bestimmte Edge-Setups): `DOCKER_PLATFORM=linux/arm64`.
 - Image Overrides:
   - `BACKEND_IMAGE`

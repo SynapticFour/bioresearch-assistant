@@ -6,7 +6,7 @@
 |-----------------|-----------|-------------|
 | Docker Desktop  | 24.x      | aktuell     |
 | Python          | 3.11      | 3.12        |
-| RAM             | 8 GB      | 16 GB (für Ollama) |
+| RAM             | 8 GB      | 16 GB (für Ollama; Compose-Limit, nicht gemessen) |
 | Speicher        | 10 GB     | 30 GB       |
 | Betriebssystem  | Windows 10, macOS 12, Ubuntu 20.04 | — |
 

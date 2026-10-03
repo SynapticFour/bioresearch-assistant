@@ -181,4 +181,14 @@ Operator-Claims-Map: `auto` (Default, aus `OIDC_ISSUER`) | `keycloak` | `entra` 
 | ls-login | ELIXIR / Life Science Login | inkl. `ga4gh_passport_v1` | `eduperson_entitlement` |
 | broker | ga4gh-infra AAI | inkl. `ga4gh_passport_v1` | `groups` |
 
+### What this tree executed
+
+Unit tests, not a live login:
+
+- `OIDC_PROFILE=keycloak` and `broker` are claims maps in `backend/app/idp_profiles/*.toml`. Keycloak and the broker request `openid email profile ga4gh_passport_v1`. Isolation reads the `groups` claim (`groups_claim = "groups"`), not `realm_access.roles`.
+- `extract_roles` also reads `realm_access.roles` for admin role checks. That is covered by `test_extract_roles_from_keycloak_realm_access`.
+- Issuer detection: an issuer containing `/realms/` selects the keycloak profile; `http://127.0.0.1:8180` selects broker. Covered by `test_detect_profile_ls_login_and_broker`.
+
+Not executed: a Keycloak login, a broker login, or a token from either issuer.
+
 SAML nur über Keycloak als Brücke — Compose-Beispiel: [docker-compose.keycloak-saml.yml](../docker-compose.keycloak-saml.yml), Anleitung: [AUTH-SHIBBOLETH-BRIDGE.md](AUTH-SHIBBOLETH-BRIDGE.md).
