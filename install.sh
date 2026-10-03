@@ -16,31 +16,49 @@ require_bra_version() {
   fi
 }
 
+# ollama is a Compose profile. auto and ollama start it. anthropic and
+# openai_compatible boot the API without that container.
+compose_cmd() {
+  local provider
+  provider="$(printf '%s' "${LLM_PROVIDER:-ollama}" | tr '[:upper:]' '[:lower:]')"
+  if [ "$provider" = "anthropic" ] || [ "$provider" = "openai_compatible" ]; then
+    docker compose -f "$COMPOSE_FILE" "$@"
+  else
+    docker compose -f "$COMPOSE_FILE" --profile ollama "$@"
+  fi
+}
+
 prod_compose() {
   local offline="${1:-0}"
   load_env
   require_bra_version
   command -v docker >/dev/null || { echo "ERROR: Docker nicht gefunden."; exit 1; }
+  local provider
+  provider="$(printf '%s' "${LLM_PROVIDER:-ollama}" | tr '[:upper:]' '[:lower:]')"
 
   if [ "$offline" = "1" ]; then
-    docker compose -f "$COMPOSE_FILE" up -d postgres
-    docker compose -f "$COMPOSE_FILE" run --rm backend alembic upgrade head
-    docker compose -f "$COMPOSE_FILE" up -d --pull never
+    compose_cmd up -d postgres
+    compose_cmd run --rm backend alembic upgrade head
+    compose_cmd up -d --pull never
   else
-    docker compose -f "$COMPOSE_FILE" pull
-    docker compose -f "$COMPOSE_FILE" run --rm backend alembic upgrade head
-    docker compose -f "$COMPOSE_FILE" up -d
+    compose_cmd pull
+    compose_cmd run --rm backend alembic upgrade head
+    compose_cmd up -d
   fi
 
-  models="${OLLAMA_MODELS:-${OLLAMA_MODEL:-mistral}}"
-  echo "[bra] Ollama-Modelle laden (Internet nötig, ca. 5–20 Min. je Modell): ${models}"
-  for m in $(echo "$models" | tr ',' ' '); do
-    if docker compose -f "$COMPOSE_FILE" exec -T ollama ollama list 2>/dev/null | grep -q "${m%%:*}"; then
-      echo "[bra] Modell bereits vorhanden: $m"
-      continue
-    fi
-    [ -n "$m" ] && docker compose -f "$COMPOSE_FILE" exec -T ollama ollama pull "$m" || true
-  done
+  if [ "$provider" = "anthropic" ] || [ "$provider" = "openai_compatible" ]; then
+    echo "[bra] LLM_PROVIDER=${provider}: Ollama container not started."
+  else
+    models="${OLLAMA_MODELS:-${OLLAMA_MODEL:-mistral}}"
+    echo "[bra] Ollama-Modelle laden (Internet nötig, ca. 5–20 Min. je Modell): ${models}"
+    for m in $(echo "$models" | tr ',' ' '); do
+      if compose_cmd exec -T ollama ollama list 2>/dev/null | grep -q "${m%%:*}"; then
+        echo "[bra] Modell bereits vorhanden: $m"
+        continue
+      fi
+      [ -n "$m" ] && compose_cmd exec -T ollama ollama pull "$m" || true
+    done
+  fi
 
   for i in $(seq 1 24); do
     curl -sf "http://localhost:8000/api/v1/health" >/dev/null && break

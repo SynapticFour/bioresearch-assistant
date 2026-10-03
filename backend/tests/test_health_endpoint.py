@@ -6,9 +6,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 import pytest_asyncio
-from httpx import ASGITransport, AsyncClient
+from httpx import ASGITransport, AsyncClient, ConnectError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.main import app
 
 
@@ -144,6 +145,41 @@ async def test_health_llm_summaries_true_when_ollama_has_models(health_client):
     ):
         resp = await health_client.get("/api/v1/health")
     assert resp.json()["features"]["llm_summaries"] is True
+
+
+@pytest.mark.asyncio
+async def test_health_stays_up_for_anthropic_without_ollama(health_client, monkeypatch):
+    """An external provider does not make /health fail when Ollama is absent."""
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-" + ("a" * 24))
+    get_settings.cache_clear()
+    with patch("app.api.v1.endpoints.health.httpx.AsyncClient") as client_cls:
+        resp = await health_client.get("/api/v1/health")
+    client_cls.assert_not_called()
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "healthy"
+    assert body["features"]["llm_summaries"] is True
+
+
+@pytest.mark.asyncio
+async def test_health_stays_up_when_openai_compatible_endpoint_is_down(health_client, monkeypatch):
+    """A refused models probe clears the feature flag and leaves liveness healthy."""
+    monkeypatch.setenv("LLM_PROVIDER", "openai_compatible")
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://127.0.0.1:9/v1")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "")
+    get_settings.cache_clear()
+    client = AsyncMock()
+    client.get.side_effect = ConnectError("connection refused")
+    context = AsyncMock()
+    context.__aenter__.return_value = client
+    with patch("app.api.v1.endpoints.health.httpx.AsyncClient", return_value=context):
+        resp = await health_client.get("/api/v1/health")
+    assert client.get.await_args.args[0] == "http://127.0.0.1:9/v1/models"
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] == "healthy"
+    assert body["features"]["llm_summaries"] is False
 
 
 @pytest.mark.asyncio
