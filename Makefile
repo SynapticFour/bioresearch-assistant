@@ -1,13 +1,14 @@
 # BioResearch Assistant — Synaptic Four unified local lifecycle
 # Delegates to install.py (installer remains source of truth).
 
-.PHONY: help install up down destroy logs status prove
+.PHONY: help install up down destroy logs status prove verify-release
 
 help:
 	@echo "BioResearch Assistant — local lifecycle"
 	@echo ""
 	@echo "  make install   Interactive first-time setup (python install.py)"
 	@echo "  make prove     Zero-risk proof: backend pytest (no Docker, no coverage gate)"
+	@echo "  make verify-release  Gate before a v* tag (ruff, pytest, frontend, audits)"
 	@echo "  make up        Unattended install or start if already installed"
 	@echo "  make down      Stop stack; keep volumes"
 	@echo "  make destroy   Stop stack; remove volumes"
@@ -51,3 +52,6 @@ prove:
 		SECRET_KEY=prove-secret \
 		pytest tests/ -q --tb=short --no-cov
 	@echo "BRA prove OK. Live stack: make up"
+
+verify-release:
+	./scripts/verify-release.sh

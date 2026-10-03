@@ -4,7 +4,7 @@ This repository follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
 
 ## Release process
 
-1. Ensure CI is green on `main`.
+1. Run `make verify-release` on the commit you will tag (ruff, pytest with the coverage floor, frontend typecheck, build, and unit tests, plus pip-audit and npm audit when those tools are installed). Product CI does not run on push to `main` or on pull requests. Dispatch conformance or CodeQL from [docs/CI.md](docs/CI.md) when you want those jobs on a runner.
 2. Update `CHANGELOG.md` with user-visible changes.
 3. Create an annotated tag:
    - `git tag -a vX.Y.Z -m "vX.Y.Z"`
