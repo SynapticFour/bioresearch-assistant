@@ -98,7 +98,9 @@ Ohne `OIDC_ISSUER` + `OIDC_CLIENT_ID` und mit explizitem `DEPLOYMENT=local|devel
 
 ## GA4GH Passport Visas
 
-BRA **consumes** `ga4gh_passport_v1` / `ga4gh_visa_v1` from the JWKS-verified OIDC ID token **and verifies nested visa JWTs** (broker JWKS, then visa `iss` OpenID discovery — the same split Ferrum uses). It does **not** issue Passports. `AffiliationAndRole` dicts may set team isolation. Passport-gated **bytes** remain Ferrum’s job: BRA forwards `Authorization` unless `FERRUM_BEARER_TOKEN` overrides it.
+BRA **consumes** `ga4gh_passport_v1` / `ga4gh_visa_v1` from the JWKS-verified OIDC ID token **and verifies nested visa JWTs** (broker JWKS, then visa `iss` OpenID discovery — the same split Ferrum uses). It does **not** issue Passports. `AffiliationAndRole` dicts may set team isolation. Passport-gated **bytes** remain Ferrum’s job: BRA forwards `Authorization` unless `FERRUM_BEARER_TOKEN` overrides it. When `SERVICE_REGISTRY_URL` is set, DRS and WES bases come from that registry. An empty `SERVICE_REGISTRY_HOST_ALLOWLIST` does not restrict ordinary hosts and is unsafe for a public deployment. Loopback, link-local, and cloud metadata addresses stay blocked unless that host is listed. See [DECISIONS.md](../DECISIONS.md).
+
+Not executed: a live registry, a Keycloak login, or a broker login.
 
 Claim types (visa JWT signature verified; dataset grants still enforced on DRS/WES by Ferrum):
 

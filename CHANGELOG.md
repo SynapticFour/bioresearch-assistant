@@ -9,6 +9,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 Proposed tag `v0.2.2`. Not created.
 
+- **Service registry lookup** — `SERVICE_REGISTRY_URL` resolves DRS (`drsservice`) and WES. A missing `stale` field is fresh. Several fresh rows are an error unless a service id or organization is set. An empty host allowlist does not restrict ordinary hosts and is unsafe for a public deployment. Loopback, link-local, and cloud metadata stay blocked unless that host is listed. The service URL must use the registry URL's scheme. A failed lookup with a static `FERRUM_*_URL` is logged as a static fallback.
 - Production Compose starts Ollama only with `--profile ollama`. `LLM_PROVIDER=anthropic` or `openai_compatible` boots without that container. `/api/v1/health` stays `healthy` when the model server is absent.
 - OIDC and RAM notes label what the unit tests cover and what was not executed (no live Keycloak or broker login; RAM figures are Compose limits, not a measured RSS).
 

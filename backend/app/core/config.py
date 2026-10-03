@@ -78,6 +78,35 @@ class Settings(BaseSettings):
         description="Optional bearer for Ferrum DRS/WES (Passport or operator token)",
         validation_alias="FERRUM_BEARER_TOKEN",
     )
+    service_registry_url: str | None = Field(
+        default=None,
+        description="GA4GH service registry base URL. Unset keeps the static Ferrum URLs",
+        validation_alias="SERVICE_REGISTRY_URL",
+    )
+    service_registry_cache_ttl_seconds: int = Field(
+        default=60,
+        description="How long a registry lookup is reused",
+        validation_alias="SERVICE_REGISTRY_CACHE_TTL_SECONDS",
+    )
+    service_registry_host_allowlist: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Hosts allowed for registry-resolved URLs. Empty does not restrict ordinary "
+            "hosts and is unsafe for a public deployment. Loopback, link-local, and "
+            "cloud metadata stay blocked unless listed here"
+        ),
+        validation_alias="SERVICE_REGISTRY_HOST_ALLOWLIST",
+    )
+    service_registry_service_id: str | None = Field(
+        default=None,
+        description="When several fresh registry rows exist, keep this service id",
+        validation_alias="SERVICE_REGISTRY_SERVICE_ID",
+    )
+    service_registry_organization: str | None = Field(
+        default=None,
+        description="When several fresh registry rows exist, keep this organization name",
+        validation_alias="SERVICE_REGISTRY_ORGANIZATION",
+    )
 
     # API
     api_v1_prefix: str = Field(default="/api/v1", description="API v1 URL prefix")
@@ -442,7 +471,24 @@ class Settings(BaseSettings):
             return [h.strip().lower() for h in v.split(",") if h.strip()]
         return [str(h).strip().lower() for h in v if str(h).strip()]
 
-    @field_validator("ferrum_drs_url", "ferrum_wes_url", "ferrum_bearer_token", mode="before")
+    @field_validator("service_registry_host_allowlist", mode="before")
+    @classmethod
+    def parse_registry_allowlist(cls, v: str | list[str] | None) -> list[str]:
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [host.strip().lower() for host in v.split(",") if host.strip()]
+        return [str(host).strip().lower() for host in v if str(host).strip()]
+
+    @field_validator(
+        "ferrum_drs_url",
+        "ferrum_wes_url",
+        "ferrum_bearer_token",
+        "service_registry_url",
+        "service_registry_service_id",
+        "service_registry_organization",
+        mode="before",
+    )
     @classmethod
     def empty_optional_url(cls, v: str | None) -> str | None:
         if v is None:
