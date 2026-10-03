@@ -17,7 +17,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 - Docs: supported versions in [SECURITY.md](SECURITY.md) are **0.2.x** (v1.0.0 remains a published mistake tag). DPA/AVV is on request — there is no `docs/AVV-TEMPLATE.md` in this tree.
 - HelixTest patch `0001-default-bearer-for-confidential-drs-wes.patch` regenerated against suite SHA `4a10e12` (`HELIXTEST_DEFAULT_BEARER` on `get_builder` / `post_json`).
 - Release workflow writes notes to `release-notes.md` and uses `body_path` (git log bodies can contain `EOF` and broke `GITHUB_OUTPUT`).
-- `make verify-release` is the local gate before a tag. Push to `main` and pull requests run the secret scan and dependency review. Product CI, conformance, CodeQL, image builds, and deploys are `workflow_dispatch`. A `v*.*.*` tag runs the Release workflow (offline bundle). The models bundle stays a manual dispatch.
+- `make verify-release` is the local gate before a tag. Push to `main` and pull requests run the secret scan and dependency review. Product CI, conformance, CodeQL, `build-images.yml`, and deploys are `workflow_dispatch`. A `v*.*.*` tag runs the Release workflow: GHCR backend and frontend images, plus the offline bundle on the GitHub Release. The models bundle stays a manual dispatch.
 
 ### Security
 
