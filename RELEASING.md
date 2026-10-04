@@ -10,14 +10,10 @@ This repository follows Semantic Versioning (`MAJOR.MINOR.PATCH`).
    - `git tag -a vX.Y.Z -m "vX.Y.Z"`
 4. Push the tag:
    - `git push origin vX.Y.Z`
-5. Verify GitHub Release artifacts:
-   - `bra-offline-vX.Y.Z.tar.gz` (app images, no LLM weights)
-   - `SHA256SUMS.txt`
-   - `install.sh`, `import.sh`
-6. Optional air-gap LLM bundle (large, slow):
-   - Re-run workflow **Release** via `workflow_dispatch` with **include_models_bundle**, or locally:
-     `BRA_VERSION=vX.Y.Z ./scripts/export_models_bundle.sh`
-   - Upload `models-bundle-vX.Y.Z.tar.gz` to the release if built offline.
+5. Verify the GitHub Release from that tag:
+   - `ghcr.io/synapticfour/bioresearch-assistant-backend:vX.Y.Z` and `ghcr.io/synapticfour/bioresearch-assistant-frontend:vX.Y.Z` (also tagged with the commit SHA)
+   - `install.sh`, `import.sh`, `SHA256SUMS.txt`
+6. The offline bundle and the models bundle are not Release assets. A tag does not build them. Distribution: [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Versioning rules
 

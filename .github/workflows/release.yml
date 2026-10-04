@@ -78,6 +78,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build offline app bundle
+        if: github.event_name == 'workflow_dispatch'
         env:
           BRA_RELEASE_VERSION: ${{ env.BRA_RELEASE_VERSION }}
           BRA_VERSION: ${{ env.BRA_RELEASE_VERSION }}
@@ -96,12 +97,11 @@ jobs:
 
       - name: Generate SHA256SUMS for all release artifacts
         run: |
-          shasum -a 256 \
-            bra-offline-*.tar.gz \
-            models-bundle-*.tar.gz \
-            2>/dev/null | grep -v '^$' > SHA256SUMS.txt || true
-          if [ ! -s SHA256SUMS.txt ]; then
-            shasum -a 256 bra-offline-*.tar.gz > SHA256SUMS.txt
+          shasum -a 256 install.sh import.sh > SHA256SUMS.txt
+          shopt -s nullglob
+          bundles=(bra-offline-*.tar.gz models-bundle-*.tar.gz)
+          if [ "${#bundles[@]}" -gt 0 ]; then
+            shasum -a 256 "${bundles[@]}" >> SHA256SUMS.txt
           fi
           cat SHA256SUMS.txt
 
@@ -130,8 +130,6 @@ jobs:
           draft: false
           fail_on_unmatched_files: false
           files: |
-            bra-offline-*.tar.gz
-            models-bundle-*.tar.gz
             SHA256SUMS.txt
             install.sh
             import.sh

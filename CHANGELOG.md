@@ -7,6 +7,8 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+- A `v*.*.*` tag no longer builds or attaches `bra-offline-*.tar.gz` or `models-bundle-*.tar.gz`. GitHub rejects a Release asset at or above 2 GiB. The tag still publishes the two GHCR images, `install.sh`, `import.sh`, and `SHA256SUMS.txt`. The archives are built on `workflow_dispatch` and distributed as an OCI artifact or from a download host ([docs/RELEASING.md](docs/RELEASING.md)).
+
 ## [0.2.2] - 2026-10-03
 
 - **Service registry lookup** — `SERVICE_REGISTRY_URL` resolves DRS (`drsservice`) and WES. A missing `stale` field is fresh. Several fresh rows are an error unless a service id or organization is set. An empty host allowlist does not restrict ordinary hosts and is unsafe for a public deployment. Loopback, link-local, and cloud metadata stay blocked unless that host is listed. The service URL must use the registry URL's scheme. A failed lookup with a static `FERRUM_*_URL` is logged as a static fallback.
