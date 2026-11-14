@@ -47,7 +47,7 @@ English is the base language of this repository. A page marked German is written
 | [COMPLIANCE.md](COMPLIANCE.md) | German. Technical measures. Not legal advice and not a certification. |
 | [COMPLIANCE-SUMMARY.md](COMPLIANCE-SUMMARY.md) | German. A short form of that note. |
 | [GAIA-X-ALIGNMENT.md](GAIA-X-ALIGNMENT.md) | German. How the design lines up with Gaia-X principles. Not a label. |
-| [gaia-x-self-description.json](gaia-x-self-description.json) | A prepared self-description. The licence field is BUSL-1.1, the same as the licence file. Literature search sends the query to PubMed. The API reports `gaia_x_ready` false. |
+| [gaia-x-self-description.json](gaia-x-self-description.json) | A prepared self-description. The licence field is Apache-2.0, the same as the licence file. Literature search sends the query to PubMed. The API reports `gaia_x_ready` false. |
 | [CONFORMANCE.md](CONFORMANCE.md) | German. Contract tests for the GA4GH surfaces. Not a GA4GH certification. |
 | [ISOLATION-MODES.md](ISOLATION-MODES.md) | German. Per person, per group, and the open mode that production refuses. |
 | [API-VERSIONING.md](API-VERSIONING.md) | German. The `/api/v1` and `/ga4gh/` paths, and how a version changes. |

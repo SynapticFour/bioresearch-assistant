@@ -9,7 +9,7 @@ Published tags:
 | **v0.2.1** | Cut after the Ferrum proxy + visa-verify + suite HelixTest pin (suite 2026.08-draft). Use this for Ferrum join demos. |
 | **v0.2.2** | Service-registry lookup for DRS and WES, Ollama only under the Compose profile, and the local `make verify-release` gate. |
 
-BUSL Change Date is **four years from each version** (same pattern as Ferrum), not `2030-03-01`.
+Versions released before this change were published under the Business Source License 1.1. From this commit on, the code is published under Apache-2.0. See [LICENSING-HISTORY.md](../LICENSING-HISTORY.md). The old calendar date `2030-03-01` was a mistaken tag. It is not a change date for this tree.
 
 Current app version is **0.2.2** in `backend/pyproject.toml` and `frontend/package.json`.
 

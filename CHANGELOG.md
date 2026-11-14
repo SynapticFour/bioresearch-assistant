@@ -7,6 +7,7 @@ Versioning: [Semantic Versioning](https://semver.org)
 
 ## [Unreleased]
 
+- Licence is Apache-2.0 from this commit. Versions released before this change were published under the Business Source License 1.1. See [LICENSING-HISTORY.md](LICENSING-HISTORY.md).
 - A `v*.*.*` tag no longer builds or attaches `bra-offline-*.tar.gz` or `models-bundle-*.tar.gz`. GitHub rejects a Release asset at or above 2 GiB. The tag still publishes the two GHCR images, `install.sh`, `import.sh`, and `SHA256SUMS.txt`. The archives are built on `workflow_dispatch` and distributed as an OCI artifact or from a download host ([docs/RELEASING.md](docs/RELEASING.md)).
 
 ## [0.2.2] - 2026-10-03

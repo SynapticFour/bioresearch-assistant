@@ -10,7 +10,7 @@ BRA is a workbench. It is not the institutional GA4GH archive (Ferrum), not the 
 
 ## License
 
-Business Source License 1.1. Change Date is four years from each version (the old calendar date `2030-03-01` was a mistaken tag). See [LICENSE](../LICENSE) and [VERSIONING.md](VERSIONING.md). No combo SKU with Ferrum or Solum.
+Apache License, Version 2.0. The software is free under that licence. Paid are services and commitments. Prices are on the [consulting page](https://synapticfour.com/en/consulting/). Versions released before this change were published under the Business Source License 1.1; see [LICENSING-HISTORY.md](../LICENSING-HISTORY.md). The old calendar date `2030-03-01` was a mistaken tag. See [LICENSE](../LICENSE) and [VERSIONING.md](VERSIONING.md). No combo SKU with Ferrum or Solum. Solum stays BUSL-1.1 in its own repository.
 
 ## Tested in this tree
 
