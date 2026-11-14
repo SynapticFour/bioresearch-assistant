@@ -9,7 +9,7 @@ pip install --require-hashes --no-deps --extra-index-url https://download.pytorc
 make prove
 ```
 
-Coverage gate stays in CI (`pytest --cov-fail-under=72`), not in `make prove`.
+If the tests pass, the last line is `BRA prove OK. Live stack: make up`. The coverage gate stays in CI (`pytest --cov-fail-under=72`), not in `make prove`.
 
 ## Compose stack
 
