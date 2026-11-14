@@ -16,3 +16,5 @@
 BRA is a workbench: UI + FastAPI backend. It exposes local GA4GH DRS/WES under `/ga4gh/` unless `FERRUM_DRS_URL` / `FERRUM_WES_URL` are set, in which case those surfaces are proxied to Ferrum ([IDENTITY.md](IDENTITY.md)).
 
 Local LLM is optional (Ollama). External LLM APIs send content to that provider. Locus (on-prem RAG): [LOCUS-MODULE.md](LOCUS-MODULE.md). Deployment matrix: [deployment/README.md](deployment/README.md).
+
+The longer contributor overview is [../ARCHITECTURE.md](../ARCHITECTURE.md). Decision records are indexed in [adr/README.md](adr/README.md). What stays on the computer, and what goes outside, is in the [README](../README.md#what-stays-on-your-computer-and-what-goes-outside).
