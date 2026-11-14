@@ -82,7 +82,7 @@ async def search_literature(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ) -> list[PubMedSearchResponse]:
-    """Suche PubMed Papers und speichere mit KI-Zusammenfassung."""
+    """Return the PubMed hits for the query. This handler stores nothing."""
     async with PubMedService() as service:
         try:
             articles = await service.search_pubmed(
