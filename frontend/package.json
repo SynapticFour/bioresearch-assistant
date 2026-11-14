@@ -2,6 +2,7 @@
   "name": "bioresearch-assistant-frontend",
   "private": true,
   "version": "0.2.2",
+  "license": "Apache-2.0",
   "type": "module",
   "description": "BioResearch Assistant — React TypeScript frontend",
   "scripts": {

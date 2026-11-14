@@ -68,4 +68,6 @@ cd frontend && npm run type-check
 
 ## Lizenz
 
-Mit deinem Beitrag stimmst du zu, dass dein Code unter BUSL 1.1 lizenziert wird.
+Beiträge stehen unter der Apache License, Version 2.0. Jeder Commit braucht ein Developer-Certificate-of-Origin-Sign-off (`git commit -s`): https://developercertificate.org/.
+
+Die Software ist frei unter Apache-2.0. Bezahlt werden Dienstleistungen und Zusagen. Preise stehen auf der [Beratungsseite](https://synapticfour.com/en/consulting/).

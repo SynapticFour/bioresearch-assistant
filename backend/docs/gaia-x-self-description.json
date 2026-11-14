@@ -24,6 +24,6 @@
       "GA4GH-Phenopackets-v2"
     ],
     "gx:dataLineage": "Literature search sends the query to PubMed. With Anthropic API: query text may be sent to US",
-    "gx:openSourceLicense": "BUSL-1.1"
+    "gx:openSourceLicense": "Apache-2.0"
   }
 }

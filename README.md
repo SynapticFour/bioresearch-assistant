@@ -6,9 +6,9 @@ For research teams.
 
 **Status: Early use.** Supported line 0.2.x. Registry: BRA-MATURITY-001. Early use is not a certification. A HelixTest run is a technical signal, not a GA4GH certification.
 
-[![License: BUSL-1.1](https://img.shields.io/badge/License-BUSL%201.1-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-GitHub may label this Other. The SPDX identifier is BUSL-1.1.
+The SPDX identifier is Apache-2.0.
 
 ## What it does
 
@@ -116,11 +116,13 @@ English is the base language. Every file under `docs/` is listed in [docs/README
 - [Architecture](docs/ARCHITECTURE.md)
 - [Who it is for, beside Ferrum and Solum](docs/IDENTITY.md)
 - [Architecture decisions](docs/adr/README.md)
-- [Commercial licence](docs/COMMERCIAL.md) — how to ask for one; the page is not a signed grant
+- [Services and commitments](docs/COMMERCIAL.md) — the software is free; this page is not a signed grant
 
 ## Licence
 
-The BioResearch Assistant is licensed under the Business Source License 1.1. Each version becomes Apache-2.0 four years after its release date. Non-commercial academic research, personal evaluation and contributing to the source are permitted. Production use needs a commercial licence. Ferrum and Solum are licensed separately. Registry: BRA-LICENSE-001. The file is shorter than the full Business Source License text. Not legal advice. The file is [LICENSE](LICENSE).
+The BioResearch Assistant is free under the Apache License, Version 2.0. The SPDX identifier is Apache-2.0. The file is [LICENSE](LICENSE). Versions released before this change were published under the Business Source License 1.1; see [LICENSING-HISTORY.md](LICENSING-HISTORY.md).
+
+Paid are services and commitments. Prices are on the [consulting page](https://synapticfour.com/en/consulting/). Ferrum is Apache-2.0 in its own repository. Solum stays under the Business Source License 1.1 in its own repository. There is no combo SKU.
 
 ## Cite
 

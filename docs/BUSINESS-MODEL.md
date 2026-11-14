@@ -1,21 +1,7 @@
-# Business model (open core)
+# Business model
 
-BioResearch Assistant is licensed under **BUSL-1.1** (see [`../LICENSE`](../LICENSE)).
+The software is free under the Apache License, Version 2.0. See [LICENSE](../LICENSE) and [LICENSING-HISTORY.md](../LICENSING-HISTORY.md). Paid are services and commitments. Prices are on the [consulting page](https://synapticfour.com/en/consulting/).
 
-## Free under BUSL terms
+This page is not legal advice and not a price list.
 
-- Internal non-commercial research, evaluation, and academic use.
-- Full source access for technical review and contribution workflows (access on request while early-adopter phase).
-- Core platform features as documented in this repository.
-
-## Commercial use
-
-Production use for commercial advantage or managed third-party service operation requires a commercial agreement with Synaptic Four.
-
-Indicative prices are **not published in this repository**. Email [contact@synapticfour.com](mailto:contact@synapticfour.com) for a written quote. Nothing on this page is a price list or a signed grant.
-
-BRA is licensed **separately** from Ferrum and Solum. There is no combo SKU. How to request a written license: [COMMERCIAL.md](COMMERCIAL.md) and [Ferrum COMMERCIAL.md](https://github.com/SynapticFour/Ferrum/blob/main/docs/COMMERCIAL.md).
-
-## Important scope note
-
-This document describes licensing and commercial scope at a high level. It is not legal advice and does not replace project `LICENSE` terms or jurisdiction-specific legal review.
+BioResearch Assistant is separate from Ferrum and Solum. There is no combo SKU. Solum stays under the Business Source License 1.1 in its own repository. How to ask: [COMMERCIAL.md](COMMERCIAL.md).

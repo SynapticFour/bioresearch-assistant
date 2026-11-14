@@ -8,7 +8,7 @@ This document is **technical positioning**, not legal advice or a medical-device
 
 ## Relationship to BioResearch Assistant
 
-- Locus is **not** a separate commercial website SKU; it is documented as a **module** of BioResearch Assistant (BUSL-1.1 aligned with the rest of the codebase).
+- Locus is **not** a separate commercial website SKU; it is documented as a **module** of BioResearch Assistant (Apache-2.0, the same licence as the rest of this repository).
 - Like the rest of the platform, it is a **research and documentation assistant** — **not** a medical device, **not** for automated diagnosis, **not** a replacement for qualified clinical review.
 
 ---
@@ -43,8 +43,8 @@ These results illustrate **feasibility** of local deployment; your institution m
 
 ## Licensing and services
 
-- **Code / product**: **BUSL-1.1** (same family as BioResearch Assistant / Ferrum policy — see repository `LICENSE` and [BUSINESS-MODEL.md](BUSINESS-MODEL.md)): permissible **non-commercial research** use; **commercial** use and support under contract.
-- **Indexes**: optional **subscription** (monthly or yearly) for curated index updates.
+- **Code / product**: Apache-2.0. The software is free under that licence. See [LICENSE](../LICENSE) and [BUSINESS-MODEL.md](BUSINESS-MODEL.md). Paid are services and commitments. Prices are on the [consulting page](https://synapticfour.com/en/consulting/).
+- **Indexes**: optional subscription for curated index updates. Prices are on the consulting page, not in this repository.
 
 ---
 

@@ -156,7 +156,7 @@ Schritte nötig. Mögliche nächste Schritte (aus Sicht der Betreiber):
 
 | Kriterium | Technische Maßnahmen (Beispiele) |
 |-----------|----------------------------------|
-| P1 Governance | Versionierung, Changelog, Lizenz (BUSL 1.1) |
+| P1 Governance | Versionierung, Changelog, Lizenz (Apache-2.0) |
 | P2 Datenschutz | Pseudonymisierung, Audit, On‑Premise‑Option |
 | P3 Sicherheit | Verschlüsselung, AuthN/Z, OWASP-orientiertes Review |
 | P4 Portabilität | Docker, Standardprotokolle, FAIR Export |
@@ -182,7 +182,7 @@ GA4GH Framework Prinzipien — Umsetzung:
 
 - Respect Persons: Pseudonymisierung, Betroffenenrechte
 - Solidarity: FAIR Datenexport, Interoperabilität
-- Fairness: Open Source (BUSL 1.1)
+- Fairness: Open Source (Apache-2.0)
 - Respect for Privacy: On-premise, lokale KI
 - Reciprocity: GA4GH Standards implementiert
 - Risk/Benefit: Audit Logs, Zugriffskontrollen
