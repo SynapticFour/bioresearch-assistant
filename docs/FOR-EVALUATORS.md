@@ -4,7 +4,7 @@ Factual snapshot of this repository. Not a sales brief. Not legal advice.
 
 ## Maturity
 
-**Early access.** Supported line is **0.2.x**. Gaia-X self-description and DSGVO-related badges in the README are grey on purpose: **not certified**. HelixTest CI is a technical signal against published OpenAPI, not GA4GH certification.
+**Status: Early use.** Supported line is **0.2.x**. Registry: BRA-MATURITY-001. There is no Gaia-X certification and no GDPR certification. Alignment notes are in [GAIA-X-ALIGNMENT.md](GAIA-X-ALIGNMENT.md) and [COMPLIANCE.md](COMPLIANCE.md). The API reports `gaia_x_ready: false`. HelixTest CI is a technical signal against published OpenAPI, not GA4GH certification.
 
 BRA is a workbench. It is not the institutional GA4GH archive (Ferrum), not the hospital consent engine (Solum), and does not issue Passports (ga4gh-infra).
 

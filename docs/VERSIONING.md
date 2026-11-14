@@ -12,3 +12,5 @@ Published tags:
 BUSL Change Date is **four years from each version** (same pattern as Ferrum), not `2030-03-01`.
 
 Current app version is **0.2.2** in `backend/pyproject.toml` and `frontend/package.json`.
+
+Tag `v0.2.2` points at `003fbb1f4939df36e29dec3d837f04d5c716be6b`. The default branch this documentation was cut from is `491879effd3b1cd167bc3cc2498ec8590d9ec0a3`, the next commit. That commit is not the tag. The version fields stay 0.2.2.

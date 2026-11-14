@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: Please cite this repository using these fields. Prefer this file over a hand-copied line.
+title: BioResearch Assistant
+authors:
+  - name: Synaptic Four
+repository-code: https://github.com/SynapticFour/bioresearch-assistant
+url: https://synapticfour.com/en/bioresearch-assistant/
+license: BUSL-1.1
+type: software

@@ -12,6 +12,8 @@ Track important architectural and operational decisions here.
 
 ---
 
+<a id="2026-10-03-ferrum-registry"></a>
+
 ### 2026-10-03 - Resolve Ferrum URLs from the service registry
 
 - **Context:** BRA proxies DRS and WES only when `FERRUM_DRS_URL` and `FERRUM_WES_URL` are set. A registry row is an address chosen by whoever can register. Following it without a host check would let that row point the proxy at loopback, link-local, or a cloud metadata address. An empty host allowlist that also accepted those addresses would make a public deployment an open proxy.
@@ -20,6 +22,8 @@ Track important architectural and operational decisions here.
 - **Alternatives considered:** Treat an empty allowlist as allow-all including metadata (rejected); pick the first fresh row when several exist (rejected); follow redirects after the check (rejected).
 
 ---
+
+<a id="2026-04-10-quality-baseline"></a>
 
 ### 2026-04-10 - Establish cross-repo quality and security baseline
 
